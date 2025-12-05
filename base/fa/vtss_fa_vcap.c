@@ -4397,7 +4397,7 @@ static vtss_rc fa_ace_cnt_id_free(vtss_state_t *vtss_state, vtss_vcap_type_t typ
             VTSS_E("%s counter %u already free", vtss_vcap_type_txt(type), cnt_id);
             return VTSS_RC_ERROR;
         }
-        VTSS_BF_SET(info.mem, cnt_id, TRUE);
+        VTSS_BF_SET(info.mem, cnt_id, FALSE);
     }
     return VTSS_RC_OK;
 }
