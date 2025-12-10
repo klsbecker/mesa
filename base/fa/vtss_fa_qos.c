@@ -1232,8 +1232,8 @@ vtss_rc fa_qos_dwrr_conf_set(vtss_state_t     *vtss_state,
     u32 queue;
     u32 dwrr_cnt_max = 8U;
 
-    VTSS_D("Enter  se %u  layer %u  dwrr_enable %u  dwrr_cnt %u  dwrr_pct %u-%u-%u", se, layer,
-           dwrr_enable, dwrr_cnt, dwrr_pct[0], dwrr_pct[1], dwrr_pct[2]);
+    VTSS_E("Enter  se %u  layer %u  dwrr_enable %u  dwrr_mode %u  dwrr_cnt %u  dwrr_pct %u-%u-%u",
+           se, layer, dwrr_enable, dwrr_mode, dwrr_cnt, dwrr_pct[0], dwrr_pct[1], dwrr_pct[2]);
     // TBD_VK: When HQoS is added, the {layer, se} needs to be updated
     // accordingly.
 

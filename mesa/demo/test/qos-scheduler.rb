@@ -85,9 +85,6 @@ $ts.dut.call("mesa_qos_port_dpl_conf_set", $ts.dut.p[eg], $dpl_cnt, dconf)
 t_i("Configure egress prio and dpl tagging to mapped. Also enable port shaper to assure queues are never emptied")
 qconf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
 qconf["tag"]["remark_mode"] = "MESA_TAG_REMARK_MODE_MAPPED"
-qconf["shaper"]["level"] = 25000    # Shaper must have "large" burst size level in order to shape correctly at "high" rates
-qconf["shaper"]["rate"] = 990000
-qconf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
 $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], qconf)
 
 if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_OCELOT"))
@@ -100,21 +97,21 @@ test "Strict scheduling test from #{ig_list} to #{$ts.dut.p[eg]}" do
     # Only expect frames in the highest priority queue when running strict scheduling
        #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,  with_pre_tx=false, pcp=MEASURE_PCP_NONE)
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,990000000],  [220,305,2],   true,              [0,3,7]) # On Caracal some lower priority frames are slipping through
+        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [220,305,2],   true,              [0,3,7]) # On Caracal some lower priority frames are slipping through
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,990000000],  [295,535,2],  true,              [0,3,7]) # On SparX-5 some lower priority frames are slipping through
+        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [295,535,2],  true,              [0,3,7]) # On SparX-5 some lower priority frames are slipping through
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,990000000],  [260,500,0.3], true,             [0,3,7]) # On LAN966X some lower priority frames are slipping through
+        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [260,500,1.1], true,             [0,3,7]) # On LAN966X some lower priority frames are slipping through
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
-        measure(ig, eg, 600, 1,      false,            false,           [0,0,990000000],  [10,500,1],   true,              [0,3,7]) # On LAN966X some lower priority frames are slipping through
+        measure(ig, eg, 600, 1,      false,            false,           [0,0,1000000000],  [10,500,1.1],   true,              [0,3,7]) # On LAN969X some lower priority frames are slipping through
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_OCELOT"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,990000000],  [340,380,2],  true,              [0,3,7]) # On Ocelot some lower priority frames are slipping through
+        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [340,380,2],  true,              [0,3,7]) # On Ocelot some lower priority frames are slipping through
     else
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,990000000],  [0,380,2],    true,              [0,3,7]) # On ServalT some lower priority frames are slipping through
+        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [0,380,2],    true,              [0,3,7]) # On ServalT some lower priority frames are slipping through
     end
     end
     end
@@ -129,15 +126,19 @@ test "Weighted scheduling with equal weights test from #{ig_list} to #{$ts.dut.p
     conf["dwrr_cnt"] = 3
     conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
 
-    erate = 990000000/3
+    erate = 1000000000/3
        #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000,    tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.8,0.8,0.8], true,              [0,1,2])
+        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.05,0.05,0.05], true,              [0,1,2])
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [2,2,2.4],     true,              [0,1,2])
+        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.8,0.8,0.8],     true,              [0,1,2])
     else
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [2,2,2.1],     true,              [0,1,2])
+    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
+        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.05,0.05,0.05],     true,              [0,1,2])
+    else
+        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.2,0.2,0.2],     true,              [0,1,2])
+    end
     end
     end
 end
@@ -151,19 +152,22 @@ test "Weighted scheduling with 10, 30 and 60 percent test from #{ig_list} to #{$
     conf["queue"][1]["pct"] = 30
     conf["queue"][2]["pct"] = 60
     conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-    erate0 = 990000000*1/10
-    erate1 = 990000000*3/10
-    erate2 = 990000000*6/10
+    erate0 = 1000000000*1/10
+    erate1 = 1000000000*3/10
+    erate2 = 1000000000*6/10
 
        #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000,       tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [3.5,6.4,3.6], true,              [0,1,2])
+        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.05,0.05,0.05], true,              [0,1,2])
     else
     if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
         measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [4,6.8,5.3],   true,              [0,1,2])
     else
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [4,6.5,5.1],   true,              [0,1,2])
+    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.3,0.08,0.08],   true,              [0,1,2])
+    else
+        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.08,0.08,0.08],   true,              [0,1,2])
+    end
     end
     end
 end
@@ -217,7 +221,7 @@ test "Weighted frame scheduling with 10, 30 and 60 percent test from #{ig_list} 
     n2 = 1000000000/((s0*w0/w2 + s1*w1/w2 + s2)*8)
 
    #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure(ig, eg, 1000, 1,     true,            false,           [n0,n1,n2],        [5.5,8.5,2.5], true,              [0,1,2], [], [(s0-20),(s1-20),(s2-20)])
+    measure(ig, eg, 1000, 1,     true,            false,           [n0,n1,n2],        [0.2,0.2,0.2], true,              [0,1,2], [], [(s0-20),(s1-20),(s2-20)])
 end
 
 test "Weighted frame scheduling TC11 test with 2, 3 percent from #{ig_list} to #{$ts.dut.p[eg]}" do
@@ -253,7 +257,7 @@ test "Weighted frame scheduling TC11 test with 2, 3 percent from #{ig_list} to #
 
     ig.pop
    #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure(ig, eg, 1000, 1,     true,            false,            [n0,n1],          [3,1.5],   true,              [0,1], [], [(s0-20),(s1-20)])
+    measure(ig, eg, 1000, 1,     true,            false,            [n0,n1],          [0.05,0.05],   true,              [0,1], [], [(s0-20),(s1-20)])
 end
 end
 

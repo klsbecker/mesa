@@ -1547,6 +1547,20 @@ vtss_rc vtss_cmn_qos_port_conf_set(struct vtss_state_s *vtss_state, const vtss_p
     return rc;
 }
 
+static uint32_t gcd_calc(uint32_t x, uint32_t y)
+{
+    // Calculate the Greatest Common Factor using Basic Euclidean Algorithm
+    uint32_t r, val1, val2;
+    r = y;
+    val2 = x;
+    do {
+        val1 = val2;
+        val2 = r;
+        r = val1 % val2;
+    } while (r != 0U);
+    return val2;
+}
+
 /**
  * \brief Convert QoS scheduler weight to cost.
  *
@@ -1560,26 +1574,82 @@ vtss_rc vtss_cmn_qos_port_conf_set(struct vtss_state_s *vtss_state, const vtss_p
  **/
 vtss_rc vtss_cmn_qos_weight2cost(const vtss_pct_t *weight, u8 *cost, u32 num, u8 bit_width)
 {
-    u32        i, c_max;
-    vtss_pct_t w_min = 100;
+    u32 i, c_max, factor, next, gcd, highest, c_10000;
+    u32 c[64] = {};
+
+    if (num == 0U) {
+        return VTSS_RC_OK;
+    }
+    if (num > 64U) {
+        VTSS_E("illegal weight number: %u", num);
+        return VTSS_RC_ERROR;
+    }
     if ((bit_width < 4U) || (bit_width > 8U)) {
         VTSS_E("illegal bit_width: %u", bit_width);
         return VTSS_RC_ERROR;
     }
-    c_max = (u32)1U << bit_width;
     for (i = 0U; i < num; i++) {
         if ((weight[i] < 1U) || (weight[i] > 100U)) {
             VTSS_E("illegal weight: %u", weight[i]);
             return VTSS_RC_ERROR;
         }
-        w_min = MIN(w_min, weight[i]);
     }
-    for (i = 0U; i < num; i++) {
-        // Round half up: Multiply with 16 before division, add 8 and divide
-        // result with 16 again
-        u32 c = (((c_max << 4U) * w_min / weight[i]) + 8U) >> 4U;
-        cost[i] = MAX(1U, (u8)c) - 1U; // Force range to be 0..(c_max - 1)
+    // The MAX value a cost can have. This is one larger than the max register value, as '0' in
+    // register is reprecenting the cost of '1'
+    c_max = (u32)1U << bit_width;
+
+    // Calculate the factor that all weights can divide in to
+    factor = 1U;
+    for (i = 0U; i < num; ++i) {
+        factor = factor * weight[i];
     }
+
+    // Calculate cost that are the reciprocal of weight.
+    // The cost for each priority are all multiplyed with the same 'factor'
+    for (i = 0U; i < num; ++i) {
+        c[i] = factor / weight[i];
+    }
+
+    // Calculate the Greatest Common Factor using Basic Euclidean Algorithm
+    // Look it up at Google :-)
+    gcd = c[0U];
+    for (i = 1U; i < num; ++i) {
+        next = c[i];
+        gcd = gcd_calc(gcd, next);
+    }
+
+    // Divide all cost with the calculated GCD
+    for (i = 0U; i < num; ++i) {
+        c[i] = c[i] / gcd;
+    }
+
+    // Now the cost is the lowest possible value that is a reciprocal of weight.
+    // In many cases all values are below 'c_max' and can be written directly into registers.
+    // In this case we get cost with exacte precision.
+
+    // Check if any cost is higher than 'c_max'
+    highest = 0U;
+    for (i = 0U; i < num; ++i) {
+        if (c[i] > highest) {
+            highest = c[i];
+        }
+    }
+    if (highest > c_max) {
+        // Highest is higher than 'c_max'. The costs has to be reduced to fit register.
+        // Note that it is not possible to calculate accurate cost
+        // The highest cost is given the max possible value in register
+        factor = (c_max * 10000U) / highest; // This factor is the register value for 1/highest
+
+        for (i = 0U; i < num; ++i) {
+            c_10000 = (c[i] * factor);
+            c[i] = (c_10000 / 10000U) + (((c_10000 % 10000U) > 5000U) ? 1U : 0U);
+        }
+    }
+
+    for (i = 0U; i < num; ++i) {
+        cost[i] = (u8)(c[i] - 1U);
+    }
+
     return VTSS_RC_OK;
 }
 
