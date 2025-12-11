@@ -902,6 +902,12 @@ static vtss_rc l26_is2_prepare_key(vtss_state_t       *vtss_state,
             ttl = &ace->frame.ipv6.ttl;
             ds = &ace->frame.ipv6.ds;
             sipv6 = &ace->frame.ipv6.sip;
+            if (is2->entry->host_match) {
+                for (i = 0; i < 16; i++) {
+                    sipv6->value[i] = ace->frame.ipv6.sip_smac.sip.addr[i];
+                    sipv6->mask[i] = 0xff;
+                }
+            }
             sip.value = l26_u8_to_u32(&sipv6->value[12]);
             sip.mask = l26_u8_to_u32(&sipv6->mask[12]);
             dip.value = l26_u8_to_u32(&sipv6->value[8]);
