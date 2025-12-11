@@ -174,3 +174,9 @@ test "test_run" do
     ip_test("ipv4")
 #    ip_test("ipv6")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

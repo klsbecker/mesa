@@ -69,3 +69,9 @@ $test_table.each do |entry|
         $ts.pc.try cmd
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

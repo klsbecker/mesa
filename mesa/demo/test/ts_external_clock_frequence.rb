@@ -88,3 +88,9 @@ test "test_clean_up" do
     # External clock mode restore
     $ts.dut.call("mesa_ts_external_clock_mode_set", $external_clock_mode_restore)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

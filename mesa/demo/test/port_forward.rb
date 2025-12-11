@@ -50,3 +50,9 @@ end
 $ts.dut.port_list.each_with_index do |port, idx|
     $ts.dut.call("mesa_port_forward_state_set", port, "MESA_PORT_FORWARD_ENABLED")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

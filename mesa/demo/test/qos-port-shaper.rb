@@ -189,3 +189,9 @@ end
     port = $ts.dut.p[idx]
     $ts.dut.call("mesa_qos_port_conf_set", port, $qconf[port])
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

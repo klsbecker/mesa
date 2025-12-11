@@ -98,3 +98,9 @@ test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
     run_ef_tx_rx_cmd($ts, $idx_ap1, [$idx_ap2, $idx_tp1, $idx_tp2], "eth")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

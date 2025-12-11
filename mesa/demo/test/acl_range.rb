@@ -85,6 +85,6 @@ end
 test_summary
 
 test "dump" do
-    #$ts.dut.run("mesa-cmd deb api ai acl")
+    #$ts.dut.run("mesa-cmd deb api ci acl action 3")
 end
 

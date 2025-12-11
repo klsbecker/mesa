@@ -131,3 +131,9 @@ test "frame-io" do
         cnt_check(port, c, dir + "BroadcastPkts", cnt)
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

@@ -167,3 +167,9 @@ test "test_clean_up" do
     # age out any allocated timestamps id's
     4.times {$ts.dut.call("mesa_timestamp_age")}
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

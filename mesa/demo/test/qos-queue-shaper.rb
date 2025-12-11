@@ -171,3 +171,9 @@ end
     $ts.dut.call("mesa_vlan_port_conf_set", port, $vconf[port])
     $ts.dut.call("mesa_qos_port_conf_set", port, $qconf[port])
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

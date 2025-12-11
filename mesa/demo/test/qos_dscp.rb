@@ -343,3 +343,9 @@ $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[$egr_port], $egr_qconf_restore)
 $ts.dut.call("mesa_qos_port_dpl_conf_set", $ts.dut.p[$egr_port], $dpl_cnt, $egr_pdconf_restore)
 $ts.dut.call("mesa_vlan_port_conf_set", $ts.dut.p[$egr_port], $egr_vconf_restore)
 $ts.dut.call("mesa_qos_dscp_dpl_conf_set", $dpl_cnt, $egr_ddconf_restore)
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

@@ -469,3 +469,9 @@ test "test_run" do
     end
 
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

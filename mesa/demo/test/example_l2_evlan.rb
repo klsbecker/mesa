@@ -41,3 +41,9 @@ test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
     run_ef_tx_rx_cmd($ts, $idx_iport, idx_list, "eth" + cmd_tag_push({tpid: 0x8100, vid: 10}) + " data pattern cnt 46")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

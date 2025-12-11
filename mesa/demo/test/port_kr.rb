@@ -197,3 +197,9 @@ test "Disable KR" do
         send_and_verify(1, 0)
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

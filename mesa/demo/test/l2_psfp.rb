@@ -343,3 +343,9 @@ test "frame-policer" do
     conf["drop_yellow"] = true
     policer_test("eir.yellow.drop", conf, prio, len, tx_cnt, rx_min, rx_max)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx act 11")
+end

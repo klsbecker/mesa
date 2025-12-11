@@ -885,3 +885,9 @@ test "The Test" do
     hier_unknown_normal()
     actual_min_rate()
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

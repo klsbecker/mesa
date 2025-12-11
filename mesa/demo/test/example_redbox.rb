@@ -38,3 +38,9 @@ end
 test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai redbox")
+end

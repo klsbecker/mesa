@@ -647,3 +647,8 @@ $conf_table.each do |e|
 end
 
 test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai l3")
+    #$ts.dut.run("mesa-cmd deb api ac acl action 4")
+end

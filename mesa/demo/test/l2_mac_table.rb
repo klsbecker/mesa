@@ -174,3 +174,11 @@ test "frame_io" do
         run_ef_tx_rx_cmd($ts, idx_tx, idx_list, cmd)
     end
 end
+
+test_summary
+
+test "dump" do
+    break
+    $ts.dut.run("mesa-cmd debug api mac_table")
+    $ts.dut.run("mesa-cmd mac dump")
+end

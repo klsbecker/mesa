@@ -44,3 +44,9 @@ test "tx-vlan" do
     $ts.pc.run(cmd)
 end
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd debug api packet")
+end
+

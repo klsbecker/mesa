@@ -82,3 +82,9 @@ test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
     filter_test(true, 1400)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx act 11")
+end

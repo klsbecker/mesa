@@ -216,3 +216,9 @@ test "frame-io-afi-v2-fast" do
     # Check counters
     check_cnt(port, prio)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd debug api afi")
+end

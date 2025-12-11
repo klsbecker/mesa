@@ -274,10 +274,14 @@ class Sample < ::Ox::Sax
     end
 end
 
+
+$brief_res = {cnt_ok: 0, cnt_skip: 0, cnt_err: 0}
+
 class Brief < ::Ox::Sax
     def initialize
         @stack = []
         @indent_level = 1
+        @skipped = false
     end
 
     def pr msg, pre_indent = " "
@@ -296,11 +300,23 @@ class Brief < ::Ox::Sax
     def start_element(name)
         @stack.push({ :name => name, :attr => {}, :indent => @indent_level })
         @indent_level += 1
+        case name
+        when :test_run
+            @skipped = false
+        end
     end
 
     def end_element(name)
         e = @stack.pop
+        a = e[:attr]
         @indent_level -= 1
+
+        case e[:name]
+        when :check_capability_end
+            if a[:status] != "ok"
+                @skipped = true
+            end
+        end
     end
 
     def attr(name, value)
@@ -314,10 +330,15 @@ class Brief < ::Ox::Sax
 
         case e[:name]
         when :test_run_end
-            if a[:status] == "ok"
-                pr "OK: #{a[:file]}", "TC".bg_green
+            if a[:status] != "ok"
+                pr "NOT-OK : #{a[:file]}", "TC".bg_red
+                $brief_res[:cnt_err] += 1
+            elsif @skipped
+                pr "SKIPPED: #{a[:file]}", "TC".bg_blue
+                $brief_res[:cnt_skip] += 1
             else
-                pr "NOT-OK: #{a[:file]}", "TC".bg_red
+                pr "OK     : #{a[:file]}", "TC".bg_green
+                $brief_res[:cnt_ok] += 1
             end
         end
     end
@@ -360,3 +381,11 @@ else
 end
 
 Ox.sax_parse(handler, STDIN, :skip => :skip_none)
+
+tot = ($brief_res[:cnt_ok] + $brief_res[:cnt_skip] + $brief_res[:cnt_err])
+if (tot > 1)
+    puts("Total  : #{tot}")
+    puts("Ok     : #{$brief_res[:cnt_ok]}")
+    puts("Skipped: #{$brief_res[:cnt_skip]}")
+    puts("Errors : #{$brief_res[:cnt_err]}")
+end

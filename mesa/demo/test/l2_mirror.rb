@@ -270,6 +270,7 @@ test_table.each do |t|
         mirror_test(t)
     end
 end
+
 test_summary
 
 test "dump" do

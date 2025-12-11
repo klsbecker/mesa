@@ -44,3 +44,9 @@ test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
     packet_test($idx_iport, $idx_list - [$idx_iport])
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai packet")
+end

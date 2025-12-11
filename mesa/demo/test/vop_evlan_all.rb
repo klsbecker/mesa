@@ -1637,3 +1637,8 @@ test "test_clean_up" do
     $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.port_list[$port1], $qos_conf_restore1)
 end
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai oam")
+end

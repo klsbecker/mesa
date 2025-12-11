@@ -70,3 +70,10 @@ test "frame-io" do
     cmd += " ipv4 dip 225.2.3.4 udp"
     run_ef_tx_rx_cmd($ts, idx_tx, [$idx_host], cmd)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai mac_table")
+end
+

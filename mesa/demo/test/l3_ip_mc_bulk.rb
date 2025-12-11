@@ -168,3 +168,11 @@ end
 $rleg_vid.each do |vid|
     $ts.dut.call "mesa_l3_rleg_del", vid
 end
+
+test_summary
+
+test "dump" do
+    break
+    $ts.dut.run("mesa-cmd debug api vlan")
+    $ts.dut.run("mesa-cmd debug api l3")
+end

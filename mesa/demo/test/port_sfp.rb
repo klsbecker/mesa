@@ -172,3 +172,9 @@ test "Test SFP loop" do
         i += 2
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

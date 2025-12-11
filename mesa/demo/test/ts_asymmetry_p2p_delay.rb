@@ -223,3 +223,8 @@ test "test_clean_up" do
     $ts.dut.call("mesa_ts_p2p_delay_set", $ts.dut.port_list[$port0], $p2p_conf_restore)
 end
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

@@ -139,3 +139,9 @@ test "test_clean_up" do
 
     $ts.dut.run "mesa-cmd Debug Port Polling enable"
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

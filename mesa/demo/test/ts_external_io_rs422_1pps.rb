@@ -148,7 +148,13 @@ test "test_conf" do
     end
 end
 
-test"test_run" do
+test "test_run" do
     # Test io clock on the RS422 interface
     tod_external_io_rs422_1pps_test
+end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
 end

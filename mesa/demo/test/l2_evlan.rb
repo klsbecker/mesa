@@ -456,3 +456,9 @@ test_table.each do |t|
 end
 
 test_summary
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

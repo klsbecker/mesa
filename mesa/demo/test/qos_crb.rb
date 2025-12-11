@@ -81,3 +81,9 @@ test "frame-io" do
     # Shaping at 1Mbps, CRB enabled
     shaper_test(idx_tx, idx_rx, prio, rate, level, true)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

@@ -51,3 +51,9 @@ test "frame-io" do
         end
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci acl action 3")
+end

@@ -38,3 +38,9 @@ test "frame-io" do
         run_ef_tx_rx_cmd($ts, idx_tx, idx_list, "eth")
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

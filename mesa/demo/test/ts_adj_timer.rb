@@ -209,3 +209,9 @@ test "test_clean_up" do
     $ts.dut.call("mesa_ts_domain_adjtimer_set", 1, $frequence_adjustment_restore1)
     $ts.dut.call("mesa_ts_domain_adjtimer_set", 2, $frequence_adjustment_restore2)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

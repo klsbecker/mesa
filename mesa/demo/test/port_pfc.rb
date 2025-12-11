@@ -252,3 +252,9 @@ $test_list.each do |entry|
 
     end # test
 end # test_list
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

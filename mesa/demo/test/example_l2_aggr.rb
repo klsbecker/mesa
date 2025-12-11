@@ -67,3 +67,9 @@ test "test_clean_up" do
         t_e("Port counters are not as expected. port1 tx #{counters[0]["rmon"]["tx_etherStatsPkts"]}  port2 tx #{counters[1]["rmon"]["tx_etherStatsPkts"]}")
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai aggr")
+end

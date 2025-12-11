@@ -258,4 +258,6 @@ end
 
 test_summary
 
-#$ts.dut.run("mesa-cmd deb api ci vx")
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci vx")
+end

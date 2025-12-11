@@ -201,3 +201,9 @@ $ts.dut.call("mesa_tce_add", 0, tce)
         end
     end
 #end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

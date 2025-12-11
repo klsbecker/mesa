@@ -80,3 +80,9 @@ test "test_clean_up" do
     $ts.dut.run("mesa-cmd example uninit")
 
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

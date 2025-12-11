@@ -269,3 +269,9 @@ idx_list.each do |idx|
     $ts.dut.call("mesa_qos_port_conf_set", port, $qconf[port])
     $ts.dut.call("mesa_qos_port_dpl_conf_set", port, $dpl_cnt, $dconf[port])
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

@@ -84,3 +84,9 @@ $speed_list.each do |spd_entry|
         $ts.dut.run("mesa-cmd port statis pac")
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

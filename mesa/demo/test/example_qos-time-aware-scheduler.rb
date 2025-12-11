@@ -99,3 +99,9 @@ test "test_clean_up" do
    #measure(ig, eg, size,          sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
     measure(ig, eg, $frame_size,   2,     false,            false,           [erate],             [1],            true,              [0])
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci qos action 7")
+end

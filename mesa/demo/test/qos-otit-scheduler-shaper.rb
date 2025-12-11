@@ -476,3 +476,9 @@ test "run_test" do
 
     it_scheduling
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

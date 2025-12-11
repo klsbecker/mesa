@@ -138,3 +138,9 @@ test "frame-io" do
         end
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api cil vx action 1")
+end

@@ -75,3 +75,9 @@ test "frame-io" do
         frame_test_counters(frame, 0, 1, count, count, 7 - pcp)
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai qos")
+end

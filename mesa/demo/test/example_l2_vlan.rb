@@ -104,3 +104,9 @@ test "uninit" do
     $ts.dut.run("mesa-cmd example uninit")
     run_ef_tx_rx_cmd($ts, $idx_up, [$idx_ap, $idx_tp, $idx_hp], "eth")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vlan")
+end

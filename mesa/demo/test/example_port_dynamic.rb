@@ -106,3 +106,9 @@ end
 #     t_i("Verify with frame forwarding")
 #     test_frame_fwd()
 # end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

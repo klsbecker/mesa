@@ -110,3 +110,9 @@ test "frame-io" do
         end
     end
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vlan")
+end

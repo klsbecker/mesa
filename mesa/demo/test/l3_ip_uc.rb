@@ -194,6 +194,8 @@ test "discard-route" do
     end
 end
 
+test_summary
+
 test "dump" do
     break
     $ts.dut.run("mesa-cmd debug api vlan")

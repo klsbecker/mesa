@@ -394,3 +394,9 @@ test "test_run" do
     # Test TOD using default domain (0) API. Domain value 3 is a illegal domain indicating default
     tod_domain_test(3, 0)
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ci ts")
+end

@@ -378,6 +378,10 @@ test "Three DLB policers on cosid 0,1,2 - CIR sharing - MAX inherit. COS 0 CIR d
     erate1 = ($cos1_cir + $cos1_eir + inherit1)*1000
     measure([igCos0,igCos1,igCos2], eg, 1000, 1, false,          false,           [erate0,erate1,erate2],   [1,1,1],         true,              [0,1,2])
 end
-#$ts.dut.run("mesa-cmd deb api cil qos full act 17")
-#$ts.dut.run("mesa-cmd deb api cil qos full act 16")
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api cil qos full act 17")
+    #$ts.dut.run("mesa-cmd deb api cil qos full act 16")
+end

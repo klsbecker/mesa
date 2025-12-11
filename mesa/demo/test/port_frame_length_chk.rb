@@ -71,3 +71,8 @@ test "frame_func" do
     end
 end
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai port")
+end

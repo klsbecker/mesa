@@ -104,3 +104,9 @@ test "test_clean_up" do
     t_i("Clean up the test by calling the example code command")
     $ts.dut.run("mesa-cmd example uninit")
 end
+
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai vx")
+end

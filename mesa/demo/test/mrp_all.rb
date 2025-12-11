@@ -1548,3 +1548,8 @@ test "test_clean_up" do
     $ts.dut.call("mesa_npi_conf_set", $npi_conf_restore)
 end
 
+test_summary
+
+test "dump" do
+    #$ts.dut.run("mesa-cmd deb api ai mrp")
+end
