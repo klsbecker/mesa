@@ -911,7 +911,7 @@ def upload_utils conf
 
 end
 
-$easyframes_sha = "0d1c8c257e29c8e5594082d6f38c9271c12bcfbf"
+$easyframes_sha = "14c98e827fda79e0fe825976a549783bbe596141"
 
 UBOOT_PROMPTS = ["m => ", "ocelot # ", "luton # ", "jr2 # ", "servalt # ", "=> "]
 
