@@ -31,6 +31,9 @@ $systems = [
     { name: "dk-t36-6", image: "arm64_lan9698RED.itb",       branch:"master", parallel: "no", server: "36", started: "no" },
     { name: "dk-t37-0", image: "arm64_lan9698RED.itb",       branch:"master", parallel: "no", server: "37", started: "no" },
 
+    # dk-t38, Hallberg FPGA systems
+    { name: "dk-t38-0", image: "armv7_lan932x_fpga.itb",     branch:"master.hallberg", parallel: "no", server: "38", started: "no" },
+
 #   { name: "dk-t31",   image: "arm64_vsc7546TSN.itb",       branch:"master", parallel: "no", server: "35", started: "no" },
 #   { name: "dk-t35-6", image: "mipsel_vsc7468_48.mfi",      branch:"master", parallel: "no", server: "35", started: "no" }, MESA-428 / Atom issue
            ]
@@ -130,7 +133,7 @@ puts "-----Start test on all 'sequential' systems.-----"
 seq_done = false
 while (!seq_done)
     seq_done = true
-    ["33", "34", "35", "36", "37"].each_with_index do |s, i|
+    ["33", "34", "35", "36", "37", "38"].each_with_index do |s, i|
         t = $sequential_threads[i]
         if (t == nil)
             t = start_server_sequential(s)
