@@ -497,8 +497,22 @@ def counter_get(direction, port)
 end
 
 MEASURE_PCP_NONE = 0xFFFF
-def measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=[1000000000], etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[], size_array=[])
-    test "measure  ig: #{ig}  eg: #{eg}  size: #{size}  sec: #{sec}  frame_rate #{frame_rate}  data_rate #{data_rate}  erate #{erate}  etolerance #{etolerance}  with_pre_tx: #{with_pre_tx}  pcp #{pcp}  cycle_time #{cycle_time}  size_array #{size_array}" do
+# Wrapper function for measure() utilility
+# This takes a hash input and does not create a test block
+def check_rate(cfg)
+    # Extract input parameters
+    ig = fld_get(cfg, :ig)
+    eg = fld_get(cfg, :eg)
+    size = fld_get(cfg, :size, 64)
+    sec = fld_get(cfg, :sec, 1)
+    frame_rate = fld_get(cfg, :frame_rate, false)
+    data_rate = fld_get(cfg, :data_rate, false)
+    erate = fld_get(cfg, :erate, [1000000000])
+    etolerance = fld_get(cfg, :etolerance, [1])
+    with_pre_tx = fld_get(cfg, :with_pre_tx, false)
+    pcp = fld_get(cfg, :pcp, [])
+    cycle_time = fld_get(cfg, :cycle_time, [])
+    size_array = fld_get(cfg, :size_array, [])
 
     pre_tx = with_pre_tx ? 1 : 0    # Calculate the possible pre tx time in seconds
     time = (pre_tx+sec+100)     # Calculate the required seconds that the transmitter must at least (+100) be transmitting
@@ -613,7 +627,24 @@ def measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=[10000
         expected_tolerance = ((expected_count * etolerance[0]) / 100) + ((((expected_count * etolerance[0]) % 100) != 0) ? 1 : 0)
         $ts.pc.try("pcap_analyze.rb --frame-count all --pre-tx-sec #{pre_tx} --count-sec #{sec} --exp-count #{expected_count} --exp-tolerance #{expected_tolerance} /tmp/dump.pcap")
     end
+end
 
+def measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=[1000000000], etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[], size_array=[])
+    test "measure  ig: #{ig}  eg: #{eg}  size: #{size}  sec: #{sec}  frame_rate #{frame_rate}  data_rate #{data_rate}  erate #{erate}  etolerance #{etolerance}  with_pre_tx: #{with_pre_tx}  pcp #{pcp}  cycle_time #{cycle_time}" do
+        cfg = {}
+        cfg[:ig] = ig
+        cfg[:eg] = eg
+        cfg[:size] = size
+        cfg[:sec] = sec
+        cfg[:frame_rate] = frame_rate
+        cfg[:data_rate] = data_rate
+        cfg[:erate] = erate
+        cfg[:etolerance] = etolerance
+        cfg[:with_pre_tx] = with_pre_tx
+        cfg[:pcp] = pcp
+        cfg[:cycle_time] = cycle_time
+        cfg[:size_array] = size_array
+        check_rate(cfg)
     end # test
 end
 
