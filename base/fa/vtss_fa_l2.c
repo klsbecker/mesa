@@ -2320,7 +2320,7 @@ static vtss_rc fa_rb_disc_cmd(vtss_state_t *vtss_state, const vtss_rb_id_t rb_id
     u32 val, tgt = fa_rb_tgt(rb_id);
 
     REG_WR(VTSS_RB_DISC_ACCESS_CTRL(tgt),
-           VTSS_F_RB_DISC_ACCESS_CTRL_AUTOLRN_REPLACE_RULE_ENA(0xe) |
+           VTSS_F_RB_DISC_ACCESS_CTRL_AUTOLRN_REPLACE_RULE_ENA(0x1f) |
                VTSS_F_RB_DISC_ACCESS_CTRL_CPU_ACCESS_DIRECT_COL(idx % FA_DT_COL_CNT) |
                VTSS_F_RB_DISC_ACCESS_CTRL_CPU_ACCESS_DIRECT_ROW(idx / FA_DT_COL_CNT) |
                VTSS_F_RB_DISC_ACCESS_CTRL_CPU_ACCESS_CMD(cmd) |
