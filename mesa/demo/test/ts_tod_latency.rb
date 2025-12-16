@@ -196,7 +196,7 @@ def multiple_measure(port0, port1)
     t_i ("delays_diff #{delays_diff}")
 end
 
-def tod_latency_test(port0, port1)
+def tod_latency_test(port0, port1, text)
     test "tod_latency_test" do
 
     # Set Port PTP domain to 0 on loop ports
@@ -261,6 +261,7 @@ def tod_latency_test(port0, port1)
     end
 
     if ((nano_delay_0 < min) || (nano_delay_0 > max))
+        t_e("#{text}  port0 #{port0}  port1 #{port1}")
         t_e("Unexpected delay with egress latency 0 and ingress latency 0.  Delay = #{nano_delay_0}  min #{min}  max #{max}")
     end
 
@@ -277,6 +278,7 @@ def tod_latency_test(port0, port1)
         diff_tolerance = 20
     end
     if ((diff > (PTP_LATENCY_MAX + diff_tolerance)) || (diff < (PTP_LATENCY_MAX - diff_tolerance)))
+        t_e("#{text}  port0 #{port0}  port1 #{port1}")
         t_e("Unexpected delay with egress latency #{PTP_LATENCY_MAX} and ingress latency 0.  Delay = #{nano_delay_1}  tolerance #{diff_tolerance}")
     end
 
@@ -289,9 +291,11 @@ def tod_latency_test(port0, port1)
     diff = nano_delay_0 - nano_delay_2
     t_i ("delay difference #{diff}")
     if ((diff > (PTP_LATENCY_MAX*2 + diff_tolerance)) || (diff < (PTP_LATENCY_MAX*2 - diff_tolerance)))
+        t_e("#{text}  port0 #{port0}  port1 #{port1}")
         t_e("Unexpected delay with egress latency #{PTP_LATENCY_MAX} and ingress latency #{PTP_LATENCY_MAX}.  Delay = #{nano_delay_2}  tolerance #{diff_tolerance}")
     end
 
+    t_i("#{text}  port0 #{port0}  port1 #{port1}")
     t_i("nano_delay_0 = #{nano_delay_0}  nano_delay_1 = #{nano_delay_1}  nano_delay_2 = #{nano_delay_2}  ")
 
     end
@@ -373,21 +377,21 @@ test "test_run" do
                 sleep 1.0
                 conf = $ts.dut.call("mesa_port_conf_get", port0)
                 if (conf["speed"] == "MESA_SPEED_10G")
-                    tod_latency_test(port0, port1)
+                    tod_latency_test(port0, port1, "10G_FDX - NO FEC")
 
                     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
                         t_i "Run test with KR RS-FEC"
                         $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} all")
                         $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} all")
                         sleep 2
-                        tod_latency_test(port0, port1)
+                        tod_latency_test(port0, port1, "10G_FDX - KR RS-FEC")
                     end
 
                     t_i "Run test with KR R-FEC"
                     $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} adv-10g rfec train")
                     $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} adv-10g rfec train")
                     sleep 2
-                    tod_latency_test(port0, port1)
+                    tod_latency_test(port0, port1, "10G_FDX - KR R-FEC")
                     $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} disable")
                     $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} disable")
                 end
@@ -400,7 +404,7 @@ test "test_run" do
                 t_i "Supports 5G"
                 $ts.dut.run("mesa-cmd port mode #{port0+1} 5g")
                 $ts.dut.run("mesa-cmd port mode #{port1+1} 5g")
-                tod_latency_test(port0, port1)
+                tod_latency_test(port0, port1, "5G_FDX")
             else
                 t_i "Do not Supports 5G"
             end
@@ -411,7 +415,7 @@ test "test_run" do
             t_i "Supports 2.5G"
             $ts.dut.run("mesa-cmd port mode #{port0+1} 2500")
             $ts.dut.run("mesa-cmd port mode #{port1+1} 2500")
-            tod_latency_test(port0, port1)
+            tod_latency_test(port0, port1, "2_5G_FDX")
         else
             t_i "Do not Supports 2.5G"
         end
@@ -421,7 +425,7 @@ test "test_run" do
             t_i "Supports 1G"
             $ts.dut.run("mesa-cmd port mode #{port0+1} 1000fdx")
             $ts.dut.run("mesa-cmd port mode #{port1+1} 1000fdx")
-            tod_latency_test(port0, port1)
+            tod_latency_test(port0, port1, "1G_FDX")
         else
             t_i "Do not Supports 1G"
         end
@@ -434,19 +438,19 @@ test "test_run" do
             sleep 0.5
             conf = $ts.dut.call("mesa_port_conf_get", port0)
             if (conf["speed"] == "MESA_SPEED_25G")
-                tod_latency_test(port0, port1)
+                tod_latency_test(port0, port1, "25G_FDX - NO FEC")
 
                 t_i "Run test with KR RS-FEC"
                 $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} all")
                 $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} all")
                 sleep 0.5
-                tod_latency_test(port0, port1)
+                tod_latency_test(port0, port1, "25G_FDX - KR RS-FEC")
 
                 t_i "Run test with KR R-FEC"
                 $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} adv-25g rfec train")
                 $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} adv-25g rfec train")
                 sleep 0.5
-                tod_latency_test(port0, port1)
+                tod_latency_test(port0, port1, "25G_FDX - KR R-FEC")
 
                 $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} disable")
                 $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} disable")
@@ -462,7 +466,7 @@ test "test_run" do
             t_i "Supports 10G"
             $ts.dut.run("mesa-cmd port mode #{$loop_port0_10g+1} 10g")
             $ts.dut.run("mesa-cmd port mode #{$loop_port1_10g+1} 10g")
-            tod_latency_test($loop_port0_10g, $loop_port1_10g)
+            tod_latency_test($loop_port0_10g, $loop_port1_10g, "10G_FDX")
         else
             t_i "Do not Supports 10G"
         end

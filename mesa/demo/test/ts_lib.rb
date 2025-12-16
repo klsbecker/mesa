@@ -261,7 +261,7 @@ def sync_pdu_create(header_rsv=0, hdr_sequenceId=0)
 
     test "sync_pdu_create  header_rsv #{header_rsv}" do
 
-    $sync_pdu = "ptp-sync hdr-reserved2 #{header_rsv} hdr-sequenceId #{hdr_sequenceId} "
+    $sync_pdu = "ptp-sync hdr-reserved2 #{header_rsv} hdr-sequenceId #{hdr_sequenceId} data repeat 2 0x00 "
 
     end
 
@@ -277,25 +277,19 @@ def sync_pdu_rx_create(header_rsv=IGNORE, secondsField=IGNORE, sequenceId=IGNORE
 
     if (all)
         $sync_pdu = "ptp-sync ign "
-        return $sync_pdu
         $sync_pdu += "hdr-transportSpecific 0 "
         $sync_pdu += "hdr-messageType 0 "
-        $sync_pdu += "hdr-reserved 0 "
+        $sync_pdu += "hdr-minorVersionPTP 0 "
         $sync_pdu += "hdr-versionPTP 0 "
-        $sync_pdu += "hdr-messageLength 44 "
+        $sync_pdu += "hdr-messageLength 46 "
         $sync_pdu += "hdr-domainNumber 0 "
         $sync_pdu += "hdr-reserved1 0 "
         $sync_pdu += "hdr-flagField 0 "
         $sync_pdu += "hdr-reserved2 0 "
         $sync_pdu += "hdr-clockId 0 "
         $sync_pdu += "hdr-portNumber 0 "
-        $sync_pdu += "hdr-sequenceId #{sequenceId} "
-        if (secondsField != IGNORE)
-            $sync_pdu += "ots-secondsField #{secondsField} "
-        end
         $sync_pdu += "hdr-controlField 0 "
         $sync_pdu += "hdr-logMessageInterval 0 "
-        $sync_pdu += "ots-secondsField #{seconds} "
     end
 
     if (header_rsv != IGNORE)
@@ -310,6 +304,7 @@ def sync_pdu_rx_create(header_rsv=IGNORE, secondsField=IGNORE, sequenceId=IGNORE
     if (cf_org != IGNORE)
         $sync_pdu += "hdr-correctionField 0 ots-secondsField 0 ots-nanosecondsField 0 "
     end
+    $sync_pdu += "data repeat 2 0x00 "
 
     end
 
