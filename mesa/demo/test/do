@@ -185,29 +185,33 @@ for platform in $platform_list; do
             ;;
     esac
 
-    rel=1
-    if [ -f $HOME/.mscc-libeasy-topology.yaml ]; then
-        et release
-        rel=0
-    fi
     if [ $ts2 != 0 ]; then
         ts=$ts2
     fi
     echo "=== Reserve: $ts"
-    if [ $brief == 1 ]; then
-        et reserve $ts > /dev/null
+    if [[ $(et status $ts | grep free) ]]; then
+        rel=1
+        if [ -f $HOME/.mscc-libeasy-topology.yaml ]; then
+            et release
+            rel=0
+        fi
+        if [ $brief == 1 ]; then
+            et reserve $ts > /dev/null
+        else
+            et reserve $ts
+        fi
+
+        echo "=== Upload: $img"
+        cd ../../../$dir
+        et upload mesa/demo/$img
+        cd -
+
+        echo "=== Run: $file"
+        dr "./$file | libeasy/xml2console.rb $suffix"
+        if [ $rel == 1 ]; then
+            et release
+        fi
     else
-        et reserve $ts
-    fi
-
-    echo "=== Upload: $img"
-    cd ../../../$dir
-    et upload mesa/demo/$img
-    cd -
-
-    echo "=== Run: $file"
-    dr "./$file | libeasy/xml2console.rb $suffix"
-    if [ $rel == 1 ]; then
-        et release
+        echo "Busy, skipping"
     fi
 done
