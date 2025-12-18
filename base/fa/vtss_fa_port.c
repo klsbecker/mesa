@@ -5439,8 +5439,11 @@ static vtss_rc fa_port_init(vtss_state_t *vtss_state)
     /* Setup ANA_AC to count local drops and policer drops per port */
     REG_WR(VTSS_ANA_AC_PS_STICKY_MASK_STICKY_MASK(0),
            VTSS_M_ANA_AC_PS_STICKY_MASK_STICKY_MASK_ZERO_DST_STICKY_MASK);
+    // Bit 0: Local drops (all platforms)
+    // Bit 16: PSFP drops (Laguna and later)
+    // Bit 17: ATS drops (Hallberg and later)
     REG_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_PORT_STAT_GLOBAL_EVENT_MASK(REG_CNT_ANA_AC_PORT_FILTER),
-           VTSS_F_ANA_AC_STAT_GLOBAL_CFG_PORT_STAT_GLOBAL_EVENT_MASK_GLOBAL_EVENT_MASK(1U));
+           VTSS_F_ANA_AC_STAT_GLOBAL_CFG_PORT_STAT_GLOBAL_EVENT_MASK_GLOBAL_EVENT_MASK(0x30001));
     REG_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_PORT_STAT_GLOBAL_EVENT_MASK(REG_CNT_ANA_AC_PORT_POLICER_DROPS),
            VTSS_F_ANA_AC_STAT_GLOBAL_CFG_PORT_STAT_GLOBAL_EVENT_MASK_GLOBAL_EVENT_MASK(
                0xf0f0)); /* count policer drops*/
