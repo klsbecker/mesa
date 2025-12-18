@@ -321,11 +321,15 @@ static vtss_rc srvl_sd6g_lock(vtss_state_t *vtss_state)
     return VTSS_RC_OK;
 }
 
+static vtss_rc srvl_sd1g_lock(vtss_state_t *vtss_state) { return srvl_sd6g_lock(vtss_state); }
+
 static vtss_rc srvl_sd6g_unlock(vtss_state_t *vtss_state)
 {
     SRVL_WR(VTSS_DEVCPU_ORG_ORG_SEMA0, 1);
     return VTSS_RC_OK;
 }
+
+static vtss_rc srvl_sd1g_unlock(vtss_state_t *vtss_state) { return srvl_sd6g_unlock(vtss_state); }
 
 /* Serdes6G: Read/write data */
 static vtss_rc srvl_sd6g_read_write(vtss_state_t *vtss_state, u32 addr, BOOL write)
@@ -777,6 +781,146 @@ static vtss_rc srvl_sd6g_cfg(vtss_state_t *vtss_state, vtss_port_no_t port_no, u
     return VTSS_RC_OK;
 }
 #endif
+
+static void sdxg_prbs_populate_status(BOOL                                  active,
+                                      BOOL                                  no_sync,
+                                      BOOL                                  compl_n,
+                                      u32                                   err_cnt,
+                                      vtss_port_serdes_prbs_status_t *const status)
+{
+    status->is_active = active;
+    status->is_sync = active && !no_sync;
+    status->is_error = active && !compl_n && (err_cnt != 0);
+    status->prbs_err_cnt = err_cnt;
+}
+
+static vtss_rc sd6g_prbs_read_status(vtss_state_t                         *vtss_state,
+                                     vtss_port_serdes_prbs_status_t *const status)
+{
+    u32  status_reg_val, cfg_reg_val, err_cnt_reg_val;
+    BOOL active, no_sync, compl_n;
+
+    SRVL_RD(VTSS_HSIO_SERDES6G_DIG_STATUS_SERDES6G_ERR_CNT, &err_cnt_reg_val);
+    SRVL_RD(VTSS_HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS, &status_reg_val);
+    SRVL_RD(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0, &cfg_reg_val);
+
+    active = (VTSS_X_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0_TEST_MODE(cfg_reg_val) != 0);
+    compl_n = SRVL_BF(HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS_BIST_COMPLETE_N, status_reg_val);
+    no_sync = SRVL_BF(HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS_BIST_NOSYNC, status_reg_val);
+
+    sdxg_prbs_populate_status(active, no_sync, compl_n, err_cnt_reg_val, status);
+    return VTSS_RC_OK;
+}
+
+static vtss_rc sd1g_prbs_read_status(vtss_state_t                         *vtss_state,
+                                     vtss_port_serdes_prbs_status_t *const status)
+{
+    // NOTE: SerDes1G doesn't have error counter
+    u32  status_reg_val, cfg_reg_val, err_cnt_reg_val = 0;
+    BOOL active, no_sync, compl_n;
+
+    SRVL_RD(VTSS_HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS, &status_reg_val);
+    SRVL_RD(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0, &err_cnt_reg_val);
+
+    active = (VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_PRBS_SEL(cfg_reg_val) != 0);
+    compl_n = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_COMPLETE_N, status_reg_val);
+    no_sync = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_NOSYNC, status_reg_val);
+    active = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_ACTIVE, status_reg_val);
+
+    sdxg_prbs_populate_status(active, no_sync, compl_n, err_cnt_reg_val, status);
+    return VTSS_RC_OK;
+}
+
+static u8 sdxg_get_prbs_test_pattern_idx(vtss_port_serdes_prbs_pattern_t pattern)
+{
+    switch (pattern) {
+    case VTSS_PORT_SERDES_PATTERN_PRBS7:
+    case VTSS_PORT_SERDES_PATTERN_PRBS15:
+    case VTSS_PORT_SERDES_PATTERN_PRBS23:
+    case VTSS_PORT_SERDES_PATTERN_PRBS31: {
+        return (u8)pattern;
+    }
+    default: {
+        return 0;
+    }
+    }
+}
+
+static vtss_rc sdxg_prbs_config_set(vtss_rc (*sd_lock_func)(vtss_state_t *),
+                                    vtss_rc (*sd_write_func)(vtss_state_t *, u32),
+                                    vtss_rc (*sd_unlock_func)(vtss_state_t *),
+                                    vtss_state_t *vtss_state,
+                                    u32           addr,
+                                    u32           cfg_reg_addr,
+                                    u32           cfg_reg_val)
+{
+    VTSS_RC(sd_lock_func(vtss_state));
+    SRVL_WRM_SET(cfg_reg_addr, cfg_reg_val);
+    VTSS_RC(sd_write_func(vtss_state, addr));
+    VTSS_RC(sd_unlock_func(vtss_state));
+
+    VTSS_I("PRBS test config set - port_addr: %u, cfg_reg_addr: 0x%x, cfg_reg_value: 0x%03x\n",
+           addr, cfg_reg_addr, cfg_reg_val);
+
+    return VTSS_RC_OK;
+}
+
+/* NOTE: sd_read_func initiates SerDes read op, sd_read_status reads the actual values */
+static vtss_rc sdxg_prbs_status_get(vtss_rc (*sd_lock_func)(vtss_state_t *),
+                                    vtss_rc (*sd_read_func)(vtss_state_t *, u32),
+                                    vtss_rc (*sd_unlock_func)(vtss_state_t *),
+                                    vtss_rc (*sd_read_status)(vtss_state_t *,
+                                                              vtss_port_serdes_prbs_status_t *const),
+                                    vtss_state_t                         *vtss_state,
+                                    u32                                   addr,
+                                    vtss_port_serdes_prbs_status_t *const status)
+{
+    VTSS_RC(sd_lock_func(vtss_state));
+    VTSS_RC(sd_read_func(vtss_state, addr));
+    VTSS_RC(sd_read_status(vtss_state, status))
+    VTSS_RC(sd_unlock_func(vtss_state));
+    return VTSS_RC_OK;
+}
+
+/* Helper macro to derive SERDESxG (1G, or 6G) config register for PRBS test */
+#define SERDESxG_PRBS_TEST_CFG_VALUE_BUILDER(x, conf)                                              \
+    VTSS_F_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_PRBS_SEL(                               \
+        sdxg_get_prbs_test_pattern_idx(conf->prbs_test_pattern)) |                                 \
+        VTSS_F_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_TEST_MODE(conf->enable)
+
+static vtss_rc sd6g_prbs_config_set(vtss_state_t                             *vtss_state,
+                                    u32                                       addr,
+                                    const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    return sdxg_prbs_config_set(srvl_sd6g_lock, srvl_sd6g_write, srvl_sd6g_unlock, vtss_state, addr,
+                                VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0,
+                                SERDESxG_PRBS_TEST_CFG_VALUE_BUILDER(6, conf));
+}
+
+static vtss_rc sd1g_prbs_config_set(vtss_state_t                             *vtss_state,
+                                    u32                                       addr,
+                                    const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    return sdxg_prbs_config_set(srvl_sd1g_lock, srvl_sd1g_write, srvl_sd1g_unlock, vtss_state, addr,
+                                VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0,
+                                SERDESxG_PRBS_TEST_CFG_VALUE_BUILDER(1, conf));
+}
+
+static vtss_rc sd6g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                    u32                                   addr,
+                                    vtss_port_serdes_prbs_status_t *const status)
+{
+    return sdxg_prbs_status_get(srvl_sd6g_lock, srvl_sd6g_read, srvl_sd6g_unlock,
+                                sd6g_prbs_read_status, vtss_state, addr, status);
+}
+
+static vtss_rc sd1g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                    u32                                   addr,
+                                    vtss_port_serdes_prbs_status_t *const status)
+{
+    return sdxg_prbs_status_get(srvl_sd1g_lock, srvl_sd1g_read, srvl_sd1g_unlock,
+                                sd1g_prbs_read_status, vtss_state, addr, status);
+}
 
 /* Configure the Serdes1G/Serdes6G blocks based on mux mode and target */
 static vtss_rc ocelot_serdes_macro_config(vtss_state_t *vtss_state)
@@ -2399,6 +2543,53 @@ vtss_rc vtss_cil_port_test_conf_set(vtss_state_t *vtss_state, const vtss_port_no
                  VTSS_F_DEV_PCS_FX100_CONFIGURATION_PCS_FX100_CFG_SD_ENA);
     }
 #endif
+    return VTSS_RC_OK;
+}
+
+vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
+                                           const vtss_port_no_t                      port_no,
+                                           const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    u32  inst, addr;
+    u32  port = VTSS_CHIP_PORT(port_no);
+    BOOL serdes6g;
+
+    if (srvl_serdes_inst_get(vtss_state, port, &inst, &serdes6g) != VTSS_RC_OK ||
+        inst == SRVL_SERDES_INST_NONE) {
+        return VTSS_RC_ERROR;
+    }
+
+    addr = (1 << inst);
+    if (serdes6g) {
+        VTSS_RC(srvl_sd6g_cfg(vtss_state, port_no, addr));
+        VTSS_RC(sd6g_prbs_config_set(vtss_state, addr, conf));
+    } else {
+        VTSS_RC(srvl_sd1g_cfg(vtss_state, port_no, addr));
+        VTSS_RC(sd1g_prbs_config_set(vtss_state, addr, conf));
+    }
+    return VTSS_RC_OK;
+}
+
+vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
+                                             const vtss_port_no_t                  port_no,
+                                             vtss_port_serdes_prbs_status_t *const status)
+{
+    u32  inst, addr;
+    u32  port = VTSS_CHIP_PORT(port_no);
+    BOOL serdes6g;
+
+    if (srvl_serdes_inst_get(vtss_state, port, &inst, &serdes6g) != VTSS_RC_OK ||
+        inst == SRVL_SERDES_INST_NONE) {
+        return VTSS_RC_OK;
+    }
+
+    addr = (1 << inst);
+    if (serdes6g) {
+        VTSS_RC(sd6g_prbs_status_get(vtss_state, addr, status));
+    } else {
+        VTSS_RC(sd1g_prbs_status_get(vtss_state, addr, status));
+    }
+
     return VTSS_RC_OK;
 }
 

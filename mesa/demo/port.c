@@ -443,10 +443,11 @@ static mesa_rc port_status_poll(mesa_port_no_t port_no)
  * ================================================================= */
 
 typedef struct {
-    mesa_port_speed_t speed;
-    mesa_bool_t       fdx;
-    uint32_t          max_length;
-    uint32_t          adv_dis;
+    mesa_port_speed_t               speed;
+    mesa_bool_t                     fdx;
+    uint32_t                        max_length;
+    uint32_t                        adv_dis;
+    mesa_port_serdes_prbs_pattern_t prbs_test_pattern;
 
     mesa_bool_t auto_keyword;
     mesa_bool_t bytes;
@@ -704,6 +705,46 @@ static void cli_cmd_port_loopback(cli_req_t *req)
                        : conf.loopback == MESA_PORT_LB_FACILITY  ? "Facility"
                        : conf.loopback == MESA_PORT_LB_EQUIPMENT ? "Equipment"
                                                                  : "Disabled");
+        }
+    }
+}
+
+static void cli_cmd_deb_port_prbs(cli_req_t *req)
+{
+    mesa_rc                        rc;
+    port_cli_req_t                *mreq = req->module_req;
+    mesa_port_no_t                 uport, iport;
+    mesa_bool_t                    status_header_printed = FALSE;
+    mesa_port_serdes_prbs_status_t status = {0};
+    mesa_port_serdes_prbs_conf_t   conf = {.enable = req->enable,
+                                           .prbs_test_pattern = mreq->prbs_test_pattern};
+
+    for (iport = 0; iport < mesa_port_cnt(NULL); iport++) {
+        uport = iport2uport(iport);
+        if (req->port_list[uport] == 0) {
+            continue;
+        }
+
+        if (req->set) {
+            if ((rc = mesa_port_serdes_prbs_conf_set(NULL, iport, &conf)) != MESA_RC_OK) {
+                cli_printf("mesa_port_serdes_prbs_conf_set failed for port %u, err_code: %d\n",
+                           uport, rc);
+            }
+
+        } else {
+            if ((rc = mesa_port_serdes_prbs_status_get(NULL, iport, &status)) == MESA_RC_OK) {
+                if (!status_header_printed) {
+                    status_header_printed = TRUE;
+                    cli_table_header("Port  Active  Sync    Error   Error Counter");
+                }
+
+                cli_printf("%-6u%-8s%-8s%-8s%-8u\n", uport, status.is_active ? "True" : "False",
+                           status.is_sync ? "True" : "False", status.is_error ? "True" : "False",
+                           status.prbs_err_cnt);
+            } else {
+                T_E("mesa_port_serdes_prbs_status_get failed for port %u, err_code: %d\n", uport,
+                    rc);
+            }
         }
     }
 }
@@ -1382,6 +1423,8 @@ static cli_cmd_t cli_cmd_table[] = {
      cli_cmd_port_npi, },
     {"Port Loopback [<port_list>] [near-end|far-end|facility|equipment] [enable|disable]",
      "Set or show the port forwarding mode", cli_cmd_port_loopback},
+    {"Debug Port PRBS [<port_list>] [enable|disable] [prbs31|prbs23|prbs15|prbs7]",
+     "PRBS test settings", cli_cmd_deb_port_prbs},
     {"Debug Port cable [<port_list>] [optical|dac-1m|dac-2m|dac-3m|dac-5m]",
      "Set or show the port forwarding mode", cli_cmd_port_cable},
     {"Debug Port Capabilities [<port_list>] [compact]", "Show port capabilities", cli_cmd_port_cap},
@@ -1493,6 +1536,14 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->ctrl2 = 1;
     } else if (!strncasecmp(found, "ctrl3", 5)) {
         mreq->ctrl3 = 1;
+    } else if (!strncasecmp(found, "prbs31", 6)) {
+        mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS31;
+    } else if (!strncasecmp(found, "prbs23", 6)) {
+        mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS23;
+    } else if (!strncasecmp(found, "prbs15", 6)) {
+        mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS15;
+    } else if (!strncasecmp(found, "prbs7", 5)) {
+        mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS7;
     } else {
         cli_printf("no match: %s\n", found);
     }
@@ -1537,6 +1588,12 @@ static cli_parm_t cli_parm_table[] = {
      "equipment  : Loopback from Tx to Rx in SerDes\n"
      "facility   : Loopback from Rx to Tx in SerDes\n"
      "(default: Show loopback mode)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
+    {"prbs31|prbs23|prbs15|prbs7",
+     "PRBS31 : x^31 + x^28 + 1\n"
+     "PRBS23 : x^23 + x^18 + 1\n"
+     "PRBS15 : x^15 + x^14 + 1\n"
+     "PRBS7  : x^7  + x^6  + 1\n"
+     "(default: PRBS7 : x^7  + x^6  + 1)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
     {"optical|dac-1m|dac-2m|dac-3m|dac-5m",
      "optical    : Optical/fiber cable\n"
      "dac-1m     : 1m DAC\n"
@@ -1558,7 +1615,7 @@ static cli_parm_t cli_parm_table[] = {
      "ctrl1      : miim controller 1\n"
      "ctrl2      : miim controller 2\n"
      "ctrl3      : miim controller 3\n"
-     "(default: all controllers)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
+     "(default: all controllers)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword}
 };
 
 static void port_cli_init(void)
@@ -1796,6 +1853,17 @@ static void port_init(meba_inst_t inst)
     // MEBA_PORT_RESET_POST includes MEPA_RESET_POINT_POST
     MEBA_WRAP(meba_reset, inst, MEBA_PORT_RESET_POST);
     MEBA_WRAP(meba_reset, inst, MEBA_PORT_LED_INITIALIZE);
+
+    // To be removed
+    for (uint32_t p = 0; p < port_cnt; p++) {
+        mesa_port_list_t port_list;
+        for (uint16_t i = 1; i <= 0xFFF; ++i) {
+            mesa_vlan_port_members_get(NULL, i, &port_list);
+            mesa_port_list_set(&port_list, p, 0);
+            mesa_vlan_port_members_set(NULL, i, &port_list);
+        }
+    }
+    printf("No port fwd applied\n");
 }
 
 static meba_sfp_device_t *create_device(meba_inst_t             inst,

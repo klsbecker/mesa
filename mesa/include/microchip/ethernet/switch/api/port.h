@@ -969,5 +969,55 @@ mesa_rc mesa_port_serdes_debug_set(const mesa_inst_t                     inst,
                                    const mesa_port_no_t                  port_no,
                                    const mesa_port_serdes_debug_t *const conf);
 
+/** \brief SerDes PRBS test pattern enum */
+typedef enum {
+    MESA_PORT_SERDES_PATTERN_PRBS7,  /**< x^7  + x^6  + 1 */
+    MESA_PORT_SERDES_PATTERN_PRBS15, /**< x^15 + x^14 + 1 */
+    MESA_PORT_SERDES_PATTERN_PRBS23, /**< x^23 + x^18 + 1 */
+    MESA_PORT_SERDES_PATTERN_PRBS31  /**< x^31 + x^28 + 1 */
+} mesa_port_serdes_prbs_pattern_t CAP(SERDES_PRBS_TEST);
+
+/** \brief SerDes PRBS configuration structore */
+typedef struct {
+    mesa_port_serdes_prbs_pattern_t prbs_test_pattern; /**< PRBS test pattern selection */
+    mesa_bool_t                     enable;
+} mesa_port_serdes_prbs_conf_t CAP(SERDES_PRBS_TEST);
+
+/** \brief SerDes PRBS status structure */
+typedef struct {
+    uint16_t    prbs_err_cnt; /**< PRBS error counter  */
+    mesa_bool_t is_active;    /**< Is the test active? */
+    mesa_bool_t is_sync;      /**< Is in sync?         */
+    mesa_bool_t is_error;     /**< Is in error state?  */
+} mesa_port_serdes_prbs_status_t CAP(SERDES_PRBS_TEST);
+
+/**
+ * \brief Set SerDes PRBS configuration
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param conf    [IN]  SerDes PRBS configuration.
+ *
+ * \return Return code.
+ */
+mesa_rc mesa_port_serdes_prbs_conf_set(const mesa_inst_t                         inst,
+                                       const mesa_port_no_t                      port_no,
+                                       const mesa_port_serdes_prbs_conf_t *const conf)
+    CAP(SERDES_PRBS_TEST);
+
+/**
+ * \brief Get SerDes PRBS status
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param status  [OUT]  Serdes PRBS status.
+ *
+ * \return Return code.
+ */
+mesa_rc mesa_port_serdes_prbs_status_get(const mesa_inst_t                     inst,
+                                         const mesa_port_no_t                  port_no,
+                                         mesa_port_serdes_prbs_status_t *const status)
+    CAP(SERDES_PRBS_TEST);
+
 #include <microchip/ethernet/hdr_end.h>
 #endif // MICROCHIP_ETHERNET_SWITCH_API_PORT

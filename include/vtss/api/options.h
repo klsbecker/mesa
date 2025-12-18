@@ -847,6 +847,7 @@
                                                       */
 #define VTSS_FEATURE_VOP_V1                          /**< Version 1 OAM implementation. Serval-1   \
                                                         platform */
+#define VTSS_FEATURE_SERDES_PRBS_TEST                /**< PRBS test for SerDes */
 #endif                                               /* VTSS_ARCH_OCELOT */
 
 #define VTSS_FEATURE_WARM_START /**< Warm start */

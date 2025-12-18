@@ -566,6 +566,17 @@ vtss_rc vtss_cil_port_test_conf_set(struct vtss_state_s *vtss_state, const vtss_
 vtss_rc vtss_cil_port_serdes_debug(struct vtss_state_s                  *vtss_state,
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf);
+
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
+                                           const vtss_port_no_t                      port_no,
+                                           const vtss_port_serdes_prbs_conf_t *const conf);
+vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
+                                             const vtss_port_no_t                  port_no,
+                                             vtss_port_serdes_prbs_status_t *const status);
+
+#endif // defined (VTSS_FEATURE_SERDES_PRBS_TEST)
+
 vtss_rc vtss_cil_port_conf_set_bulk(struct vtss_state_s *vtss_state);
 vtss_rc vtss_cil_port_ifh_set(struct vtss_state_s *vtss_state, const vtss_port_no_t port_no);
 #if defined(VTSS_FEATURE_SYNCE)

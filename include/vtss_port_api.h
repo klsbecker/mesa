@@ -1157,6 +1157,58 @@ vtss_rc vtss_port_serdes_debug_set(const vtss_inst_t                     inst,
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf);
 
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+
+/** \brief SerDes PRBS test pattern enum */
+typedef enum {
+    VTSS_PORT_SERDES_PATTERN_PRBS7,  /**< x^7  + x^6  + 1 */
+    VTSS_PORT_SERDES_PATTERN_PRBS15, /**< x^15 + x^14 + 1 */
+    VTSS_PORT_SERDES_PATTERN_PRBS23, /**< x^23 + x^18 + 1 */
+    VTSS_PORT_SERDES_PATTERN_PRBS31  /**< x^31 + x^28 + 1 */
+} vtss_port_serdes_prbs_pattern_t;
+
+/** \brief SerDes PRBS configuration structore */
+typedef struct {
+    vtss_port_serdes_prbs_pattern_t prbs_test_pattern; /**< PRBS test pattern selection */
+    BOOL                            enable;
+} vtss_port_serdes_prbs_conf_t;
+
+/** \brief SerDes PRBS status structure */
+typedef struct {
+    u16  prbs_err_cnt; /**< PRBS error counter  */
+    BOOL is_active;    /**< Is the test active? */
+    BOOL is_sync;      /**< Is in sync?         */
+    BOOL is_error;     /**< Is in error state?  */
+} vtss_port_serdes_prbs_status_t;
+
+/**
+ * \brief Set SerDes PRBS configuration
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param conf    [IN]  SerDes PRBS configuration.
+ *
+ * \return Return code.
+ */
+vtss_rc vtss_port_serdes_prbs_conf_set(const vtss_inst_t                         inst,
+                                       const vtss_port_no_t                      port_no,
+                                       const vtss_port_serdes_prbs_conf_t *const conf);
+
+/**
+ * \brief Get SerDes PRBS status
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param status  [OUT]  Serdes PRBS status.
+ *
+ * \return Return code.
+ */
+vtss_rc vtss_port_serdes_prbs_status_get(const vtss_inst_t                     inst,
+                                         const vtss_port_no_t                  port_no,
+                                         vtss_port_serdes_prbs_status_t *const status);
+
+#endif // defined (VTSS_FEATURE_SERDES_PRBS_TEST)
+
 #ifdef __cplusplus
 }
 #endif
