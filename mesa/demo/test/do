@@ -121,62 +121,81 @@ if [ $skip == 1 ]; then
 fi
 
 # Reserve/upload/test/release
+name=Unknown
 for platform in $platform_list; do
     dir=build-mipsel
     case $platform in
         ca|ca2)
             ts=dk-t35-3
             img=mipsel_vsc7429.mfi
+            name=Caracal-26-port
             ;;
 
         ca1)
             ts=dk-t35-4
             img=mipsel_vsc7428.mfi
+            name=Caracal-10-port
             ;;
 
         oc)
             ts=dk-t35-1
             img=mipsel_vsc7514_pcb123.mfi
+            name=Ocelot-11-port
             ;;
 
         st)
             ts=dk-t35-2
             img=mipsel_vsc7437.mfi
+            name=ServalT-9-port
             ;;
 
         j2)
             ts=dk-t34-0
             img=mipsel_vsc7468_pcb110.mfi
+            name=Jaguar2-29-port
             ;;
 
         mr)
             ts=dk-t34-6
             img=armv7_lan9662.itb
             dir=build-arm
+            name=Maserati-4-port
             ;;
 
         mc)
             ts=dk-t36-1
             img=armv7_lan966x.itb
             dir=build-arm
+            name=Maserati-4-port
             ;;
 
         me|m8)
             ts=dk-t35-0
             img=armv7_lan966x.itb
             dir=build-arm
+            name=Maserati-8-port
             ;;
 
         fa)
             ts=dk-t34-4
             img=arm64_vsc7558TSN.itb # 625MHz
             dir=build-arm64
+            if [ $ts2 == dk-t34-3 ]; then
+                name=FireAnt-57-port
+            else
+                name=FireAnt-21-port
+            fi
             ;;
 
         la)
             ts=dk-t36-2
             img=arm64_lan9698RED.itb
             dir=build-arm64
+            if [ $ts2 == dk-t37-0 ]; then
+                name=Laguna-SFP-11-port
+            else
+                name=Laguna-29-port
+            fi
             ;;
 
         *)
@@ -193,7 +212,7 @@ for platform in $platform_list; do
     if [ $ts2 != 0 ]; then
         ts=$ts2
     fi
-    echo "=== Reserve: $ts"
+    echo "=== Reserve: $ts ($name)"
     if [[ $(et status $ts | grep free) ]]; then
         if [ $brief == 1 ]; then
             et reserve $ts > /dev/null
