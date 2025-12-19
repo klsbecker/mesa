@@ -780,7 +780,7 @@ static vtss_rc sch_port_mode_normal(vtss_state_t *vtss_state, const vtss_port_no
     }
     hier->unknown_l0_se = VTSS_HQOS_SE_NONE;
     hier->priority_l1_se = VTSS_HQOS_SE_NONE;
-    hier->unknown_vport = 0;
+    hier->unknown_vport = VTSS_HQOS_VPORT_NONE;
     hier->entry_count = 0;
 
     return VTSS_RC_OK;
@@ -1198,7 +1198,7 @@ vtss_rc vtss_cil_hqos_del(vtss_state_t        *vtss_state,
 
 static vtss_rc min_rate_calc(vtss_state_t *vtss_state, u32 layer, u32 se, u32 input, u32 out_rate)
 {
-    u32 i, value, dwrr_cnt, sum, cost, weight, rate;
+    u32 i, value, dwrr_cnt, sum, cost, weight, rate, first_i;
     u64 rate0, rate1;
 
     REG_WRM(VTSS_HSCH_HSCH_CFG_CFG,
@@ -1212,7 +1212,10 @@ static vtss_rc min_rate_calc(vtss_state_t *vtss_state, u32 layer, u32 se, u32 in
     }
 
     sum = 0;
-    for (i = 0; i < (dwrr_cnt + 1); i++) {
+    // On layer two, the first input is for "unknown" traffic.
+    // This traffic is not considered when calculating the minimum rate
+    first_i = (layer == 2) ? 1 : 0;
+    for (i = first_i; i < (dwrr_cnt + 1); i++) {
         REG_RD(VTSS_HSCH_DWRR_ENTRY(i), &value);
         cost = VTSS_X_HSCH_DWRR_ENTRY_DWRR_COST(value) + 1;
         weight = 10000 / cost;
@@ -1396,13 +1399,11 @@ static vtss_rc fa_debug_hqos(vtss_state_t                  *vtss_state,
         }
         if (tables_act) {
             ppqqq = info->action % div;
-            if (ppqqq > 0) {
-                if ((ppqqq / 1000) != 0) {
-                    port_no = ppqqq / 1000;
-                    qgrp = ppqqq % 1000;
-                } else {
-                    port_no = ppqqq;
-                }
+            if ((ppqqq / 1000) != 0) {
+                port_no = ppqqq / 1000;
+                qgrp = ppqqq % 1000;
+            } else {
+                port_no = ppqqq;
             }
             cport = VTSS_CHIP_PORT(port_no);
         }
@@ -1744,6 +1745,7 @@ static vtss_rc fa_hqos_init(vtss_state_t *vtss_state)
         }
         hier->unknown_l0_se = VTSS_HQOS_SE_NONE;
         hier->priority_l1_se = VTSS_HQOS_SE_NONE;
+        hier->unknown_vport = VTSS_HQOS_VPORT_NONE;
     }
     return VTSS_RC_OK;
 }

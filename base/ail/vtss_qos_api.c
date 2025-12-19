@@ -1574,8 +1574,9 @@ static uint32_t gcd_calc(uint32_t x, uint32_t y)
  **/
 vtss_rc vtss_cmn_qos_weight2cost(const vtss_pct_t *weight, u8 *cost, u32 num, u8 bit_width)
 {
-    u32 i, c_max, factor, next, gcd, highest, c_10000;
-    u32 c[64] = {};
+    u32        i, c_max, factor, next, gcd, highest;
+    vtss_pct_t w_min = 100;
+    u32        c[64] = {};
 
     if (num == 0U) {
         return VTSS_RC_OK;
@@ -1593,9 +1594,10 @@ vtss_rc vtss_cmn_qos_weight2cost(const vtss_pct_t *weight, u8 *cost, u32 num, u8
             VTSS_E("illegal weight: %u", weight[i]);
             return VTSS_RC_ERROR;
         }
+        w_min = MIN(w_min, weight[i]);
     }
     // The MAX value a cost can have. This is one larger than the max register value, as '0' in
-    // register is reprecenting the cost of '1'
+    // register is representing the cost of '1'
     c_max = (u32)1U << bit_width;
 
     // Calculate the factor that all weights can divide in to
@@ -1638,11 +1640,11 @@ vtss_rc vtss_cmn_qos_weight2cost(const vtss_pct_t *weight, u8 *cost, u32 num, u8
         // Highest is higher than 'c_max'. The costs has to be reduced to fit register.
         // Note that it is not possible to calculate accurate cost
         // The highest cost is given the max possible value in register
-        factor = (c_max * 10000U) / highest; // This factor is the register value for 1/highest
-
         for (i = 0U; i < num; ++i) {
-            c_10000 = (c[i] * factor);
-            c[i] = (c_10000 / 10000U) + (((c_10000 % 10000U) > 5000U) ? 1U : 0U);
+            // Round half up: Multiply with 16 before division, add 8 and divide
+            // result with 16 again
+            u32 c_i = (((c_max << 4U) * w_min / weight[i]) + 8U) >> 4U;
+            c[i] = MAX(1U, (u8)c_i);
         }
     }
 

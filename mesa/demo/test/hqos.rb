@@ -37,6 +37,8 @@ $normal_port = $ts.dut.p[$normal_idx]
 $priority_port = $ts.dut.p[$priority_idx]
 $hier_unknown_port = $ts.dut.p[$hier_unknown_idx]
 $hier_port = $ts.dut.p[$hier_idx]
+$hier_chip_port = $ts.port_map[$hier_port]["chip_port"]
+
 
 $norma1_vport = {}
 $norma1_se = {}
@@ -132,36 +134,39 @@ test "Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if (!res[:out].include? "unknown_vport 120")
-        t_e "Unexpected Unknown VPORT"
-    end
-    if (!res[:out].include? "unknown_l0_se 960")
-        t_e "Unexpected Unknown L0 SE"
-    end
-    if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
-        (!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
-        (!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63") ||
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if (!res[:out].include? "unknown_vport 120")
+            t_e "Unexpected Unknown VPORT"
+        end
+        if (!res[:out].include? "unknown_l0_se 960")
+            t_e "Unexpected Unknown L0 SE"
+        end
+        if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
+            (!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
+            (!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63") ||
 
-        (!res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  3  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 0  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  3  L1-INPUT:  6") ||
-        (!res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 0  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  3  L1-INPUT:  7") ||
-        (!res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 63") ||
+            (!res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  3  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 0  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  3  L1-INPUT:  6") ||
+            (!res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 0  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  3  L1-INPUT:  7") ||
+            (!res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 63") ||
 
-        (!res[:out].include? "IDX: 128  HQOS-ID: 128  PRIO: 0  MIN:    3906  VPORT: 153  SE:   57  L1-SE:  4  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX: 191  HQOS-ID: 191  PRIO: 0  MIN:    3906  VPORT: 216  SE:  120  L1-SE:  4  L1-INPUT: 63") ||
+            (!res[:out].include? "IDX: 128  HQOS-ID: 128  PRIO: 0  MIN:    3906  VPORT: 153  SE:   57  L1-SE:  4  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX: 191  HQOS-ID: 191  PRIO: 0  MIN:    3906  VPORT: 216  SE:  120  L1-SE:  4  L1-INPUT: 63") ||
 
-        (!res[:out].include? "IDX: 192  HQOS-ID: 192  PRIO: 0  MIN:    3906  VPORT: 217  SE:  121  L1-SE:  5  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX: 255  HQOS-ID: 255  PRIO: 0  MIN:    3906  VPORT: 280  SE:  184  L1-SE:  5  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE"
+            (!res[:out].include? "IDX: 192  HQOS-ID: 192  PRIO: 0  MIN:    3906  VPORT: 217  SE:  121  L1-SE:  5  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX: 255  HQOS-ID: 255  PRIO: 0  MIN:    3906  VPORT: 280  SE:  184  L1-SE:  5  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE"
+        end
+        if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
+            (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
+            (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
+            t_e "Unexpected L1 SE"
+        end
     end
-    if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
-        (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
-        (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
-        t_e "Unexpected L1 SE"
-    end
-
     t_i("Print VPORT_TBL and SE_TBL configuration")
     t_i("----------------------------------------")
     $ts.dut.run("mesa-cmd deb api cil hqos act 20#{$hier_port}000") #Port hier_port QGRP 0
@@ -186,17 +191,21 @@ test "Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  3  L1-INPUT:  0") ||
-        (res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 0  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  3  L1-INPUT:  6") ||
-        (res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 0  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  3  L1-INPUT:  7") ||
-        (res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE after delete to empty L1 SE 1"
-    end
-    if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
-        (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
-        (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
-        t_e "Unexpected L1 SE after delete to empty L1 SE 1"
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  3  L1-INPUT:  0") ||
+            (res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 0  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  3  L1-INPUT:  6") ||
+            (res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 0  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  3  L1-INPUT:  7") ||
+            (res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE after delete to empty L1 SE 1"
+        end
+        if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
+            (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
+            (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
+            t_e "Unexpected L1 SE after delete to empty L1 SE 1"
+        end
     end
 
     t_i("Delete one HQOS-ID in L1 SE 0 + 2 + 3")
@@ -228,20 +237,24 @@ test "Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((!res[:out].include? "IDX:   2  HQOS-ID: 500  PRIO: 0  MIN:    3906  VPORT: 123  SE:  963  L1-SE:  2  L1-INPUT:  2") ||
-        (!res[:out].include? "IDX:  64  HQOS-ID: 501  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  4  L1-INPUT:  2") ||
-        (!res[:out].include? "IDX:  65  HQOS-ID: 502  PRIO: 0  MIN:    3906  VPORT:  58  SE: 4602  L1-SE:  5  L1-INPUT:  2") ||
-        (!res[:out].include? "IDX:  66  HQOS-ID: 503  PRIO: 0  MIN:    3906  VPORT:  59  SE: 4603  L1-SE:  3  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX: 127  HQOS-ID: 564  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 61") ||
-        (!res[:out].include? "IDX: 130  HQOS-ID: 565  PRIO: 0  MIN:    3906  VPORT: 155  SE:   59  L1-SE:  3  L1-INPUT: 62") ||
-        (!res[:out].include? "IDX: 194  HQOS-ID: 566  PRIO: 0  MIN:    3906  VPORT: 219  SE:  123  L1-SE:  3  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE after add all the deleted entries"
-    end
-    if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
-        (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
-        (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
-        t_e "Unexpected L1 SE after add all the deleted entries"
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((!res[:out].include? "IDX:   2  HQOS-ID: 500  PRIO: 0  MIN:    3906  VPORT: 123  SE:  963  L1-SE:  2  L1-INPUT:  2") ||
+            (!res[:out].include? "IDX:  64  HQOS-ID: 501  PRIO: 0  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  4  L1-INPUT:  2") ||
+            (!res[:out].include? "IDX:  65  HQOS-ID: 502  PRIO: 0  MIN:    3906  VPORT:  58  SE: 4602  L1-SE:  5  L1-INPUT:  2") ||
+            (!res[:out].include? "IDX:  66  HQOS-ID: 503  PRIO: 0  MIN:    3906  VPORT:  59  SE: 4603  L1-SE:  3  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX: 127  HQOS-ID: 564  PRIO: 0  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  3  L1-INPUT: 61") ||
+            (!res[:out].include? "IDX: 130  HQOS-ID: 565  PRIO: 0  MIN:    3906  VPORT: 155  SE:   59  L1-SE:  3  L1-INPUT: 62") ||
+            (!res[:out].include? "IDX: 194  HQOS-ID: 566  PRIO: 0  MIN:    3906  VPORT: 219  SE:  123  L1-SE:  3  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE after add all the deleted entries"
+        end
+        if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2") ||
+            (!res[:out].include? "IDX 2  SE 4  L2-INPUT 3") ||
+            (!res[:out].include? "IDX 3  SE 5  L2-INPUT 4"))
+            t_e "Unexpected L1 SE after add all the deleted entries"
+        end
     end
 end
 end
@@ -283,23 +296,27 @@ test "Priority Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
-        (!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
-        (!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63") ||
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
+            (!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
+            (!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63") ||
 
-        (!res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 1  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  0  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 1  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  0  L1-INPUT:  6") ||
-        (!res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 1  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  0  L1-INPUT:  7") ||
-        (!res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 1  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  0  L1-INPUT: 63") ||
+            (!res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 1  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  0  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 1  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  0  L1-INPUT:  6") ||
+            (!res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 1  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  0  L1-INPUT:  7") ||
+            (!res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 1  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  0  L1-INPUT: 63") ||
 
-        (!res[:out].include? "IDX: 128  HQOS-ID: 128  PRIO: 0  MIN:    3906  VPORT: 153  SE:   57  L1-SE:  3  L1-INPUT:  0") ||
-        (!res[:out].include? "IDX: 191  HQOS-ID: 191  PRIO: 0  MIN:    3906  VPORT: 216  SE:  120  L1-SE:  3  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE"
-    end
-    if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
-        t_e "Unexpected L1 SE"
+            (!res[:out].include? "IDX: 128  HQOS-ID: 128  PRIO: 0  MIN:    3906  VPORT: 153  SE:   57  L1-SE:  3  L1-INPUT:  0") ||
+            (!res[:out].include? "IDX: 191  HQOS-ID: 191  PRIO: 0  MIN:    3906  VPORT: 216  SE:  120  L1-SE:  3  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE"
+        end
+        if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
+            t_e "Unexpected L1 SE"
+        end
     end
 
     t_i("Delete to empty Priority L1 number 0")
@@ -315,15 +332,19 @@ test "Priority Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 1  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  0  L1-INPUT:  0") ||
-        (res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 1  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  0  L1-INPUT:  6") ||
-        (res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 1  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  0  L1-INPUT:  7") ||
-        (res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 1  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  0  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE after delete to empty L1 SE 1"
-    end
-    if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
-        t_e "Unexpected L1 SE after delete to empty Priority L1 SE"
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((res[:out].include? "IDX:  64  HQOS-ID:  64  PRIO: 1  MIN:    3906  VPORT:  57  SE: 4601  L1-SE:  0  L1-INPUT:  0") ||
+            (res[:out].include? "IDX:  70  HQOS-ID:  70  PRIO: 1  MIN:    3906  VPORT:  63  SE: 4607  L1-SE:  0  L1-INPUT:  6") ||
+            (res[:out].include? "IDX:  71  HQOS-ID:  71  PRIO: 1  MIN:    3906  VPORT:  64  SE:    0  L1-SE:  0  L1-INPUT:  7") ||
+            (res[:out].include? "IDX: 127  HQOS-ID: 127  PRIO: 1  MIN:    3906  VPORT: 152  SE:   56  L1-SE:  0  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE after delete to empty L1 SE 1"
+        end
+        if ((!res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
+            t_e "Unexpected L1 SE after delete to empty Priority L1 SE"
+        end
     end
 
     t_i("Delete to empty L1 number 2") #note that L1 number 1 is used as Priority L1 SE on port $hier_unknown_port
@@ -339,15 +360,19 @@ test "Priority Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
-        (res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
-        (res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
-        (res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE after delete to empty L1 SE 2"
-    end
-    if ((res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
-        (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
-        t_e "Unexpected L1 SE after delete to empty L1 SE 2"
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0") ||
+            (res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6") ||
+            (res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7") ||
+            (res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE after delete to empty L1 SE 2"
+        end
+        if ((res[:out].include? "IDX 0  SE 2  L2-INPUT 1") ||
+            (!res[:out].include? "IDX 1  SE 3  L2-INPUT 2"))
+            t_e "Unexpected L1 SE after delete to empty L1 SE 2"
+        end
     end
 
     t_i("Delete to empty L1 number 3") #note that L1 number 1 is used as Priority L1 SE on port $hier_unknown_port
@@ -383,20 +408,24 @@ test "Priority Add and Delete" do
     res = $ts.dut.run("mesa-cmd deb api cil hqos act 10#{$hier_port}")
     sleep 1
 
-    if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0"))
-        t_e "Unexpected L0 SE after adding SE 2 again 1"
-    end
-    if ((!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6"))
-        t_e "Unexpected L0 SE after adding SE 2 again 2"
-    end
-    if ((!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7"))
-        t_e "Unexpected L0 SE after adding SE 2 again 3"
-    end
-    if ((!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63"))
-        t_e "Unexpected L0 SE after adding SE 2 again 4"
-    end
-    if (!res[:out].include? "IDX 0  SE 2  L2-INPUT 1")
-        t_e "Unexpected L1 SE after adding SE 2 again"
+    if ($hier_chip_port == 15)
+        # The following check of VPORT and SE numbers is only valid if chip port is 15.
+        # That is the case on dk-t34-5
+        if ((!res[:out].include? "IDX:   0  HQOS-ID:   0  PRIO: 0  MIN:    3906  VPORT: 121  SE:  961  L1-SE:  2  L1-INPUT:  0"))
+            t_e "Unexpected L0 SE after adding SE 2 again 1"
+        end
+        if ((!res[:out].include? "IDX:   6  HQOS-ID:   6  PRIO: 0  MIN:    3906  VPORT: 127  SE:  967  L1-SE:  2  L1-INPUT:  6"))
+            t_e "Unexpected L0 SE after adding SE 2 again 2"
+        end
+        if ((!res[:out].include? "IDX:   7  HQOS-ID:   7  PRIO: 0  MIN:    3906  VPORT:   0  SE:  968  L1-SE:  2  L1-INPUT:  7"))
+            t_e "Unexpected L0 SE after adding SE 2 again 3"
+        end
+        if ((!res[:out].include? "IDX:  63  HQOS-ID:  63  PRIO: 0  MIN:    3906  VPORT:  56  SE: 4600  L1-SE:  2  L1-INPUT: 63"))
+            t_e "Unexpected L0 SE after adding SE 2 again 4"
+        end
+        if (!res[:out].include? "IDX 0  SE 2  L2-INPUT 1")
+            t_e "Unexpected L1 SE after adding SE 2 again"
+        end
     end
 
     t_i("Delete to clean up")
@@ -577,13 +606,13 @@ test "DWRR on Normal Test" do
     hqos["dwrr_cnt"] = 3
     hqos["input_pct"][0] = 10
     hqos["input_pct"][1] = 30
-    hqos["input_pct"][2] = 70
+    hqos["input_pct"][2] = 60
     $ts.dut.call("mesa_hqos_add", $hier_port, hqos_id, hqos)
 
     t_i("Inject frames into all ingress ports")
     erate0 = 100000000
     erate1 = 300000000
-    erate2 = 700000000
+    erate2 = 600000000
    #measure(ig,      eg,        size, sec=1, frame_rate=false, data_rate=false, erate=1000000000,        tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
     measure([0,1,2], $hier_idx, 1000, 1,     false,            false,           [erate0,erate1,erate2],  [4,7,13],     true,              [0,1,2])
 
@@ -811,11 +840,11 @@ def actual_min_rate()
 test "Actual minimum rate" do
     conf = $ts.dut.call("mesa_hqos_get", $hier_port, 0)
 
-    conf["min_rate"] =  10000
+    conf["min_rate"] =  100000
     $ts.dut.call("mesa_hqos_add", $hier_port, 0, conf)
-    conf["min_rate"] = 290000
+    conf["min_rate"] = 300000
     $ts.dut.call("mesa_hqos_add", $hier_port, 1, conf)
-    conf["min_rate"] = 700000
+    conf["min_rate"] = 600000
     $ts.dut.call("mesa_hqos_add", $hier_port, 2, conf)
 
     t_i("Configure ports to generate HQOS-ID 0 - 64 - 128 - 192")
