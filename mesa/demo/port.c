@@ -807,7 +807,7 @@ static meba_sfp_driver_t *sfp_driver_search(meba_sfp_device_info_t *device_info)
 #define PR_CAP(x)                                                                                  \
     {                                                                                              \
         if (cap_all & MEBA_PORT_CAP_##x)                                                           \
-            cli_printf("%-*s  ", strlen(#x), cap &MEBA_PORT_CAP_##x ? #x : "-");                   \
+            cli_printf("%-*s  ", strlen(#x), cap & MEBA_PORT_CAP_##x ? #x : "-");                  \
     }
 
 static void cli_cmd_port_cap(cli_req_t *req)
@@ -1853,17 +1853,6 @@ static void port_init(meba_inst_t inst)
     // MEBA_PORT_RESET_POST includes MEPA_RESET_POINT_POST
     MEBA_WRAP(meba_reset, inst, MEBA_PORT_RESET_POST);
     MEBA_WRAP(meba_reset, inst, MEBA_PORT_LED_INITIALIZE);
-
-    // To be removed
-    for (uint32_t p = 0; p < port_cnt; p++) {
-        mesa_port_list_t port_list;
-        for (uint16_t i = 1; i <= 0xFFF; ++i) {
-            mesa_vlan_port_members_get(NULL, i, &port_list);
-            mesa_port_list_set(&port_list, p, 0);
-            mesa_vlan_port_members_set(NULL, i, &port_list);
-        }
-    }
-    printf("No port fwd applied\n");
 }
 
 static meba_sfp_device_t *create_device(meba_inst_t             inst,
