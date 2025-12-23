@@ -17,7 +17,7 @@ static struct {
     mesa_qos_port_dpl_conf_t dpl_conf[4][4];
     mesa_port_no_t           port_eg;
 } state;
-static mesa_pct_t    hqos_input_pct[MESA_PRIO_ARRAY_SIZE] = {10, 30, 70};
+static mesa_pct_t    hqos_input_pct[MESA_PRIO_ARRAY_SIZE] = {10, 30, 60};
 static uint32_t      hqos_min_rate[4] = {100000, 10000, 190000, 700000};
 static mesa_shaper_t hqos_shaper[4] = {
     {100,   100000, 0, MESA_BITRATE_DISABLED, MESA_SHAPER_MODE_LINE, 0},
@@ -89,7 +89,7 @@ HQOS-ID 3 Burst-level 200 Bytes - Rate 700000 Kbps - Mode Line-rate\n\
 Command 2 will configuring DWRR like this:\n\
 HQOS-ID 0-3 Priority 0 10 Percent\n\
             Priority 1 30 Percent\n\
-            Priority 2 70 Percent\n\
+            Priority 2 60 Percent\n\
 \n\
 Command 3 will return the actual minimum rate in kbps:\n\
 Actual min_rate: 19760\n\

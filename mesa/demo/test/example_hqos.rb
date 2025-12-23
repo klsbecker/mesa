@@ -96,7 +96,7 @@ test "test_dwrr_run" do
 
     erate0 = 100000000
     erate1 = 300000000
-    erate2 = 700000000
+    erate2 = 600000000
     measure($ig, $eg, 1000, 1,     false,            false,           [erate0,erate1,erate2],  [4,7,13],  true,              [0,1,2])
 end
 
