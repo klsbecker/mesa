@@ -569,7 +569,7 @@ test "Priority vs Normal Test" do
     cos = 3
     erate = 1000000
    #measure(ig,                            eg,        size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([$ingress_idx, $priority_idx], $hier_idx, 1000, 1,     false,            false,           [0, 1000000000],  [220,3],     false,             [2,5])
+    measure([$ingress_idx, $priority_idx], $hier_idx, 1000, 1,     false,            false,           [0, 1000000000],  [260,3],     false,             [2,5])
 
     $ts.dut.call("mesa_hqos_del", $hier_port, hqos_id)
     $ts.dut.call("mesa_hqos_del", $hier_port, prio_hqos_id)

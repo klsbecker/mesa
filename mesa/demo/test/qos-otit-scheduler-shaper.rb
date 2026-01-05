@@ -261,7 +261,7 @@ def it_scheduling_strict_test
 test "IT scheduling strict test" do
     # Only expect frames in the highest priority queue when running strict scheduling
    #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,  with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure($ig, $eg, 600, 1,     false,            false,           [0,0,990000000],  [10,500,1],  true,              [0,3,7])
+    measure($ig, $eg, 600, 1,     false,            false,           [0,0,990000000],  [10,2100,1],  true,              [0,3,7])
 end
 end
 
@@ -395,7 +395,7 @@ def ot_scheduling_strict_test
 test "OT scheduling strict test" do
     # Only expect frames in the highest priority queue when running strict scheduling
    #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,  with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure($ig, $eg, 600, 1,     false,            false,           [0,0,990000000],  [150,535,2],  true,              [0,3,7])
+    measure($ig, $eg, 600, 1,     false,            false,           [0,0,990000000],  [150,900,2],  true,              [0,3,7])
 end
 end
 

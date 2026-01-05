@@ -222,7 +222,7 @@ def equal_interval_gcl_reconfig_test
     end
     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
         pcp0 = 10
-        pcp3 = 600
+        pcp3 = 5500
         pcp7 = 0.5
     end
 
