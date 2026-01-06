@@ -299,11 +299,17 @@ def test_summary(all = true)
         list = $test_summary_list
         cnt_total = list.length
         cnt_err = 0
+        cnt_skip = 0
         list.each_with_index do |e, i|
             txt = nil
             if (e[:status] == "not-ok")
                 cnt_err += 1
                 txt = "Failed "
+            elsif (e[:status] == "skip")
+                cnt_skip += 1
+                if (all)
+                    txt = "Skipped"
+                end
             elsif (all)
                 txt = "Success"
             end
@@ -317,11 +323,17 @@ def test_summary(all = true)
                 t_i(txt + e[:name])
             end
         end
-        t_i("Total : #{cnt_total}")
-        t_i("Ok    : #{cnt_total - cnt_err}")
-        t_i("Errors: #{cnt_err}")
+        t_i("Total  : #{cnt_total}")
+        t_i("Ok     : #{cnt_total - cnt_err - cnt_skip}")
+        t_i("Skipped: #{cnt_skip}")
+        t_i("Errors : #{cnt_err}")
         $test_summary_list = []
     end
+end
+
+def test_skip
+    $test_stack[-1][:cnt_skip] += 1
+    t_i("test skipped")
 end
 
 def test(name, summary = true)
@@ -330,7 +342,7 @@ def test(name, summary = true)
 
     begin
         xml_tag_start "test", {"name" => name, "ts" => xml_ts(ts_begin)}
-        $test_stack.push({:cnt_ok => 0, :cnt_err => 0})
+        $test_stack.push({:cnt_ok => 0, :cnt_skip => 0, :cnt_err => 0})
         yield nil
 
     rescue TestAbortException => e
@@ -338,7 +350,7 @@ def test(name, summary = true)
         do_abort = true
 
     rescue => e
-        $test_stack[-1][:cnt_err] += 1
+       $test_stack[-1][:cnt_err] += 1
         attrs = {}
         attrs["ts"] = xml_ts(Time.now)
         xml_tag "backtrace", e.backtrace.join("\n\t").sub("\n\t", ": #{e}#{e.class ? " (#{e.class})" : ''}\n\t"), attrs
@@ -369,7 +381,11 @@ def test(name, summary = true)
         end
 
         if (summary)
-            $test_summary_list << {name: name, status: attrs["status"]}
+            ss = attrs["status"]
+            if (ss == "ok" && $test_stack[-1][:cnt_skip] > 0)
+                ss = "skip"
+            end
+            $test_summary_list << {name: name, status: ss}
         end
 
         ts_end = Time.now

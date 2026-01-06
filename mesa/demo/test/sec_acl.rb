@@ -735,24 +735,25 @@ test_table.each do |t|
     v = t[:ace]
     ipv4 = (v[:type] == "IPV4" ? true : false)
     ipv6 = (v[:type] == "IPV6" ? true : false)
+    skip = false
     if (luton26 == 1)
         # Luton26 limitations
         if (v.key?:sip_eq_dip and ipv6)
             # Matching SIP equal to DIP for IPv6 not supported
-            next
+            skip = true
         end
     end
     case epid
     when 11, 14
         # FireAnt/Laguna limitations
         if (v.key?:sip_eq_dip or v.key?:sport_eq_dport or v.key?:seq_zero)
-            next
+            skip = true
         end
     when 0
         # Luton26
         if (v.key?:llc_ext)
             # Skip extended LLC
-            next
+            skip = true
         end
     else
         # Other platforms
@@ -761,7 +762,7 @@ test_table.each do |t|
     if (ipv4 or ipv6)
         if (acl_ext_mac == 0 and (v.key?:dmac or v.key?:smac))
             # IP/MAC filtering not supported
-            next
+            skip = true
         end
     elsif (epid != 14)
         # Extended filtering for non-IP only supported for Laguna
@@ -802,11 +803,12 @@ test_table.each do |t|
     txt = t[:txt]
     key_list.each do |k|
         type_ext = (k == "EXT" ? true : false)
-        if (skip_ext and type_ext)
-            next
-        end
         t[:txt] = (txt + " (#{k})")
         test t[:txt] do
+            if (skip or (skip_ext and type_ext))
+                test_skip
+                next
+            end
             conf["key"][frm] = ("MESA_ACL_KEY_" + k)
             $ts.dut.call("mesa_acl_port_conf_set", port, conf)
             ace_test(t, type_ext)

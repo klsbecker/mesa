@@ -110,6 +110,7 @@ def mirror_test(t)
     # Capability check
     cap = t[:cap]
     if (cap != nil and cap_get(cap) == 0)
+        test_skip
         return
     end
 
