@@ -12,9 +12,9 @@
 #include "microchip/lan80xx_ts.h"
 
 #ifndef MEPA_HAS_LAN80XX
-mepa_rc lan80xx_operating_mode_set(const mepa_device_t *dev,
-                                   const mepa_port_no_t port_no,
-                                   phy25g_oper_mode_t phy_mode)
+mepa_rc lan80xx_operating_mode_set(const mepa_device_t        *dev,
+                                   const mepa_port_no_t       port_no,
+                                   const phy25g_mode_conf_t   phy_mode)
 {
 
     return MEPA_RC_NOT_IMPLEMENTED;
@@ -24,14 +24,6 @@ mepa_rc lan80xx_flow_control_set(const mepa_device_t     *dev,
                                  mepa_port_no_t          port_no,
                                  mepa_bool_t             enable)
 {
-    return MEPA_RC_NOT_IMPLEMENTED;
-}
-
-mepa_rc lan80xx_rckout_conf_set(mepa_device_t *dev,
-                                const mepa_port_no_t port_no,
-                                const phy_25g_rckout_conf_t *rckout_conf)
-{
-
     return MEPA_RC_NOT_IMPLEMENTED;
 }
 
@@ -269,15 +261,6 @@ mepa_rc lan80xx_xconnect_conf_get(mepa_device_t *dev, const mepa_port_no_t port_
     return MEPA_RC_NOT_IMPLEMENTED;
 }
 
-mepa_rc lan80xx_phy_ts_fifo_sig_set(mepa_device_t  *dev, const mepa_port_no_t  port_no, const phy25g_ts_fifo_sig_mask_t   sig_mask)
-{
-    return MEPA_RC_NOT_IMPLEMENTED;
-}
-
-mepa_rc lan80xx_phy_ts_fifo_sig_get(mepa_device_t  *dev, const mepa_port_no_t  port_no, phy25g_ts_fifo_sig_mask_t   *sig_mask)
-{
-    return MEPA_RC_NOT_IMPLEMENTED;
-}
 
 mepa_rc lan80xx_phy_ts_pps_input_confset(mepa_device_t *dev, const mepa_port_no_t    port_no, const  phy25g_pps_input_conf_t *const pin_conf)
 {

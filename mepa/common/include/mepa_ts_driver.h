@@ -426,6 +426,30 @@ typedef mepa_rc (*mepa_ts_fifo_empty_t)(struct mepa_device *dev);
 /** \brief Get FIFO timestamp entries up to maximum of 8 entries. Returns number of FIFO entries read to application. */
 typedef mepa_rc (*mepa_ts_fifo_entry_get_t)(struct mepa_device *dev, mepa_fifo_ts_entry_t ts_list[], const size_t size, uint32_t *const num);
 
+/**
+ * \brief Set the FIFO signature mask for timestamping.
+ *
+ * \param dev      [IN]  Driver instance.
+ * \param sigmask  [IN]  Pointer to the FIFO signature mask structure to set.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_ts_fifo_signature_set_t) (struct mepa_device *dev, const mepa_ts_fifo_sig_mask_t sigmask);
+
+/**
+ * \brief Get the FIFO signature mask for timestamping.
+ *
+ * \param dev      [IN]  Driver instance.
+ * \param sigmask  [OUT] Pointer to the FIFO signature mask structure to retrieve.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_ts_fifo_signature_get_t) (struct mepa_device *dev, mepa_ts_fifo_sig_mask_t *const sigmask);
+
 /** \brief Sample Test configurations */
 typedef mepa_rc (*mepa_ts_test_config_t) (struct mepa_device *dev, uint16_t test_id, mepa_bool_t reg_dump);
 
@@ -440,6 +464,34 @@ typedef mepa_rc (*mepa_ts_test_config_t) (struct mepa_device *dev, uint16_t test
  *   MEPA_RC_ERROR on error.
  **/
 typedef mepa_rc (*mepa_ts_pch_mch_error_info_get_t) (struct mepa_device *dev, mepa_pch_mch_mismatch_info_t *const info);
+
+/**
+ * \brief Read a value from a CSR at the specified MMD and address.
+ *
+ * \param dev         [IN]  Driver instance.
+ * \param mmd         [IN]  MMD (MDIO Manageable Device) address.
+ * \param csr_address [IN]  CSR register address to read from.
+ * \param value       [OUT] Pointer to store the read value.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_ts_csr_reg_read_t) (struct mepa_device *dev, const uint16_t mmd, const uint16_t csr_address, uint32_t *const value);
+
+/**
+ * \brief Write a value to a CSR at the specified MMD and address.
+ *
+ * \param dev         [IN]  Driver instance.
+ * \param mmd         [IN]  MMD (MDIO Manageable Device) address.
+ * \param csr_address [IN]  CSR register address to write to.
+ * \param value       [IN]  Pointer to the value to write.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_ts_csr_reg_write_t) (struct mepa_device *dev, const uint16_t mmd, const uint16_t csr_address, const uint32_t *const value);
 
 /** \brief PHY Timestamp Driver */
 typedef struct mepa_ts_driver {
@@ -480,7 +532,11 @@ typedef struct mepa_ts_driver {
     mepa_ts_fifo_read_install_t             mepa_ts_fifo_read_install;
     mepa_ts_fifo_empty_t                    mepa_ts_fifo_empty;
     mepa_ts_fifo_entry_get_t                mepa_ts_fifo_get;
+    mepa_ts_fifo_signature_set_t            mepa_ts_fifo_signature_set;
+    mepa_ts_fifo_signature_get_t            mepa_ts_fifo_signature_get;
     mepa_ts_pch_mch_error_info_get_t        mepa_ts_pch_mch_error_info_get;
+    mepa_ts_csr_reg_read_t                  mepa_ts_csr_reg_read;
+    mepa_ts_csr_reg_write_t                 mepa_ts_csr_reg_write;
 } mepa_ts_driver_t;
 
 #endif

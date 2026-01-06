@@ -186,6 +186,9 @@ static vtss_rc vtss_phy_ts_base_port_get_priv(vtss_state_t *vtss_state,
                                               const vtss_port_no_t port_no,
                                               vtss_port_no_t    *const base_port_no);
 
+static BOOL is_1588_capable_phy(vtss_state_t *vtss_state,
+                                const vtss_port_no_t port_no);
+
 typedef struct vtss_phy_ts_target_map {
     u16  dev_id;
     u16  mmd_addr;
@@ -1520,6 +1523,26 @@ vtss_rc vtss_phy_1588_csr_reg_write(const vtss_inst_t inst,
         rc = VTSS_PHY_TS_WRITE_CSR(cfg_port, blk_id, csr_address, value);
         VTSS_PHY_TS_SPI_UNPAUSE(port_no);
     } while (0);
+    VTSS_EXIT();
+
+    return rc;
+}
+
+vtss_rc vtss_phy_check_10g_and_1588(const vtss_inst_t inst, const vtss_port_no_t port_no, BOOL *const isphy_10g, BOOL *const is_1588_capable)
+{
+
+    vtss_state_t *vtss_state;
+    vtss_rc rc = VTSS_RC_ERROR;
+    VTSS_ENTER();
+    *is_1588_capable = FALSE;
+    *isphy_10g = FALSE;
+    rc = vtss_inst_port_no_check(inst, &vtss_state, port_no);
+
+    if (rc == VTSS_RC_OK) {
+        rc = phy_type_get(vtss_state, port_no, isphy_10g);
+        *is_1588_capable = is_1588_capable_phy(vtss_state, port_no);
+    }
+
     VTSS_EXIT();
 
     return rc;
@@ -6006,12 +6029,8 @@ vtss_rc vtss_phy_ts_fifo_sig_set(const vtss_inst_t                 inst,
         len += 6;    /* Dest MAC = 6 Bytes */
     }
 
-    if (((sig_mask & VTSS_PHY_TS_FIFO_SIG_SRC_IP) || (sig_mask & VTSS_PHY_TS_FIFO_SIG_DEST_IP)) &&
-        (sig_mask & VTSS_PHY_TS_FIFO_SIG_DEST_MAC)) {
-        return VTSS_RC_ERROR;
-    }
-
     if (len > 16) {
+        VTSS_E("Signature Length: %d exceeds Max Signature lenght of 16 Bytes for port %u", len, port_no);
         return VTSS_RC_ERROR;
     }
 

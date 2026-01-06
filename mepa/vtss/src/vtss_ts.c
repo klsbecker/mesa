@@ -396,6 +396,20 @@ static mepa_ts_ip_match_select_t get_mepa_ip_match_mode(uint8_t match)
     }
     return ret;
 }
+
+static uint8_t get_vs_ip_match_mode(const mepa_ts_ip_match_select_t match)
+{
+    uint8_t ret = VTSS_PHY_TS_IP_MATCH_SRC;
+    if (match == MEPA_TS_IP_MATCH_SRC) {
+        ret = VTSS_PHY_TS_IP_MATCH_SRC;
+    } else if (match == MEPA_TS_IP_MATCH_DEST) {
+        ret = VTSS_PHY_TS_IP_MATCH_DEST;
+    } else if (match == MEPA_TS_IP_MATCH_SRC_OR_DEST) {
+        ret = VTSS_PHY_TS_IP_MATCH_SRC_OR_DEST;
+    }
+    return ret;
+}
+
 static uint8_t get_vs_mac_type(mepa_ts_mac_match_select_t mac_type)
 {
     uint8_t ret;
@@ -1275,7 +1289,7 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         // ip flow conf
         if (encap == VTSS_PHY_TS_ENCAP_ETH_IP_PTP) {
             ip_flow->flow_en = true;
-            ip_flow->match_mode = ip_in->ip_match_mode; // mepa_ts_ip_match_select_t uses same order as vsc constants.
+            ip_flow->match_mode = get_vs_ip_match_mode(ip_in->ip_match_mode);
             if (ip_in->ip_ver == MEPA_TS_IP_VER_6) {
                 memcpy(&ip_flow->ip_addr.ipv6.addr, &ip_in->ip_addr.ipv6.addr, sizeof(ip_flow->ip_addr.ipv6.addr));
                 memcpy(&ip_flow->ip_addr.ipv6.mask, &ip_in->ip_addr.ipv6.mask, sizeof(ip_flow->ip_addr.ipv6.mask));
@@ -1474,7 +1488,7 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         // ip flow conf
         if (encap == VTSS_PHY_TS_ENCAP_ETH_IP_PTP) {
             ip_flow->flow_en = true;
-            ip_flow->match_mode = ip_in->ip_match_mode; // mepa_ts_ip_match_select_t uses same order as vsc constants.
+            ip_flow->match_mode = get_vs_ip_match_mode(ip_in->ip_match_mode);
             if (ip_in->ip_ver == MEPA_TS_IP_VER_6) {
                 memcpy(&ip_flow->ip_addr.ipv6.addr, &ip_in->ip_addr.ipv6.addr, sizeof(ip_flow->ip_addr.ipv6.addr));
                 memcpy(&ip_flow->ip_addr.ipv6.mask, &ip_in->ip_addr.ipv6.mask, sizeof(ip_flow->ip_addr.ipv6.mask));
@@ -1556,10 +1570,12 @@ static void vtss_phy_ts_fifo_read_cb(const vtss_inst_t              inst,
     memcpy(mep_sig.src_port_identity, sig->src_port_identity, sizeof(mep_sig.src_port_identity));
     mep_sig.has_crc_src = false;
     mep_sig.crc_src_port = 0;
-	mep_sig.dmac_sig_supported = false;
-    mep_sig.ipv4_sig_supported = false;
-    memset(&mep_sig.dest_ipv4, 0, sizeof(mep_sig.dest_ipv4));
-	memset(&mep_sig.dmac_addr, 0, sizeof(mep_sig.dmac_addr));
+    mep_sig.dmac_sig_supported = true;
+    mep_sig.ipv4_sig_supported = true;
+    mep_sig.ipv6_sig_supported = false;
+    memcpy(&mep_sig.dest_ipv4, &(sig->dest_ip), sizeof(mep_sig.dest_ipv4));
+    memset(&mep_sig.ipv6_dest_addr, 0, sizeof(mep_sig.ipv6_dest_addr));
+    memcpy(&mep_sig.dmac_addr, &(sig->dest_mac[0]), sizeof(mep_sig.dmac_addr));
     fifo_cb(port_no, &ts, &mep_sig, (mepa_ts_fifo_status_t)status);
 }
 
@@ -1598,11 +1614,93 @@ mepa_rc vtss_ts_fifo_get(struct mepa_device *dev, mepa_fifo_ts_entry_t ts_list[]
             memcpy(ts_list[i].sig.src_port_identity, vtss_entry[i].sig.src_port_identity, sizeof(ts_list[i].sig.src_port_identity));
             ts_list[i].sig.sequence_id = vtss_entry[i].sig.sequence_id;
             ts_list[i].sig.has_crc_src = false;
-            ts_list[i].sig.dmac_sig_supported = false;
-            ts_list[i].sig.ipv4_sig_supported = false;
-            memset(&ts_list[i].sig.dest_ipv4, 0, sizeof(ts_list[i].sig.dest_ipv4));
-            memset(&ts_list[i].sig.dmac_addr, 0, sizeof(ts_list[i].sig.dmac_addr));
+            ts_list[i].sig.dmac_sig_supported = true;
+            ts_list[i].sig.ipv4_sig_supported = true;
+            ts_list[i].sig.ipv6_sig_supported = false;
+            memset(&ts_list[i].sig.ipv6_dest_addr, 0, sizeof(ts_list[i].sig.ipv6_dest_addr));
+            memcpy(&ts_list[i].sig.dest_ipv4, &vtss_entry[i].sig.dest_ip, sizeof(ts_list[i].sig.dest_ipv4));
+            memcpy(&ts_list[i].sig.dmac_addr, &vtss_entry[i].sig.dest_mac, sizeof(ts_list[i].sig.dmac_addr));
         }
+    }
+    return MEPA_RC_OK;
+}
+
+mepa_rc vtss_ts_fifo_signature_set(struct mepa_device *dev, const mepa_ts_fifo_sig_mask_t sig_mask)
+{
+    mepa_rc rc = MEPA_RC_ERROR;
+    phy_data_t *data = (phy_data_t*)dev->data;
+    rc = vtss_phy_ts_fifo_sig_set(data->vtss_instance, data->port_no, (vtss_phy_ts_fifo_sig_mask_t)sig_mask);
+    return rc;
+}
+
+mepa_rc vtss_ts_fifo_signature_get(struct mepa_device *dev, mepa_ts_fifo_sig_mask_t *const sig_mask)
+{
+    mepa_rc rc = MEPA_RC_ERROR;
+    phy_data_t *data = (phy_data_t*)dev->data;
+    vtss_phy_ts_fifo_sig_mask_t sigmask = 0;
+
+    if (sig_mask != NULL) {
+        *sig_mask = 0;
+        rc = vtss_phy_ts_fifo_sig_get(data->vtss_instance, data->port_no, &sigmask);
+	    *sig_mask = (mepa_ts_fifo_sig_mask_t)sigmask;
+    }
+
+    return rc;
+}
+
+mepa_rc vtss_phy_1588_csr_read(struct mepa_device *dev, const uint16_t mmd,
+                                const uint16_t csr_address, uint32_t *const value)
+{
+    mepa_rc rc = MEPA_RC_ERROR;
+    phy_data_t *data = (phy_data_t *)dev->data;
+    BOOL isphy10g, isphy_1588_capable;
+
+    if (vtss_phy_check_10g_and_1588(data->vtss_instance, data->port_no, &isphy10g, &isphy_1588_capable) != VTSS_RC_OK) {
+        T_E(data, MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
+        return MEPA_RC_ERROR;
+    }
+
+    if (isphy10g && isphy_1588_capable) {
+        // Hanlde 10G csr_read/write()
+        rc = vtss_phy_10g_csr_read(data->vtss_instance, data->port_no, mmd, csr_address, value);
+    } else if (!isphy10g && isphy_1588_capable) {
+        // Handle 1G csr_read_write()
+        rc = vtss_phy_csr_rd(data->vtss_instance, VTSS_PHY_PAGE_1588, data->port_no, mmd, csr_address, value);
+    }
+
+    if (rc == MEPA_RC_OK) {
+        T_D(data, MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
+    } else {
+        T_E(data, MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
+    }
+    return rc;
+
+}
+
+mepa_rc vtss_phy_1588_csr_write(struct mepa_device *dev, const uint16_t mmd,
+                                const uint16_t csr_address, const uint32_t *const value)
+{
+    mepa_rc rc = MEPA_RC_ERROR;
+    phy_data_t *data = (phy_data_t *)dev->data;
+    BOOL isphy10g, isphy_1588_capable;
+
+    if (vtss_phy_check_10g_and_1588(data->vtss_instance, data->port_no, &isphy10g, &isphy_1588_capable) != VTSS_RC_OK) {
+        T_E(data, MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
+        return MEPA_RC_ERROR;
+    }
+
+    if (isphy10g && isphy_1588_capable) {
+        // Hanlde 10G csr_read/write()
+        rc = vtss_phy_10g_csr_write(data->vtss_instance, data->port_no, mmd, csr_address, *value);
+    } else if (!isphy10g && isphy_1588_capable) {
+        // Handle 1G csr_read_write()
+        rc = vtss_phy_csr_wr(data->vtss_instance, VTSS_PHY_PAGE_1588, data->port_no, mmd, csr_address, *value);
+    }
+
+    if (rc == MEPA_RC_OK) {
+        T_D(data, MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
+    } else {
+        T_E(data, MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
     }
     return MEPA_RC_OK;
 }
@@ -1643,4 +1741,8 @@ mepa_ts_driver_t vtss_ts_drivers = {
     .mepa_ts_fifo_read_install      = vtss_ts_fifo_read_install,
     .mepa_ts_fifo_empty             = vtss_ts_fifo_empty,
     .mepa_ts_fifo_get               = vtss_ts_fifo_get,
+    .mepa_ts_fifo_signature_set     = vtss_ts_fifo_signature_set,
+    .mepa_ts_fifo_signature_get     = vtss_ts_fifo_signature_get,
+    .mepa_ts_csr_reg_read           = vtss_phy_1588_csr_read,
+    .mepa_ts_csr_reg_write          = vtss_phy_1588_csr_write,
 };

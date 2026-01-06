@@ -66,6 +66,22 @@ typedef enum {
     MEPA_TS_FIFO_TIMESTAMP_LEN_10BYTE, /**< 10 byte Tx timestamp */
 } mepa_ts_fifo_timestamp_len_t;
 
+/**
+ * \brief FIFO signature mask type used for timestamping operations.
+ *
+ * This enum represents a Signature mask to be used to configure or retrieve
+ * FIFO signature settings in timestamping APIs.
+ */
+typedef enum {
+    MEPA_TS_PTP_FIFO_SIG_SRC_IP         = 0x01,
+    MEPA_TS_PTP_FIFO_SIG_DEST_IP        = 0x02,
+    MEPA_TS_PTP_FIFO_SIG_MSG_TYPE       = 0x04,
+    MEPA_TS_PTP_FIFO_SIG_DOMAIN_NUM     = 0x08,
+    MEPA_TS_PTP_FIFO_SIG_SOURCE_PORT_ID = 0x10,
+    MEPA_TS_PTP_FIFO_SIG_SEQ_ID         = 0x20,
+    MEPA_TS_PTP_FIFO_SIG_DEST_MAC       = 0x40,
+    MEPA_TS_PTP_FIFO_SIG_IPV6_DEST_IP   = 0x80,
+} mepa_ts_fifo_sig_mask_t;
 
 /** \brief PTP Clock operational modes */
 typedef enum {
@@ -409,7 +425,9 @@ typedef struct {
     mepa_mac_t                  dmac_addr;             /**< Destination MAC Address in case of ETH-PTP */
     mepa_bool_t                 dmac_sig_supported;    /**< Indicates whether PHY supports DMAC in signature or not */
     uint8_t                     dest_ipv4[4];          /**< Destination IPv4 Address */
-    mepa_bool_t                 ipv4_sig_supported;    /**<Indicates whether PHY supports Dest IPv4 address in signature or not */
+    mepa_bool_t                 ipv4_sig_supported;    /**< Indicates whether PHY supports Dest IPv4 address in signature or not */
+    uint8_t                     ipv6_dest_addr[16];    /**< IPv6 Destination address */
+    mepa_bool_t                 ipv6_sig_supported;    /**< Indicates whether PHY supports Dest IPv6 address in signature or not */
 } mepa_ts_fifo_sig_t;
 
 /** \brief TS FIFO status */
@@ -940,6 +958,30 @@ mepa_rc mepa_ts_fifo_read_install(struct mepa_device                 *dev,
 mepa_rc mepa_ts_fifo_empty(struct mepa_device                     *dev);
 
 /**
+ * \brief Set the FIFO signature mask for timestamping operations.
+ *
+ * \param dev      [IN]  Driver instance.
+ * \param sig_mask [IN]  Pointer to the FIFO signature mask value to set.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_ts_fifo_signature_set(struct mepa_device *dev, const mepa_ts_fifo_sig_mask_t sig_mask);
+
+/**
+ * \brief Get the FIFO signature mask for timestamping operations.
+ *
+ * \param dev      [IN]  Driver instance.
+ * \param sig_mask [OUT] Pointer to the FIFO signature mask value to retrieve.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_ts_fifo_signature_get(struct mepa_device *dev, mepa_ts_fifo_sig_mask_t *const sig_mask);
+
+/**
  * \brief Sample Test configurations.
  *
  * \param dev      [IN]  Driver instance.
@@ -967,6 +1009,36 @@ mepa_rc mepa_ts_test_config(struct mepa_device                    *dev,
  **/
 mepa_rc mepa_ts_pch_mch_error_info_get(struct mepa_device *dev,
                                        mepa_pch_mch_mismatch_info_t *const info);
+
+/**
+ * \brief Read a value from a CSR at the specified MMD and address.
+ *
+ * \param dev         [IN]  Driver instance.
+ * \param mmd         [IN]  MMD (MDIO Manageable Device) address.
+ * \param csr_address [IN]  CSR register address to read from.
+ * \param regvalue    [OUT] Pointer to store the read value.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_ts_csr_reg_read(struct mepa_device *dev, const uint16_t mmd,
+                             const uint16_t csr_address, uint32_t *const regvalue);
+
+/**
+ * \brief Write a value to a CSR at the specified MMD and address.
+ *
+ * \param dev         [IN]  Driver instance.
+ * \param mmd         [IN]  MMD (MDIO Manageable Device) address.
+ * \param csr_address [IN]  CSR register address to write to.
+ * \param regvalue    [IN]  Pointer to the value to write.
+ *
+ * \return
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_ts_csr_reg_write(struct mepa_device *dev, const uint16_t mmd,
+                              const uint16_t csr_address, const uint32_t *const regvalue);
 
 #include <microchip/ethernet/hdr_end.h>
 #endif /**< _MEPA_TS_API_H_ */

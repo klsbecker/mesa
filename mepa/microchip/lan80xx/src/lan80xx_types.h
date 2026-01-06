@@ -196,6 +196,7 @@ typedef struct phy25g_state_s {
     uint8_t                         packet_idx;
     uint8_t                         channel_id;
     uint8_t                         lsc_select;          /* LOAD or STORE LSC Pin */
+    phy25g_pps_action_t             lsc_input_mode;      /* Pin Mode (Continuous or Single shot) */
     phy25g_aneg_status              host_aneg_status;
     phy25g_aneg_status              line_aneg_status;
     mepa_port_no_t                  port_no;
@@ -243,6 +244,9 @@ typedef struct phy25g_state_s {
     phy25g_gpio_read_t              ft_gpio_read;
     mepa_port_no_t                  krlog_en_ports;
     phy25g_features_t               features;
+    mepa_bool_t                     terminate_lfs_in_phy;
+    mepa_bool_t                     host_mac_tx_pad;
+    mepa_bool_t                     line_mac_tx_pad;
 } phy25g_phy_state_t;
 
 

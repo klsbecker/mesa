@@ -1961,7 +1961,19 @@ extern vtss_rc vtss_phy_1588_csr_reg_read(const vtss_inst_t inst,
                                           const u16 csr_address,
                                           u32 *const value);
 
-
+/**
+ * \brief Get the PHY type for a given port.
+ *
+ * \param inst            [IN]  Handle to an API instance.
+ * \param port_no         [IN]  Port number.
+ * \param phy_10g         [OUT] Pointer to BOOL indicating if PHY is 10G.
+ * \param is_1588_capable [OUT] Pointer to BOOL indicating if PHY is 1588 capable.
+ *
+ * \return
+ *   Return code.
+ **/
+extern vtss_rc vtss_phy_check_10g_and_1588(const vtss_inst_t inst, const vtss_port_no_t port_no,
+                                 BOOL *const phy_10g, BOOL *const is_1588_capable);
 /**
  * \brief Defines the params for FIFO SYNC function
  **/

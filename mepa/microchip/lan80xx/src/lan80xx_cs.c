@@ -6,9 +6,9 @@
 #include "lan80xx_private.h"
 #include "lan80xx.h"
 
-mepa_rc lan80xx_operating_mode_set(const mepa_device_t *dev,
-                                   const mepa_port_no_t port_no,
-                                   phy25g_oper_mode_t phy_mode)
+mepa_rc lan80xx_operating_mode_set(const mepa_device_t        *dev,
+                                   const mepa_port_no_t       port_no,
+                                   const phy25g_mode_conf_t   phy_mode)
 {
     mepa_rc rc = MEPA_RC_ERROR;
     if (dev == NULL) {
@@ -20,7 +20,14 @@ mepa_rc lan80xx_operating_mode_set(const mepa_device_t *dev,
         return MEPA_RC_ERROR;
     }
     MEPA_ENTER(dev);
-    rc = lan80xx_operating_mode_set_priv(dev, port_no, phy_mode);
+    phy25g_phy_state_t *data = (phy25g_phy_state_t *) dev->data;
+
+    if (phy_mode.oper_mode == MAC_RETIMER) {
+        data->terminate_lfs_in_phy = phy_mode.terminate_lfs_in_phy;
+        data->host_mac_tx_pad = phy_mode.host_mac_tx_pad;
+        data->line_mac_tx_pad = phy_mode.line_mac_tx_pad;
+    }
+    rc = lan80xx_operating_mode_set_priv(dev, port_no, phy_mode.oper_mode);
     MEPA_EXIT(dev);
     return rc;
 }
@@ -45,26 +52,6 @@ mepa_rc lan80xx_rckout_conf_get(mepa_device_t     *dev,
     MEPA_EXIT(dev);
     return rc;
 }
-
-mepa_rc lan80xx_rckout_conf_set(mepa_device_t *dev,
-                                const mepa_port_no_t port_no,
-                                const phy_25g_rckout_conf_t *rckout_conf)
-{
-    mepa_rc rc = MEPA_RC_ERROR;
-    if (dev == NULL) {
-        T_E(MEPA_TRACE_GRP_GEN, "\nPort instance not created in port : %d", port_no);
-        return MEPA_RC_ERROR;
-    }
-    if (!lan80xx_driver_check(dev)) {
-        T_E(MEPA_TRACE_GRP_GEN, "\nAPI not supported for PHY in port : %d", port_no);
-        return MEPA_RC_ERROR;
-    }
-    MEPA_ENTER(dev);
-    rc = lan80xx_rckout_conf_set_priv(dev, port_no, rckout_conf);
-    MEPA_EXIT(dev);
-    return rc;
-}
-
 
 mepa_rc lan80xx_status_get(const mepa_device_t     *dev,
                            const mepa_port_no_t    port_no,
