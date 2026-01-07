@@ -20,6 +20,11 @@ test_table =
         cfg: {idx: 0, rate: 100},
         chk: {ig: [0], eg: 1, sec: 5, erate: [100000], etolerance: [6], with_pre_tx: true}
     },
+    {
+        txt: "Policer bit rate 1000 kbps",
+        cfg: {idx: 0, rate: 1000},
+        chk: {ig: [0], eg: 1, sec: 3, erate: [1000000], etolerance: [3]}
+    }
 ]
 
 # Policer test function
