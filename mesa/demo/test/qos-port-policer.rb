@@ -68,19 +68,13 @@ test_table =
 def policer_test(t)
     cfg = fld_get(t, :cfg)
     chk = fld_get(t, :chk)
-    cfg[:idx] = 0
 
     # Get number of policers
     pol_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_PORT_POLICER_CNT")
 
     # Configure port policer
-    port = $ts.dut.p[cfg[:idx]]
-    c = $ts.dut.call("mesa_qos_port_policer_conf_get", port, pol_cnt)
-    pol = c[0]
-    pol["frame_rate"] = fld_get(cfg, :frame_rate, false)
-    pol["policer"]["level"] = fld_get(cfg, :level)
-    pol["policer"]["rate"] = cfg[:rate]
-    $ts.dut.call("mesa_qos_port_policer_conf_set", port, pol_cnt, c)
+    cfg[:idx] = 0
+    configure_port_policer(pol_cnt, cfg)
 
     # Test policer rate
     chk[:ig] = [0]
@@ -90,6 +84,24 @@ def policer_test(t)
     chk[:erate] = [cfg[:rate] * rate_multiplier]
     chk[:frame_rate] = cfg[:frame_rate]
     check_rate(chk)
+
+    # Swap ig/eg and test policer rate again
+    cfg[:idx] = 1
+    chk[:ig] = [1]
+    chk[:eg] = 0
+    configure_port_policer(pol_cnt, cfg)
+    check_rate(chk)
+end
+
+# Configure Port Policer function
+def configure_port_policer(count, cfg)
+    port = $ts.dut.p[fld_get(cfg, :idx)]
+    c = $ts.dut.call("mesa_qos_port_policer_conf_get", port, count)
+    pol = c[0]
+    pol["frame_rate"] = fld_get(cfg, :frame_rate, false)
+    pol["policer"]["level"] = fld_get(cfg, :level)
+    pol["policer"]["rate"] = cfg[:rate]
+    $ts.dut.call("mesa_qos_port_policer_conf_set", port, count, c)
 end
 
 # Run all or selected test
