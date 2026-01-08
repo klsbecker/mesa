@@ -52,12 +52,12 @@ test_table =
     },
     {
         txt: "Policer frame rate 10000 fps",
-        cfg: {rame_rate: true, level: 206, rate: 10000},
+        cfg: {frame_rate: true, level: 206, rate: 10000},
         chk: {with_pre_tx: true}
     },
     {
         txt: "Policer frame rate 100000 fps",
-        cfg: {rame_rate: true, level: 206, rate: 100000},
+        cfg: {frame_rate: true, level: 206, rate: 100000},
         chk: {etolerance: [2]}
     },
 ]
