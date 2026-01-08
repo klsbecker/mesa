@@ -12,60 +12,63 @@ test_table =
 [
     {
         txt: "Policer disabled",
-        cfg: {idx: 0, rate: 0xffffffff},
-        chk: {ig: [0], eg: 1, etolerance: [2]}
+        cfg: {rate: 0xffffffff},
+        chk: {etolerance: [2]}
     },
     {
         txt: "Policer bit rate 100 kbps",
-        cfg: {idx: 0, rate: 100},
-        chk: {ig: [0], eg: 1, sec: 5, erate: [100000], etolerance: [6], with_pre_tx: true}
+        cfg: {rate: 100},
+        chk: {sec: 5, etolerance: [6], with_pre_tx: true}
     },
     {
         txt: "Policer bit rate 1000 kbps",
-        cfg: {idx: 0, rate: 1000},
-        chk: {ig: [0], eg: 1, sec: 3, erate: [1000000], etolerance: [3]}
+        cfg: {rate: 1000},
+        chk: {sec: 3, etolerance: [3]}
     },
     {
         txt: "Policer bit rate 10000 kbps",
-        cfg: {idx: 0, rate: 10000},
-        chk: {ig: [0], eg: 1, erate: [10000000], etolerance: [2]}
+        cfg: {rate: 10000},
+        chk: {etolerance: [2]}
     },
     {
         txt: "Policer bit rate 100000 kbps",
-        cfg: {idx: 0, level: 1, rate: 100000},
-        chk: {ig: [0], eg: 1, erate: [100000000], etolerance: [2]}
+        cfg: {level: 1, rate: 100000},
+        chk: {etolerance: [2]}
     },
     {
         txt: "Policer bit rate 1000000 kbps",
-        cfg: {idx: 0, level: 1, rate: 1000000},
-        chk: {ig: [0], eg: 1, erate: [1000000000], etolerance: [2]}
+        cfg: {level: 1, rate: 1000000},
+        chk: {etolerance: [2]}
     },
     {
         txt: "Policer frame rate 100 fps",
-        cfg: {idx: 0, frame_rate: true, rate: 100},
-        chk: {ig: [0], eg: 1, sec: 3, frame_rate: true, erate: [100], etolerance: [2], with_pre_tx: true}
+        cfg: {frame_rate: true, rate: 100},
+        chk: {sec: 3, etolerance: [2], with_pre_tx: true}
     },
     {
         txt: "Policer frame rate 1000 fps",
-        cfg: {idx: 0, frame_rate: true, rate: 1000},
-        chk: {ig: [0], eg: 1, sec: 2, frame_rate: true, erate: [1000], with_pre_tx: true}
+        cfg: {frame_rate: true, rate: 1000},
+        chk: {sec: 2, with_pre_tx: true}
     },
     {
         txt: "Policer frame rate 10000 fps",
-        cfg: {idx: 0, frame_rate: true, level: 206, rate: 10000},
-        chk: {ig: [0], eg: 1, frame_rate: true, erate: [10000], with_pre_tx: true}
+        cfg: {rame_rate: true, level: 206, rate: 10000},
+        chk: {with_pre_tx: true}
     },
     {
         txt: "Policer frame rate 100000 fps",
-        cfg: {idx: 0, frame_rate: true, level: 206, rate: 100000},
-        chk: {ig: [0], eg: 1, frame_rate: true, erate: [100000], etolerance: [2]}
-    }
+        cfg: {rame_rate: true, level: 206, rate: 100000},
+        chk: {etolerance: [2]}
+    },
 ]
+
+
 
 # Policer test function
 def policer_test(t)
     cfg = fld_get(t, :cfg)
     chk = fld_get(t, :chk)
+    cfg[:idx] = 0
 
     # Get number of policers
     pol_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_PORT_POLICER_CNT")
@@ -80,7 +83,12 @@ def policer_test(t)
     $ts.dut.call("mesa_qos_port_policer_conf_set", port, pol_cnt, c)
 
     # Test policer rate
+    chk[:ig] = [0]
+    chk[:eg] = 1
     chk[:size] = 1000
+    rate_multiplier = cfg[:frame_rate] ? 1 : 1000
+    chk[:erate] = [cfg[:rate] * rate_multiplier]
+    chk[:frame_rate] = cfg[:frame_rate]
     check_rate(chk)
 end
 
