@@ -460,6 +460,7 @@ static vtss_rc srvl_vlan_port_conf_apply(vtss_state_t          *vtss_state,
     u32                   value, etype = vtss_state->l2.vlan_conf.s_etype;
     BOOL                  tagged, untagged, aware = 1, c_port = 0, s_port = 0;
     vtss_vlan_port_type_t type = conf->port_type;
+    vtss_tag_discard_t    d = conf->outer_tag_discard;
 
     /* BZ4513: If the custom TPID is 0x8100, we treat S-custom ports as C-ports */
     if (etype == VTSS_ETYPE_TAG_C && type == VTSS_VLAN_PORT_TYPE_S_CUSTOM)
@@ -498,20 +499,25 @@ static vtss_rc srvl_vlan_port_conf_apply(vtss_state_t          *vtss_state,
     if (tagged && aware) {
         /* Discard untagged and priority-tagged if aware and tagged-only allowed
          */
-        value |= VTSS_F_ANA_PORT_DROP_CFG_DROP_UNTAGGED_ENA;
-        value |= VTSS_F_ANA_PORT_DROP_CFG_DROP_PRIO_C_TAGGED_ENA;
-        value |= VTSS_F_ANA_PORT_DROP_CFG_DROP_PRIO_S_TAGGED_ENA;
+        d.no_tag = TRUE;
+        d.c_prio_tag = TRUE;
+        d.s_prio_tag = TRUE;
     }
     if ((untagged && c_port) || (tagged && s_port)) {
         /* Discard C-tagged if C-port and untagged-only OR S-port and
          * tagged-only */
-        value |= VTSS_F_ANA_PORT_DROP_CFG_DROP_C_TAGGED_ENA;
+        d.c_tag = TRUE;
     }
     if ((untagged && s_port) || (tagged && c_port)) {
         /* Discard S-tagged if S-port and untagged-only OR C-port and
          * tagged-only */
-        value |= VTSS_F_ANA_PORT_DROP_CFG_DROP_S_TAGGED_ENA;
+        d.s_tag = TRUE;
     }
+    value |= (d.no_tag ? VTSS_F_ANA_PORT_DROP_CFG_DROP_UNTAGGED_ENA : 0);
+    value |= (d.c_prio_tag ? VTSS_F_ANA_PORT_DROP_CFG_DROP_PRIO_C_TAGGED_ENA : 0);
+    value |= (d.c_tag ? VTSS_F_ANA_PORT_DROP_CFG_DROP_C_TAGGED_ENA : 0);
+    value |= (d.s_prio_tag ? VTSS_F_ANA_PORT_DROP_CFG_DROP_PRIO_S_TAGGED_ENA : 0);
+    value |= (d.s_tag ? VTSS_F_ANA_PORT_DROP_CFG_DROP_S_TAGGED_ENA : 0);
     SRVL_WR(VTSS_ANA_PORT_DROP_CFG(port), value);
 
     /* Ingress filtering */

@@ -550,6 +550,7 @@ typedef struct {
 #if defined(VTSS_ARCH_OCELOT) || defined(VTSS_ARCH_LAN966X)
     vtss_etype_t s_etype; /**< Alternative S-tag Ethernet Type, if non-zero */
 #endif
+    vtss_tag_discard_t outer_tag_discard; // Outer tag discard (ingress)
 #if defined(VTSS_FEATURE_TAG_DISCARD)
     /** Discard frame based on inner (second) tag.
      *  This only have effect if the port_type is tag aware

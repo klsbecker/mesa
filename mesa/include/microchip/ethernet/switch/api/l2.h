@@ -239,11 +239,12 @@ typedef struct {
 
 // VLAN port configuration
 typedef struct {
-    mesa_vlan_port_type_t port_type;      // Port type (ingress and egress)
-    mesa_vid_t            pvid;           // Port VLAN ID (PVID, ingress)
-    mesa_vid_t            untagged_vid;   // Port untagged VLAN ID (UVID, egress)
-    mesa_vlan_frame_t     frame_type;     // Acceptable frame type (ingress)
-    mesa_bool_t           ingress_filter; // Ingress filtering
+    mesa_vlan_port_type_t port_type;         // Port type (ingress and egress)
+    mesa_vid_t            pvid;              // Port VLAN ID (PVID, ingress)
+    mesa_vid_t            untagged_vid;      // Port untagged VLAN ID (UVID, egress)
+    mesa_vlan_frame_t     frame_type;        // Acceptable frame type (ingress)
+    mesa_bool_t           ingress_filter;    // Ingress filtering
+    mesa_tag_discard_t    outer_tag_discard; // Outer tag discard (ingress)
     // Discard frame based on inner (second) tag.
     // This only have effect if the port_type is tag aware
     mesa_tag_discard_t inner_tag_discard CAP(L2_TAG_DISCARD); // Inner tag discard identification

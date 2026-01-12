@@ -621,15 +621,27 @@ vtss_rc vtss_cil_l2_vlan_mask_update(vtss_state_t *vtss_state,
     return jr2_vlan_mask_apply(vtss_state, vid, pmask);
 }
 
+static void fa_tag_discard_update(u32 *val, vtss_tag_discard_t *d)
+{
+    *val |= (d->no_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA : 0U);
+    *val |= (d->c_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CTAG_DIS : 0U);
+    *val |= (d->c_prio_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_CTAG_DIS : 0U);
+    *val |= (d->s_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_STAG_DIS : 0U);
+    *val |= (d->s_prio_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_STAG_DIS : 0U);
+    *val |= (d->s_custom_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CUST1_STAG_DIS : 0U);
+    *val |= (d->s_custom_prio_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_CUST1_STAG_DIS : 0U);
+}
+
 vtss_rc vtss_jr2_vlan_port_conf_apply(vtss_state_t          *vtss_state,
                                       u32                    port,
                                       vtss_vlan_port_conf_t *conf,
                                       BOOL                   l3_dt)
 {
-    BOOL       aware = 1, c_port = 0, s_port = 0, s_custom_port = 0;
-    vtss_vid_t uvid = conf->untagged_vid;
-    u32        value = 0, tpid = 0, aware_dis;
-    u64        pmask;
+    BOOL               aware = 1, c_port = 0, s_port = 0, s_custom_port = 0;
+    vtss_vid_t         uvid = conf->untagged_vid;
+    u32                value = 0, tpid = 0, aware_dis;
+    u64                pmask;
+    vtss_tag_discard_t d = conf->outer_tag_discard;
 
     /* Check port type */
     switch (conf->port_type) {
@@ -669,38 +681,41 @@ vtss_rc vtss_jr2_vlan_port_conf_apply(vtss_state_t          *vtss_state,
     if (conf->frame_type == VTSS_VLAN_FRAME_TAGGED && aware) {
         /* Discard untagged and priority-tagged if aware and tagged-only allowed
          */
-        value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA;
-        value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_CTAG_DIS;
-        value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_STAG_DIS;
-        value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_CUST1_STAG_DIS;
+        d.no_tag = TRUE;
+        d.c_prio_tag = TRUE;
+        d.s_prio_tag = TRUE;
+        d.s_custom_prio_tag = TRUE;
         if (!c_port) {
             /* Discard C-tagged unless C-port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CTAG_DIS;
+            d.c_tag = TRUE;
         }
         if (!s_port) {
             /* Discard S-tagged unless S-port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_STAG_DIS;
+            d.s_tag = TRUE;
         }
         if (!s_custom_port) {
             /* Discard S-custom-tagged unless S-custom port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CUST1_STAG_DIS;
+            d.s_custom_tag = TRUE;
         }
     }
 
     if (conf->frame_type == VTSS_VLAN_FRAME_UNTAGGED) {
         if (c_port) {
             /* Discard C-tagged if C-port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CTAG_DIS;
+            d.c_tag = TRUE;
         }
         if (s_port) {
             /* Discard S-tagged if S-port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_STAG_DIS;
+            d.s_tag = TRUE;
         }
         if (s_custom_port) {
             /* Discard S-custom-tagged if S-custom port */
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CUST1_STAG_DIS;
+            d.s_custom_tag = TRUE;
         }
     }
+
+    // Outer tag discard
+    fa_tag_discard_update(&value, &d);
 
     JR2_WRM(VTSS_ANA_CL_PORT_VLAN_FILTER_CTRL(port, 0), value,
             VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA |
@@ -714,27 +729,7 @@ vtss_rc vtss_jr2_vlan_port_conf_apply(vtss_state_t          *vtss_state,
     /* Second tag discard */
     value = 0;
     if (aware) {
-        if (conf->inner_tag_discard.no_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA;
-        }
-        if (conf->inner_tag_discard.c_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CTAG_DIS;
-        }
-        if (conf->inner_tag_discard.c_prio_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_CTAG_DIS;
-        }
-        if (conf->inner_tag_discard.s_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_STAG_DIS;
-        }
-        if (conf->inner_tag_discard.s_prio_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_PRIO_STAG_DIS;
-        }
-        if (conf->inner_tag_discard.s_custom_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_STAG_DIS;
-        }
-        if (conf->inner_tag_discard.s_custom_prio_tag) {
-            value |= VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CUST1_STAG_DIS;
-        }
+        fa_tag_discard_update(&value, &conf->inner_tag_discard);
     }
 
     JR2_WRM(VTSS_ANA_CL_PORT_VLAN_FILTER_CTRL(port, 1), value,

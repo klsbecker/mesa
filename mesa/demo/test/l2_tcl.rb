@@ -61,6 +61,7 @@ def tcl_test(t)
     # Capability check
     cap = t[:cap]
     if (cap != nil && cap_get("L2_TCL_" + cap) == 0)
+        test_skip
         return
     end
 

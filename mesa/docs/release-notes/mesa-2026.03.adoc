@@ -1,0 +1,17 @@
+// Copyright (c) 2004-2022 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= MESA-2026.03
+
+== MESA-2026.03
+
+|===
+|Version:          |MESA-2026.03
+|Previous Version: |MESA-2025.12
+|Date:             |2026-03-xx
+|Description:      |Roadmap release
+|===
+
+=== Outer tag filtering
+
+Advanced outer tag filtering has been added, using the `mesa_vlan_port_conf_t::outer_tag_discard` field.
