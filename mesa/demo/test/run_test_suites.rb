@@ -17,7 +17,6 @@ $systems = [
     { name: "dk-t34-4", image: "arm64_vsc7558TSN.itb",       branch:"master", parallel: "no", server: "34", started: "no" },
     { name: "dk-t34-5", image: "arm64_vsc7558TSN.itb",       branch:"master", parallel: "no", server: "34", started: "no" },
     { name: "dk-t34-0", image: "mipsel_vsc7468_pcb110.mfi",  branch:"master", parallel: "no", server: "34", started: "no" },
-    # { name: "dk-t34-2", image: "ls1046_vsc7512.itb",         branch:"master", parallel: "no", server: "34", started: "no" },
 
     # dk-t35, MIPS systems
     { name: "dk-t35-0", image: "armv7_lan966x.itb",          branch:"master", parallel: "no", server: "35", started: "no" },
@@ -35,8 +34,8 @@ $systems = [
     { name: "dk-t38-0", image: "armv7_lan932x_fpga.itb",     branch:"master.hallberg", parallel: "no", server: "38", started: "no" },
 
 #   { name: "dk-t31",   image: "arm64_vsc7546TSN.itb",       branch:"master", parallel: "no", server: "35", started: "no" },
-#   { name: "dk-t35-6", image: "mipsel_vsc7468_48.mfi",      branch:"master", parallel: "no", server: "35", started: "no" }, MESA-428 / Atom issue
-           ]
+#   { name: "dk-t35-6", image: "mipsel_vsc7468_48.mfi",      branch:"master", parallel: "no", server: "35", started: "no" }, MESA-428 /
+]
 
 if File.file?("../../../../easytest/test-setup-server/et")
     $et = "../../../../easytest/test-setup-server/et"
@@ -48,6 +47,7 @@ $suites_log = []
 
 def suite_log_merge name
     suites_log = Dir.glob("*.log")
+    return if suites_log.empty?
 
     l = File.open(name,"w")
     found_start = false
@@ -61,13 +61,13 @@ def suite_log_merge name
                     next
                 end
             end
-            
+
             if line.include?("<tests ") && !found_start
                 found_start = true
             end
-            
+
             if line.include?("tests_end")
-                test_end = line # append at the end
+                test_end = line
                 break
             end
             l.write line
@@ -75,35 +75,49 @@ def suite_log_merge name
     }
     l.write test_end
     l.write "</tests>"
+    l.close
     puts "Merged to file '#{name}'"
 end
 
 puts "-----delete all .log files-----"
-system("rm *.log")
+system("rm *.log 2>/dev/null")
 
 puts "-----Download and unpack all test folders from Jenkins-----"
 $systems.each { |system|
-    # Compose path to the image and test folder of the requested branch
-#    jenkins_images = "http://soft00.microsemi.net:8080/job/API-mesa/job/" + system[:branch] + "/lastSuccessfulBuild/artifact/images"
     jenkins_images = "https://ung.jenkins.microchip.com/job/UNGE/job/sw-mesa/job/" + system[:branch] + "/lastSuccessfulBuild/artifact/images"
 
-    puts("Download latest test folder from jenkins")
-    dl_file "#{jenkins_images}/et.tar.gz", "et.tar.gz"
+    begin
+        puts "--- Preparing #{system[:name]} ---"
+        dl_file "#{jenkins_images}/et.tar.gz", "et.tar.gz"
 
-    puts("Unpack Easy Test folder tar file")
-    dir = "#{system[:name]}-#{system[:branch]}-test"
-    run_("rm -rf #{dir}")
-    run_("mkdir #{dir}")
-    run_("tar xzf et.tar.gz -C #{dir}")
+        file_type = `file --mime-type -b et.tar.gz`.strip
+        if !file_type.include?("gzip")
+            raise "Invalid artifact: File is #{file_type}. Check Jenkins URL for branch #{system[:branch]}."
+        end
+
+        puts "Unpack Easy Test folder tar file"
+        dir = "#{system[:name]}-#{system[:branch]}-test"
+        run_("rm -rf #{dir}")
+        run_("mkdir #{dir}")
+        run_("tar xzf et.tar.gz -C #{dir}")
+    rescue => e
+        puts "!! ERROR: Skipping #{system[:name]}: #{e.message}"
+        system[:started] = "FAILED_PREP"
+        next
+    end
 }
 
 $parallel_threads = []
 $sequential_threads = []
+
 def start_test(system)
-    # Compose path to the image and test folder of the requested branch
-#    jenkins_images = "http://soft00.microsemi.net:8080/job/API-mesa/job/" + system[:branch] + "/lastSuccessfulBuild/artifact/images"
+    if system[:started] == "FAILED_PREP"
+        return nil
+    end
+
     jenkins_images = "https://ung.jenkins.microchip.com/job/UNGE/job/sw-mesa/job/" + system[:branch] + "/lastSuccessfulBuild/artifact/images"
     puts("Start test suites on system #{system[:name]} in a thread")
+
     t = Thread.new do
         system "GIT_BRANCH_NAME=#{system[:branch]} ./utils/run-suites-on.rb --system #{system[:name]} --dir #{system[:name]}-#{system[:branch]}-test/test --image #{jenkins_images}/#{system[:image]}"
     end
@@ -113,7 +127,8 @@ end
 puts "-----Start test on all 'parallel' systems in a thread.-----"
 $systems.each { |system|
     if (system[:parallel] == "yes")
-        $parallel_threads << start_test(system)
+        thread = start_test(system)
+        $parallel_threads << thread if thread
     end
 }
 
@@ -152,14 +167,15 @@ end
 puts "-----All 'sequential' tests are completed-----"
 
 puts "-----Wait for all 'parallel' tests to complete-----"
-$parallel_threads.each do |t|
-  t.join
-end
+$parallel_threads.each { |t| t.join if t }
 puts "-----All 'parallel' tests are completed-----"
 
 puts "-----Move all test-suite log files from created test folders to test folder-----"
 $systems.each { |system|
-    system("mv ./#{system[:name]}-#{system[:branch]}-test/test/*.log .")
+    dir = "./#{system[:name]}-#{system[:branch]}-test/test"
+    if Dir.exist?(dir)
+        system("mv #{dir}/*.log . 2>/dev/null")
+    end
 }
 
 puts("-----Merge the test-suite log files to one-----")
