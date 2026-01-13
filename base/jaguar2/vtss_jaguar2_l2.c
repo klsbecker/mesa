@@ -621,7 +621,7 @@ vtss_rc vtss_cil_l2_vlan_mask_update(vtss_state_t *vtss_state,
     return jr2_vlan_mask_apply(vtss_state, vid, pmask);
 }
 
-static void fa_tag_discard_update(u32 *val, vtss_tag_discard_t *d)
+static void jr2_tag_discard_update(u32 *val, vtss_tag_discard_t *d)
 {
     *val |= (d->no_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA : 0U);
     *val |= (d->c_tag ? VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_CTAG_DIS : 0U);
@@ -715,7 +715,7 @@ vtss_rc vtss_jr2_vlan_port_conf_apply(vtss_state_t          *vtss_state,
     }
 
     // Outer tag discard
-    fa_tag_discard_update(&value, &d);
+    jr2_tag_discard_update(&value, &d);
 
     JR2_WRM(VTSS_ANA_CL_PORT_VLAN_FILTER_CTRL(port, 0), value,
             VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA |
@@ -728,9 +728,7 @@ vtss_rc vtss_jr2_vlan_port_conf_apply(vtss_state_t          *vtss_state,
 
     /* Second tag discard */
     value = 0;
-    if (aware) {
-        fa_tag_discard_update(&value, &conf->inner_tag_discard);
-    }
+    jr2_tag_discard_update(&value, &conf->inner_tag_discard);
 
     JR2_WRM(VTSS_ANA_CL_PORT_VLAN_FILTER_CTRL(port, 1), value,
             VTSS_M_ANA_CL_PORT_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA |

@@ -785,9 +785,7 @@ vtss_rc vtss_cil_l2_vlan_port_conf_update(struct vtss_state_s   *vtss_state,
 
     /* Second tag discard */
     value = 0U;
-    if (aware) {
-        fa_tag_discard_update(&value, &conf->inner_tag_discard);
-    }
+    fa_tag_discard_update(&value, &conf->inner_tag_discard);
 
     REG_WRM(VTSS_ANA_CL_VLAN_FILTER_CTRL(port, 1), value,
             VTSS_M_ANA_CL_VLAN_FILTER_CTRL_TAG_REQUIRED_ENA |

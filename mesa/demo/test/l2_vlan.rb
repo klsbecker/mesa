@@ -110,7 +110,7 @@ test_table =
               {vid: vid_b, idx_list: [1]}],
         frm: [
             # Ingress port is unaware
-            [{idx_tx: 0}, {idx_rx: 1}],
+            [{idx_tx: 0},               {idx_rx: 1}],
             [{idx_tx: 0, ot: ["c", 0]}, {idx_rx: 1, ot: ["c", 0]}],
             [{idx_tx: 0, ot: ["c", 1]}, {idx_rx: 1, ot: ["c", 1]}],
             [{idx_tx: 0, ot: ["s", 0]}, {idx_rx: 1, ot: ["s", 0]}],
@@ -118,28 +118,28 @@ test_table =
             [{idx_tx: 0, ot: ["x", 0]}, {idx_rx: 1, ot: ["x", 0]}],
             [{idx_tx: 0, ot: ["x", 1]}, {idx_rx: 1, ot: ["x", 1]}],
             # Ingress port is C-aware
-            [{idx_tx: 1}, {idx_rx: 0}],
-            [{idx_tx: 1, ot: ["c", 0]}, {idx_rx: 0}],
+            [{idx_tx: 1},                   {idx_rx: 0}],
+            [{idx_tx: 1, ot: ["c", 0]},     {idx_rx: 0}],
             [{idx_tx: 1, ot: ["c", vid_a]}, {idx_rx: 0}],
-            [{idx_tx: 1, ot: ["s", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
+            [{idx_tx: 1, ot: ["s", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 1, ot: ["s", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", vid_a]}],
-            [{idx_tx: 1, ot: ["x", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
+            [{idx_tx: 1, ot: ["x", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 1, ot: ["x", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", vid_a]}],
             # Ingress port is S-aware
-            [{idx_tx: 2}, {idx_rx: 0}],
-            [{idx_tx: 2, ot: ["c", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
+            [{idx_tx: 2},                   {idx_rx: 0}],
+            [{idx_tx: 2, ot: ["c", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 2, ot: ["c", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", vid_a]}],
-            [{idx_tx: 2, ot: ["s", 0]}, {idx_rx: 0}],
+            [{idx_tx: 2, ot: ["s", 0]},     {idx_rx: 0}],
             [{idx_tx: 2, ot: ["s", vid_a]}, {idx_rx: 0}],
-            [{idx_tx: 2, ot: ["x", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
+            [{idx_tx: 2, ot: ["x", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 2, ot: ["x", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", vid_a]}],
             # Ingress port is S-custom-aware
-            [{idx_tx: 3}, {idx_rx: 0}],
-            [{idx_tx: 3, ot: ["c", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
+            [{idx_tx: 3},                   {idx_rx: 0}],
+            [{idx_tx: 3, ot: ["c", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 3, ot: ["c", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", vid_a]}],
-            [{idx_tx: 3, ot: ["s", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
+            [{idx_tx: 3, ot: ["s", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 3, ot: ["s", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", vid_a]}],
-            [{idx_tx: 3, ot: ["x", 0]}, {idx_rx: 0}],
+            [{idx_tx: 3, ot: ["x", 0]},     {idx_rx: 0}],
             [{idx_tx: 3, ot: ["x", vid_a]}, {idx_rx: 0}],
         ],
     },
@@ -154,7 +154,7 @@ test_table =
               {vid: vid_b, idx_list: [1]}],
         frm: [
             # Ingress port is unaware, allow all
-            [{idx_tx: 0}, {idx_rx: 1}],
+            [{idx_tx: 0},               {idx_rx: 1}],
             [{idx_tx: 0, ot: ["c", 0]}, {idx_rx: 1, ot: ["c", 0]}],
             [{idx_tx: 0, ot: ["c", 1]}, {idx_rx: 1, ot: ["c", 1]}],
             [{idx_tx: 0, ot: ["s", 0]}, {idx_rx: 1, ot: ["s", 0]}],
@@ -198,7 +198,7 @@ test_table =
               {vid: vid_b, idx_list: [1]}],
         frm: [
             # Ingress port is unaware, allow all
-            [{idx_tx: 0}, {idx_rx: 1}],
+            [{idx_tx: 0},               {idx_rx: 1}],
             [{idx_tx: 0, ot: ["c", 0]}, {idx_rx: 1, ot: ["c", 0]}],
             [{idx_tx: 0, ot: ["c", 1]}, {idx_rx: 1, ot: ["c", 1]}],
             [{idx_tx: 0, ot: ["s", 0]}, {idx_rx: 1, ot: ["s", 0]}],
@@ -206,26 +206,26 @@ test_table =
             [{idx_tx: 0, ot: ["x", 0]}, {idx_rx: 1, ot: ["x", 0]}],
             [{idx_tx: 0, ot: ["x", 1]}, {idx_rx: 1, ot: ["x", 1]}],
             # Ingress port is C-aware, discard C-vlan-tagged
-            [{idx_tx: 1}, {idx_rx: 0}],
-            [{idx_tx: 1, ot: ["c", 0]}, {idx_rx: 0}],
+            [{idx_tx: 1},                   {idx_rx: 0}],
+            [{idx_tx: 1, ot: ["c", 0]},     {idx_rx: 0}],
             [{idx_tx: 1, ot: ["c", vid_a]}],
-            [{idx_tx: 1, ot: ["s", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
+            [{idx_tx: 1, ot: ["s", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 1, ot: ["s", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", vid_a]}],
-            [{idx_tx: 1, ot: ["x", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
+            [{idx_tx: 1, ot: ["x", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 1, ot: ["x", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", vid_a]}],
             # Ingress port is S-aware, discard S-vlan-tagged
-            [{idx_tx: 2}, {idx_rx: 0}],
-            [{idx_tx: 2, ot: ["c", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
+            [{idx_tx: 2},                   {idx_rx: 0}],
+            [{idx_tx: 2, ot: ["c", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 2, ot: ["c", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", vid_a]}],
-            [{idx_tx: 2, ot: ["s", 0]}, {idx_rx: 0}],
+            [{idx_tx: 2, ot: ["s", 0]},     {idx_rx: 0}],
             [{idx_tx: 2, ot: ["s", vid_a]}],
-            [{idx_tx: 2, ot: ["x", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
+            [{idx_tx: 2, ot: ["x", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 2, ot: ["x", vid_a]}, {cap: 1, idx_rx: 0, ot: ["x", vid_a]}],
             # Ingress port is S-custom-aware, discard S-custom-vlan-tagged
-            [{idx_tx: 3}, {idx_rx: 0}],
-            [{idx_tx: 3, ot: ["c", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
+            [{idx_tx: 3},                   {idx_rx: 0}],
+            [{idx_tx: 3, ot: ["c", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 3, ot: ["c", vid_a]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["c", vid_a]}],
-            [{idx_tx: 3, ot: ["s", 0]}, {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
+            [{idx_tx: 3, ot: ["s", 0]},     {cap: 0, idx_rx: 0}, {cap: 1, idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 3, ot: ["s", vid_a]}, {cap: 1, idx_rx: 0, ot: ["s", vid_a]}],
             [{idx_tx: 3, ot: ["x", 0]}, {idx_rx: 0}],
             [{idx_tx: 3, ot: ["x", vid_a]}],
@@ -249,7 +249,7 @@ test_table =
             [{idx_tx: 0, ot: ["x", 0]}, {idx_rx: 1, ot: ["x", 0]}],
             [{idx_tx: 0, ot: ["x", 1]}, {idx_rx: 1, ot: ["x", 1]}],
             # Index 1, discard C-prio-tagged
-            [{idx_tx: 1}, {idx_rx: 0}],
+            [{idx_tx: 1},               {idx_rx: 0}],
             [{idx_tx: 1, ot: ["c", 0]}],
             [{idx_tx: 1, ot: ["c", 1]}, {idx_rx: 0, ot: ["c", 1]}],
             [{idx_tx: 1, ot: ["s", 0]}, {idx_rx: 0, ot: ["s", 0]}],
@@ -257,7 +257,7 @@ test_table =
             [{idx_tx: 1, ot: ["x", 0]}, {idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 1, ot: ["x", 1]}, {idx_rx: 0, ot: ["x", 1]}],
             # Index 2, discard C-vlan-tagged
-            [{idx_tx: 2}, {idx_rx: 0}],
+            [{idx_tx: 2},               {idx_rx: 0}],
             [{idx_tx: 2, ot: ["c", 0]}, {idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 2, ot: ["c", 1]}],
             [{idx_tx: 2, ot: ["s", 0]}, {idx_rx: 0, ot: ["s", 0]}],
@@ -278,7 +278,7 @@ test_table =
               {vid: vid_c, idx_list: [0,3]}],
         frm: [
             # Index 0, discard S-prio-tagged
-            [{idx_tx: 0}, {idx_rx: 1}],
+            [{idx_tx: 0},               {idx_rx: 1}],
             [{idx_tx: 0, ot: ["c", 0]}, {idx_rx: 1, ot: ["c", 0]}],
             [{idx_tx: 0, ot: ["c", 1]}, {idx_rx: 1, ot: ["c", 1]}],
             [{idx_tx: 0, ot: ["s", 0]}],
@@ -286,7 +286,7 @@ test_table =
             [{idx_tx: 0, ot: ["x", 0]}, {cap: 1, idx_rx: 1, ot: ["x", 0]}],
             [{idx_tx: 0, ot: ["x", 1]}, {idx_rx: 1, ot: ["x", 1]}],
             # Index 1, discard S-vlan-tagged
-            [{idx_tx: 1}, {idx_rx: 0}],
+            [{idx_tx: 1},               {idx_rx: 0}],
             [{idx_tx: 1, ot: ["c", 0]}, {idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 1, ot: ["c", 1]}, {idx_rx: 0, ot: ["c", 1]}],
             [{idx_tx: 1, ot: ["s", 0]}, {idx_rx: 0, ot: ["s", 0]}],
@@ -294,21 +294,103 @@ test_table =
             [{idx_tx: 1, ot: ["x", 0]}, {idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 1, ot: ["x", 1]}, {cap: 1, idx_rx: 0, ot: ["x", 1]}],
             # Index 2, discard S-custom-prio-tagged
-            [{idx_tx: 2}, {idx_rx: 0}],
+            [{idx_tx: 2},               {idx_rx: 0}],
             [{idx_tx: 2, ot: ["c", 0]}, {idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 2, ot: ["c", 1]}, {idx_rx: 0, ot: ["c", 1]}],
             [{idx_tx: 2, ot: ["s", 0]}, {idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 2, ot: ["s", 1]}, {idx_rx: 0, ot: ["s", 1]}],
             [{idx_tx: 2, ot: ["x", 0]}, {cap: 0, idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 2, ot: ["x", 1]}, {idx_rx: 0, ot: ["x", 1]}],
-            # Index 3, discard S-custom-vlan-tagged 
-            [{idx_tx: 3}, {idx_rx: 0}],
+            # Index 3, discard S-custom-vlan-tagged
+            [{idx_tx: 3},               {idx_rx: 0}],
             [{idx_tx: 3, ot: ["c", 0]}, {idx_rx: 0, ot: ["c", 0]}],
             [{idx_tx: 3, ot: ["c", 1]}, {idx_rx: 0, ot: ["c", 1]}],
             [{idx_tx: 3, ot: ["s", 0]}, {idx_rx: 0, ot: ["s", 0]}],
             [{idx_tx: 3, ot: ["s", 1]}, {idx_rx: 0, ot: ["s", 1]}],
             [{idx_tx: 3, ot: ["x", 0]}, {idx_rx: 0, ot: ["x", 0]}],
             [{idx_tx: 3, ot: ["x", 1]}, {cap: 0, idx_rx: 0, ot: ["x", 1]}],
+        ],
+    },
+    {
+        txt: "inner-tag-discard-c",
+        cap: 1,
+        ets: s_etype,
+        cfg: [{idx: 0, pvid: vid_a, uvid: 4096, it: {no_tag: true}},
+              {idx: 1, pvid: vid_a, uvid: vid_a, it: {c_prio_tag: true}},
+              {idx: 2, pvid: vid_b, it: {c_tag: true}}],
+        vln: [{vid: vid_a, idx_list: [0,1]},
+              {vid: vid_b, idx_list: [0,2]}],
+        frm: [
+            # Index 0, discard inner untagged
+            [{idx_tx: 0, ot: ["c", 2]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 1, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 1, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 1, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["x", 1]}],
+            # Index 1, discard inner C-prio-tagged
+            [{idx_tx: 1, ot: ["c", 2]},               {idx_rx: 0, ot: ["c", 2]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 1]}],
+            # Index 2, discard inner C-vlan-tagged
+            [{idx_tx: 2, ot: ["c", 2]},               {idx_rx: 0, ot: ["c", 2]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 1]}],
+        ],
+    },
+    {
+        txt: "inner-tag-discard-s",
+        cap: 1,
+        ets: s_etype,
+        cfg: [{idx: 0, pvid: vid_a, uvid: 4096, it: {s_prio_tag: true}},
+              {idx: 1, pvid: vid_a, uvid: vid_a, it: {s_tag: true}},
+              {idx: 2, pvid: vid_b, it: {s_custom_prio_tag: true}},
+              {idx: 3, pvid: vid_c, it: {s_custom_tag: true}}],
+        vln: [{vid: vid_a, idx_list: [0,1]},
+              {vid: vid_b, idx_list: [0,2]},
+              {vid: vid_c, idx_list: [0,3]}],
+        frm: [
+            # Index 0, discard inner S-prio-tagged
+            [{idx_tx: 0, ot: ["c", 2]},               {idx_rx: 1, ot: ["c", 2]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 1, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 1, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 0, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 1, ot: ["c", 2], it: ["x", 1]}],
+            # Index 1, discard inner S-vlan-tagged
+            [{idx_tx: 1, ot: ["c", 2]},               {idx_rx: 0, ot: ["c", 2]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 1, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 1]}],
+            # Index 2, discard inner S-custom-prio-tagged
+            [{idx_tx: 2, ot: ["c", 2]},               {idx_rx: 0, ot: ["c", 2]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 2, ot: ["c", 2], it: ["x", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 1]}],
+            # Index 3, discard inner S-custom-vlan-tagged
+            [{idx_tx: 3, ot: ["c", 2]},               {idx_rx: 0, ot: ["c", 2]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["c", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 0]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["c", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["c", 1]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["s", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 0]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["s", 1]}, {idx_rx: 0, ot: ["c", 2], it: ["s", 1]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["x", 0]}, {idx_rx: 0, ot: ["c", 2], it: ["x", 0]}],
+            [{idx_tx: 3, ot: ["c", 2], it: ["x", 1]}],
         ],
     },
 ]
@@ -368,11 +450,9 @@ def vlan_test(t)
         idx_list = []
         idx_tx = nil
         f.each do |e|
-            cap = e[:cap]
-            if (cap != nil && cap != cap_aware_get)
-                # Skip due to awareness
-                next
-            end
+            # Skip due to awareness
+            next if (e[:cap] != nil && e[:cap] != cap_aware_get)
+
             idx = e[:idx_tx]
             if (idx != nil)
                 idx_tx = idx
@@ -406,7 +486,10 @@ end
 sel = table_lookup(test_table, :sel)
 test_table.each do |t|
     test t[:txt] do
-        next if (t[:sel] != sel)
+        if (t[:sel] != sel || (t[:cap] != nil && t[:cap] != cap_aware_get))
+            test_skip
+            next
+        end
         vlan_test(t)
     end
 end
