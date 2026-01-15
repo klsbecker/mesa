@@ -27,7 +27,7 @@ typedef struct {
     mesa_port_interface_t  mac_if;
     meba_port_cap_t        cap;
     mesa_internal_bw_t     max_bw;
-    uint8_t                sgpio_port;
+    uint8_t                sgpio_port; // Only used for SFP ports (MEBA_PORT_CAP_SFP_DETECT)
     uint8_t                i2c_port;
     mesa_bool_t            ts_phy;
     mesa_bool_t            poe_support;
@@ -66,9 +66,7 @@ static const uint32_t pin_conf_pcb8398[VTSS_TS_IO_ARRAY_SIZE] = {
     (MEBA_PTP_IO_CAP_UNUSED),
     (MEBA_PTP_IO_CAP_UNUSED)};
 
-#define LAGUNA_CAP_SFP                                                                             \
-    (MEBA_PORT_CAP_SD_ENABLE | MEBA_PORT_CAP_SD_HIGH | MEBA_PORT_CAP_SFP_DETECT |                  \
-     MEBA_PORT_CAP_SFP_ONLY)
+#define LAGUNA_CAP_SFP (MEBA_PORT_CAP_SD_ENABLE | MEBA_PORT_CAP_SFP_DETECT | MEBA_PORT_CAP_SFP_ONLY)
 #define LAGUNA_CAP_10G_FDX                                                                         \
     (MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_5G_FDX | MEBA_PORT_CAP_SFP_2_5G |                       \
      MEBA_PORT_CAP_FLOW_CTRL | LAGUNA_CAP_SFP)
@@ -313,6 +311,7 @@ static mesa_rc lan969x_board_init(meba_inst_t inst)
             // Turn on SFP LEDs while booting
             conf.port_conf[p].mode[0] = MESA_SGPIO_MODE_OFF;
             conf.port_conf[p].mode[1] = MESA_SGPIO_MODE_OFF;
+            conf.port_conf[p].int_pol_high[0] = true;
         }
     } else if (board->type == BOARD_TYPE_LAGUNA_PCB8422) {
         // Static PCB8422 SGPIO board config
@@ -325,6 +324,7 @@ static mesa_rc lan969x_board_init(meba_inst_t inst)
             // Turn on SFP LEDs while booting
             conf.port_conf[sgpio[p]].mode[0] = MESA_SGPIO_MODE_OFF;
             conf.port_conf[sgpio[p]].mode[1] = MESA_SGPIO_MODE_OFF;
+            conf.port_conf[p].int_pol_high[0] = true;
         }
 
         /* 4 bit MUX_SELx (I2C) is controlled by the BSP driver - do not touch */
@@ -716,7 +716,8 @@ static mesa_rc sgpio_handler(meba_inst_t         inst,
 
     // Check for LOS, MODDET and TXFAULT events
     for (port_no = 0; port_no < board->port_cnt; port_no++) {
-        if ((sgport = meba_port_map[port_no].sgpio_port) > 0) {
+        if (meba_port_map[port_no].cap & MEBA_PORT_CAP_SFP_DETECT) {
+            sgport = meba_port_map[port_no].sgpio_port;
             event_detected = 0;
             for (bit = 0; bit < 3; bit++) {
                 if (sgpio_events[bit][sgport]) {
