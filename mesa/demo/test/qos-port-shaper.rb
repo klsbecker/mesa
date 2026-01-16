@@ -7,187 +7,142 @@ require_relative 'libeasy/et'
 
 $ts = get_test_setup("mesa_pc_b2b_2x")
 
-$frame_support = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_EGRESS_SHAPER_FRAME")
+test_table = 
+[
+    {
+        txt: "Shaper port disabled",
+        cfg: {idx: 0, rate: 0xffffffff},
+        chk: {etolerance: [2], with_pre_tx: false}
+    },
+    {
+        txt: "Shaper port frame rate 100 kpps",
+        cfg: {idx: 0, frame_rate: true, level: 5, rate: 100},
+        chk: {size: 600, etolerance: [3]}
+    },
+    {
+        txt: "Shaper port frame rate 1000 kpps (1 Mpps)",
+        cfg: {idx: 1, frame_rate: true, level: 10, rate: 1000},
+        chk: {size: 600, etolerance: [3]}
+    },
+    {
+        txt: "Shaper port frame rate 300000 kpps (300 Mpps)",
+        cfg: {idx: 0, frame_rate: true, level: 50, rate: 300000},
+        chk: {size: 300, etolerance: [3]}
+    },
+    {
+        txt: "Shaper port line rate 400 kbps",
+        cfg: {idx: 0, level: 1, rate: 400},
+        chk: {sec: 2, etolerance: [4]}
+    },
+    {
+        txt: "Shaper port line rate 1200 kbps (1.2 Mbps)",
+        cfg: {idx: 0, level: 1, rate: 1200},
+        chk: {etolerance: [3]}
+    },
+    {
+        txt: "Shaper port line rate 10000 kbps (10 Mbps)",
+        cfg: {idx: 1, level: 1, rate: 10000},
+        chk: {etolerance: [3]}
+    },
+    {
+        txt: "Shaper port line rate 100000 kbps (100 Mbps)",
+        cfg: {idx: 1, level: 1, rate: 100000},
+        chk: {etolerance: [3]}
+    },
+    {
+        txt: "Shaper port line rate 1000000 kbps (1 Gbps)",
+        cfg: {idx: 0, level: 25000, rate: 1000000},
+        chk: {etolerance: [2]}
+    },
+    {
+        txt: "Shaper port data rate 400 kbps",
+        cfg: {idx: 0, data_rate: true, level: 1, rate: 400},
+    },
+    {
+        txt: "Shaper port data rate 1200 kbps (1.2 Mbps)",
+        cfg: {idx: 1, data_rate: true, level: 1, rate: 1200},
+    },
+    {
+        txt: "Shaper port data rate 10000 kbps (10 Mbps)",
+        cfg: {idx: 0, data_rate: true, level: 1, rate: 10000},
+        chk: {etolerance: [2.2]}
+    },
+    {
+        txt: "Shaper port data rate 100000 kbps (100 Mbps)",
+        cfg: {idx: 0, data_rate: true, level: 1, rate: 100000},
+    },
+    {
+        txt: "Shaper port data rate 1000000 kbps (1 Gbps)",
+        cfg: {idx: 1, data_rate: true, level: 25000, rate: 1000000},
+        chk: {etolerance: [3]}
+    }
+]
 
-# Use random ingress/egress port
-idx_list = port_idx_shuffle($ts)
-ig = idx_list[0]
-eg = idx_list[1]
-t_i("ig: #{ig}  eg: #{eg}")
+def test_runner(t)
+    cfg = fld_get(t, :cfg)
+    chk = fld_get(t, :chk, {})
+    port = $ts.dut.p[fld_get(cfg, :idx)]
+    eg = cfg[:idx] == 1 ? 0 : 1
+    eg_port = $ts.dut.p[eg]
 
-# Save configuration
-$qconf = []
-[ig, eg].each do |idx|
-    port = $ts.dut.p[idx]
-    $qconf[port] = $ts.dut.call("mesa_qos_port_conf_get", port)
-end
+    flow_control_disable(port)
 
-t_i ("Only forward on relevant ports #{$ts.dut.p}")
-port_list = port_idx_list_str(idx_list)
-$ts.dut.call("mesa_vlan_port_members_set", 1, port_list)
-
-port = $ts.dut.p[ig]
-$ts.dut.run("mesa-cmd port flow control #{port + 1} disable")
-sleep(5)
-dut_port_state_up([port])
-
-# Check line rate without using a shaper
-test "Port shaper disabled from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            false,           [1000000000],     [2],         false)
-end
-
-if ($frame_support == 1)
-    # Check frame based shaping using three different rates.
-    test "Port shaper frame rate 100 from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-        conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-        conf["shaper"]["level"] = 5
-        conf["shaper"]["rate"] = 100
-        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_FRAME"
-        conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-       #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-        measure([ig], eg, 600,  1,     true,             false,           [100],           [3],         true)
+    if (configure_port_shaper(cfg, eg_port) == false)
+        test_skip
+        return
     end
 
-    test "Port shaper frame rate 1000 from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-        conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-        conf["shaper"]["level"] = 10
-        conf["shaper"]["rate"] = 1000
-        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_FRAME"
-        conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
+    setup_chk_params(cfg, chk)
+    check_rate(chk)
+end
 
-       #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-        measure([ig], eg, 600,  1,     true,             false,           [1000],           [3],         true)
-    end
-    test "Port shaper frame rate 300000 from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-        conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-        conf["shaper"]["level"] = 50
-        conf["shaper"]["rate"] = 300000
-        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_FRAME"
-        conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-       #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-        measure([ig], eg, 300,  1,     true,             false,           [300000],         [3],         true)
+$ig_port = []
+def flow_control_disable(port)
+    if (!$ig_port.include?(port))
+        $ts.dut.run("mesa-cmd port flow control #{port + 1} disable")
+        sleep(5)
+        dut_port_state_up([port])
     end
 end
 
-# Check line rate using five different rates. The rates are selected to be multiple of 400 as Serval chip on support this without calling a calibrate function 50 times a sec.
-test "Port shaper line rate 400 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 400
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
+def configure_port_shaper(cfg, port)
+    conf = $ts.dut.call("mesa_qos_port_conf_get", port)
+    conf["shaper"]["level"] = fld_get(cfg, :level)
+    conf["shaper"]["rate"] = cfg[:rate]
+    isFrameRate = fld_get(cfg, :frame_rate, false)
+    isDataRate = fld_get(cfg, :data_rate, false)
 
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 2,     false,            false,           [400000],         [4],         true)
+    if (isFrameRate)
+        return false unless cap_get("QOS_EGRESS_SHAPER_FRAME") == 1
+        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_FRAME"
+    elsif (isDataRate)
+        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
+    elsif (cfg[:rate] != 0xffffffff)
+        conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
+    end
+
+    $ts.dut.call("mesa_qos_port_conf_set", port, conf)
+    return true
 end
 
-test "Port shaper line rate 1200 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 1200
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            false,           [1200000],        [3],         true)
+def setup_chk_params(cfg, chk)
+    chk[:ig] = [cfg[:idx]]
+    chk[:eg] = cfg[:idx] == 0 ? 1 : 0
+    chk[:size] = fld_get(chk, :size, 1000)
+    rate_multiplier = cfg[:frame_rate] ? 1 : 1000
+    chk[:erate] = [cfg[:rate] * rate_multiplier]
+    chk[:frame_rate] = cfg[:frame_rate]
+    chk[:with_pre_tx] = fld_get(chk, :with_pre_tx, true)
+    chk[:data_rate] = fld_get(cfg, :data_rate, false)
 end
 
-test "Port shaper line rate 10000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 10000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            false,           [10000000],       [3],         true)
-end
-
-test "Port shaper line rate 100000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 100000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            false,           [100000000],      [3],         true)
-end
-
-test "Port shaper line rate 1000000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 25000     # Shaper must have "large" burst size level in order to shape correctly at "high" rates
-    conf["shaper"]["rate"] = 1000000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            false,           [1000000000],     [2],         true)
-end
-
-# Check data rate using four different rates. The rates are selected to be multiple of 400 as Serval chip on support this without calling a calibrate function 50 times a sec.
-test "Port shaper data rate 400 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 400
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            true,            [400000],         [1],         true)
-end
-
-test "Port shaper data rate 1200 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 1200
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            true,            [1200000],        [1],         true)
-end
-
-test "Port shaper data rate 10000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 10000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            true,            [10000000],       [2.2],       true)
-end
-
-test "Port shaper data rate 100000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 1
-    conf["shaper"]["rate"] = 100000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            true,            [100000000],      [1],         true)
-end
-
-test "Port shaper data rate 1000000 kbps from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg]}" do
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["shaper"]["level"] = 25000     # Shaper must have "large" burst size level in order to shape correctly at "high" rates
-    conf["shaper"]["rate"] = 1000000
-    conf["shaper"]["mode"] = "MESA_SHAPER_MODE_DATA"
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-   #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure([ig], eg, 1000, 1,     false,            true,            [1000000000],     [3],         true)
-end
-
-# Restore configuration
-[ig, eg].each do |idx|
-    port = $ts.dut.p[idx]
-    $ts.dut.call("mesa_qos_port_conf_set", port, $qconf[port])
+# Run all or selected test
+sel = table_lookup(test_table, :sel)
+test_table.each do |t|
+    test t[:txt] do
+        next if (t[:sel] != sel)
+        test_runner(t)
+    end
 end
 
 test_summary
