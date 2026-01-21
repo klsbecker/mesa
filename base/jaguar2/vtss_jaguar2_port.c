@@ -3000,11 +3000,8 @@ vtss_rc vtss_jr2_wm_update(vtss_state_t *vtss_state)
     }
     return VTSS_RC_OK;
 }
-#if defined(VTSS_ARCH_SERVAL_T)
-#define BUF_OVERSUBSRIPTION_FACTOR 100 // (factor 100 = no oversubsription)
-#else
+
 #define BUF_OVERSUBSRIPTION_FACTOR 200 // (factor 100 = no oversubsription)
-#endif
 static vtss_rc jr2_port_buf_conf_set(vtss_state_t *vtss_state)
 {
     int q;
