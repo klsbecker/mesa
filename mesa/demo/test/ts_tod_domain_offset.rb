@@ -9,18 +9,10 @@ require 'time'
 
 $ts = get_test_setup("mesa_pc_b2b_2x")
 
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-end
+cap_check_ts()
 
 def tod_domain_offset_test(domain, seconds)
-    test "tod_domain_offset_test  doamin = #{domain}  seconds = #{seconds}" do
+    test "tod_domain_offset_test  domain = #{domain}  seconds = #{seconds}" do
 
     #domain == 3 indicates use of default domain API
     domain_def = (domain == 3) ? true : false

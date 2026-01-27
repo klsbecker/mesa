@@ -8,14 +8,10 @@ require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_2x", {}, "", "loop")
 
+cfg = { cap_array: ["PACKET_TX_IFH_SIZE"] }
+cap_check_ts(cfg)
+
 check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x).")
-    $cap_fpga = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_FPGA")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_phy_ts = $ts.dut.call("mesa_capability", "MESA_CAP_PHY_TS")
-    $cap_port_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_PORT_CNT")
     $loop_ports = []
     if (($ts.dut.looped_port_list != nil) && (($ts.dut.looped_port_list.length % 2) == 0))
         assert(dut_port_state_up($ts.dut.looped_port_list), "Loop ports must be up")
@@ -36,15 +32,15 @@ $port0 = 0
 $npi_port = 1
 $cpu_queue = 7
 
-$port_map = $ts.dut.call("mesa_port_map_get", $cap_port_cnt)
-
+$port_map = $ts.dut.call("mesa_port_map_get", cap_get("PORT_CNT"))
 
 def check_correction_field(domain)
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
 
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP", 0xFEFEFEFE0000, domain) + frameHdrTx.dup + sync_pdu_create()
     test "Inject SYNC frame into NPI port and receive SYNC frame from front port and check the correction field" do
-    frame_tx(frametx, $npi_port, " ", " ", " ", " ", 60)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: 60, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$port0][:pc]}.pcap"
     $data = pkts[0][:data].each_byte.map{|c| c.to_i}
     t_i"$data #{$data}"
@@ -54,7 +50,8 @@ def check_correction_field(domain)
 
     frametx = tx_ifh_create($loop_port0, "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP", 0xFEFEFEFE0000, domain) + frameHdrTx.dup + sync_pdu_create()
     test "Inject SYNC into NPI port to be transmitted on loop0 port and receive SYNC frame from NPI port and check the correction field" do
-    frame_tx(frametx, $npi_port, " ", " ", " ", " ", 100)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: 100, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"
     $data = pkts[1][:data].each_byte.map{|c| c.to_i}
     t_i"$data #{$data}"
@@ -64,7 +61,8 @@ def check_correction_field(domain)
 
     frametx = frameHdrTx.dup + sync_pdu_create()
     test "Inject SYNC into front port and receive SYNC frame from NPI port and check the correction field" do
-    frame_tx(frametx, $port0, " ", " ", " ", " ", 100)
+    frame_cfg = { frame: frametx, port: $port0, capture_size: 100, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"
     $data = pkts[0][:data].each_byte.map{|c| c.to_i}
     t_i"$data #{$data}"
@@ -83,7 +81,8 @@ def check_correction_field(domain)
 
     frametx = tx_ifh_create($loop_port0, "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP", 0xFEFEFEFE0000, domain) + frameHdrTx.dup + sync_pdu_create()
     test "Inject SYNC into NPI port to be transmitted on loop0 port and receive SYNC frame from NPI port and check the correction field" do
-    frame_tx(frametx, $npi_port, " ", " ", " ", " ", 100)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: 100, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"
     $data = pkts[1][:data].each_byte.map{|c| c.to_i}
     t_i"$data #{$data}"
@@ -141,7 +140,7 @@ def tod_domain_test(domain, seconds)
     $tx_tc = 0
     $frame_info = ""
 
-    test "tod_domain_test  doamin = #{domain}  seconds = #{seconds}" do
+    test "tod_domain_test  domain = #{domain}  seconds = #{seconds}" do
 
     #domain == 3 indicates use of default domain API
     domain_def = (domain == 3) ? true : false
@@ -203,24 +202,24 @@ def tod_domain_test(domain, seconds)
 
     test "Inject SYNC frame with PTP action NONE AFI into NPI port and receive SYNC frame from front port and check the origin timestamp" do
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0)
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_AFI_NONE", 0xFEFEFEFE0000, domain) + frameHdrTx.dup + sync_pdu_create()
     framerx = frameHdrTx.dup + sync_pdu_rx_create(IGNORE, 0)  # Frame should not be updated
 
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_tx(frametx, $npi_port, framerx , " ", " ", " ")
+    frame_cfg = { frame: frametx, port: $npi_port, frame0: framerx , port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
 #    check_correction_field(domain)
 
     test "Inject SYNC frame into NPI port and receive SYNC frame from front port and check the origin timestamp" do
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0)
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", 0xFEFEFEFE0000, domain) + frameHdrTx.dup + sync_pdu_create()
     framerx = frameHdrTx.dup + sync_pdu_rx_create(IGNORE, seconds)
 
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_tx(frametx, $npi_port, framerx , " ", " ", " ")
+    frame_cfg = { frame: frametx, port: $npi_port, frame0: framerx , port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
     if ($loop_port0 == nil)
@@ -251,11 +250,11 @@ def tod_domain_test(domain, seconds)
 
     t_i ("Transmit a Two-Step SYNC frame into NPI port with the allocated timestamp id on NPI against loop port and receive again on NPI port")
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0)
     frametx = tx_ifh_create($loop_port0, "MESA_PACKET_PTP_ACTION_TWO_STEP", idx["ts_id"]<<16, domain) + frameHdrTx.dup + sync_pdu_create()
     framerx = rx_ifh_create($loop_port1) + frameHdrTx.dup + sync_pdu_rx_create()
     $tod_ts  = domain_def ? $ts.dut.call("mesa_ts_timeofday_get") : $ts.dut.call("mesa_ts_domain_timeofday_get", domain)
-    frame_tx(frametx, $npi_port, " ", " ", " ", framerx, 60)
+    frame_cfg = { frame: frametx, port: $npi_port, framenpi: framerx, capture_size: 60, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
 
     t_i "Calculate the IFH and decode it"
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"
@@ -264,7 +263,7 @@ def tod_domain_test(domain, seconds)
     $frame_info = $ts.dut.call("mesa_packet_rx_hdr_decode", meta, ifh)
     $hw_tstamp = $frame_info["hw_tstamp"] >> 16
 
-    if ((domain == 0) && ($cap_phy_ts != 0))    #Port with timestamping PHY is assumed by API to be in domain 0 always
+    if ((domain == 0) && (cap_get("PHY_TS") != 0))    #Port with timestamping PHY is assumed by API to be in domain 0 always
         t_i ("Get the frame RX tc based on a 32 bit ns counter from frame content inserted by timestamping PHY")
         tx_props = { ts_feature_is_PTS: true, phy_ts_mode: "MESA_PACKET_INTERNAL_TC_MODE_32BIT", backplane_port: false, delay_comp: {delay_cnt: 100<<16, asymmetry_cnt: 100<<16} }
         phy_ts = ($tod_ts[0]["seconds"] * 1000000000) + $tod_ts[0]["nanoseconds"] # The TS inserted in frame by PHY is a 32 bit wrapping TOD nanoseconds. Current TOD TS is used as PHY TS
@@ -300,7 +299,7 @@ def tod_domain_test(domain, seconds)
     min = -200-2
     max = -200+18  #200ns is from delay_comp: {delay_cnt: 100<<16, asymmetry_cnt: 100<<16}
                    #Latency 17 is seen on Fireant Jenkins test
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
         if ($ts.dut.pcb == "8281-SVB")
             min = -200+480  #Copper SFP
             max = -200+520  #Copper SFP
@@ -369,7 +368,7 @@ test "test_conf" do
             next
         end
 
-        if ((port0 >= $cap_port_cnt) || (port1 >= $cap_port_cnt))
+        if ((port0 >= cap_get("PORT_CNT")) || (port1 >= cap_get("PORT_CNT")))
             next
         end
 

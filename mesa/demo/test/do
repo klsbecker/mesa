@@ -29,7 +29,7 @@ case $platform in
 
     fam)
         # All families
-        platform_list="ca oc st mc fa la"
+        platform_list="ca oc st j2 mc fa la"
         ;;
 
     ca|ca1|ca2|oc|st|j2)

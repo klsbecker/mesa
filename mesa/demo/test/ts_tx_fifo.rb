@@ -8,28 +8,22 @@ require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_2x", {}, "", "loop")
 
+cfg = { cap_array: ["PACKET_TX_IFH_SIZE"] }
+cap_check_ts(cfg)
+
 check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_fpga = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_FPGA")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_port_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_PORT_CNT")
-    loop_pair_check
+    loop_pair_check()
     $loop_port0 = $ts.dut.looped_port_list[0]
     $loop_port1 = $ts.dut.looped_port_list[1]
 end
 
-loop_pair_check
+loop_pair_check()
 
 $port0 = 0
 $npi_port = 1
 $cpu_queue = 7
 
-$port_map = $ts.dut.call("mesa_port_map_get", $cap_port_cnt)
+$port_map = $ts.dut.call("mesa_port_map_get", cap_get("PORT_CNT"))
 
 def tod_tx_fifo_test
     test "tod_tx_fifo_test" do
@@ -52,7 +46,8 @@ def tod_tx_fifo_test
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
     frametx = tx_ifh_create($loop_port0, "MESA_PACKET_PTP_ACTION_TWO_STEP", idx["ts_id"]<<16) + frameHdrTx.dup + sync_pdu_create()
     framerx = rx_ifh_create($loop_port1) + frameHdrTx.dup + sync_pdu_rx_create()
-    frame_tx(frametx, $npi_port, " ", " ", " ", framerx, 60)
+    frame_cfg = { frame: frametx, port: $npi_port, framenpi: framerx, capture_size: 60, port0: $port0, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
 
     t_i "Calculate the IFH and decode it"
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"

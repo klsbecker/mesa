@@ -252,10 +252,16 @@ def cmd_rx_ifh_push(ifh={}, pfx = true)
         cmd = "efh-crcl ign"
     end
 
+    port = fld_get(ifh, :port, nil)
     if (ifh.key?:port_idx)
-        # Match chip port
+        # Match chip port with ifh port_idx
         pmap = $ts.port_map
         port = $ts.dut.port_list[ifh[:port_idx]]
+    end
+
+    if (port != nil)
+        # Match chip port with port
+        pmap = $ts.port_map
         cmd += " #{port_name} #{pmap[port]["chip_port"]}"
     end
 
@@ -452,19 +458,28 @@ def warm_start(ts)
     thr2.join
 end
 
+CHIP_FAMILY_MAP = {
+  "MESA_CHIP_FAMILY_UNKNOWN" => 0,
+  # Unknown = 1
+  "MESA_CHIP_FAMILY_CARACAL" => 2,
+  # Unknown = 3
+  "MESA_CHIP_FAMILY_SERVAL"  => 4,
+  # Unknown = 5
+  "MESA_CHIP_FAMILY_SERVALT" => 6,
+  "MESA_CHIP_FAMILY_JAGUAR2" => 7,
+  "MESA_CHIP_FAMILY_OCELOT"  => 8,
+  "MESA_CHIP_FAMILY_SPARX5"  => 9,
+  "MESA_CHIP_FAMILY_LAN966X" => 10,
+  "MESA_CHIP_FAMILY_LAN969X" => 11
+}
+CHIP_ID_TO_FAMILY = CHIP_FAMILY_MAP.invert
+
 def chip_family_to_id(txt)
-    case txt
-    when "MESA_CHIP_FAMILY_UNKNOWN"; return 0
-    when "MESA_CHIP_FAMILY_CARACAL"; return 2
-    when "MESA_CHIP_FAMILY_SERVAL";  return 4
-    when "MESA_CHIP_FAMILY_SERVALT"; return 6
-    when "MESA_CHIP_FAMILY_JAGUAR2"; return 7
-    when "MESA_CHIP_FAMILY_OCELOT";  return 8
-    when "MESA_CHIP_FAMILY_SPARX5"; return 9
-    when "MESA_CHIP_FAMILY_LAN966X"; return 10
-    when "MESA_CHIP_FAMILY_LAN969X"; return 11
-    else; t_e("mesa_chip_family '#{txt}' not known")
-    end
+    CHIP_FAMILY_MAP[txt] || t_e("mesa_chip_family '#{txt}' not known")
+end
+
+def chip_id_to_family(id)
+    CHIP_ID_TO_FAMILY[id] || t_e("mesa_chip_family id '#{id}' not known")
 end
 
 def dut_port_state_up(ports)

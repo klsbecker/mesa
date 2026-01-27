@@ -7,17 +7,7 @@ require_relative 'libeasy/et'
 require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_2x")
-
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_core_clock = $ts.dut.call("mesa_capability", "MESA_CAP_INIT_CORE_CLOCK")
-end
+cap_check_ts()
 
 $port0 = 0
 $port1 = 1
@@ -28,7 +18,7 @@ $pcb = $ts.dut.pcb
 def tod_asymmetry_p2p_delay_test
     test "tod_asymmetry_p2p_delay_test" do
 
-    if ($cap_core_clock != 0)
+    if (cap_get("INIT_CORE_CLOCK") != 0)
         misc = $ts.dut.call("mesa_misc_get")
         if (misc["core_clock_freq"] == "MESA_CORE_CLOCK_250MHZ")
             exp_corr = 2
@@ -40,8 +30,8 @@ def tod_asymmetry_p2p_delay_test
         end
     else
         misc = $ts.dut.call("mesa_misc_get")
-        if (($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-            ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")))
+        if ((cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
+            (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")))
             exp_corr = 2
         else
             exp_corr = 1
@@ -56,7 +46,7 @@ def tod_asymmetry_p2p_delay_test
     action["ptp_action"] = "MESA_ACL_PTP_ACTION_ONE_STEP"
     $ts.dut.call("mesa_ace_add", 0, conf)
 
-    lowest_corr_none,range = nano_corr_lowest_measure
+    lowest_corr_none,range = nano_corr_lowest_measure(port0: $port0, port1: $port1)
 
     test ("No asymmetry delay check of correction field") do
     if ($pcb == 135)    #Test on Copper PHY
@@ -89,7 +79,7 @@ def tod_asymmetry_p2p_delay_test
     action["ptp_action"] = "MESA_ACL_PTP_ACTION_ONE_STEP_ADD_DELAY"
     $ts.dut.call("mesa_ace_add", 0, conf)
 
-    lowest_corr_eg,range1 = nano_corr_lowest_measure  #Measure lowest with asymmetry deducted
+    lowest_corr_eg,range1 = nano_corr_lowest_measure(port0: $port0, port1: $port1) #Measure lowest with asymmetry deducted
     diff0 = (lowest_corr_eg - (lowest_corr_none - asymmetry))
 
     range = (range1 > range) ? range1 : range
@@ -108,7 +98,7 @@ def tod_asymmetry_p2p_delay_test
     action["ptp_action"] = "MESA_ACL_PTP_ACTION_ONE_STEP_SUB_DELAY_1"
     $ts.dut.call("mesa_ace_add", 0, conf)
 
-    lowest_corr_in1,range1 = nano_corr_lowest_measure
+    lowest_corr_in1,range1 = nano_corr_lowest_measure(port0: $port0, port1: $port1)
     diff1 = (lowest_corr_in1 - (lowest_corr_none + asymmetry))
 
     range = (range1 > range) ? range1 : range
@@ -127,7 +117,7 @@ def tod_asymmetry_p2p_delay_test
     action["ptp_action"] = "MESA_ACL_PTP_ACTION_ONE_STEP_SUB_DELAY_2"
     $ts.dut.call("mesa_ace_add", 0, conf)
 
-    lowest_corr_in2,range1 = nano_corr_lowest_measure
+    lowest_corr_in2,range1 = nano_corr_lowest_measure(port0: $port0, port1: $port1)
     diff2 = (lowest_corr_in2 - (lowest_corr_none + asymmetry))
 
     range = (range1 > range) ? range1 : range
@@ -145,7 +135,7 @@ def tod_asymmetry_p2p_delay_test
     # Configure p2p delay. It is selected to be as large as possible but smaller than the lowest measured correction
     $ts.dut.call("mesa_ts_p2p_delay_set", $ts.dut.port_list[$port0], asymmetry<<16)
 
-    lowest_corr_in2,range1 = nano_corr_lowest_measure
+    lowest_corr_in2,range1 = nano_corr_lowest_measure(port0: $port0, port1: $port1)
     diff3 = (lowest_corr_in2 - (lowest_corr_none + 2*asymmetry))
 
     range = (range1 > range) ? range1 : range

@@ -8,19 +8,9 @@ require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_4x", {}, "")
 
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) || ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5). or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x).")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_phy_ts = $ts.dut.call("mesa_capability", "MESA_CAP_PHY_TS")
-    $cap_port_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_PORT_CNT")
-    $packet_inj_encap = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_INJ_ENCAP")
-    assert($packet_inj_encap == 1, "injection with specific encapsulation not supported")
-    loop_pair_check
-end
-
-loop_pair_check
+cfg = { cap_array: ["PACKET_INJ_ENCAP", "PACKET_TX_IFH_SIZE"] }
+cap_check_ts(cfg)
+loop_pair_check()
 
 $pcb = $ts.dut.pcb
 
@@ -31,7 +21,7 @@ $npi_port = 2
 $cpu_queue = 7
 $acl_id = 1
 
-$port_map = $ts.dut.call("mesa_port_map_get", $cap_port_cnt)
+$port_map = $ts.dut.call("mesa_port_map_get", cap_get("PORT_CNT"))
 
 def ip_test(ip)
     $data = ""
@@ -57,23 +47,23 @@ def ip_test(ip)
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c", "#{ip} udp")
 
     test "Inject a ORIGIN-TIMESTAMP SYNC frame into NPI port and receive frame from front port and check the origin timestamp" do
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0, seq_idx=0, proto=0)
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", 0xFEFEFEFE0000, 0, 0, ip) + frameHdrTx.dup + sync_pdu_create()
     frameHdrRx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c", "#{ip} ign udp ign")
     framerx = frameHdrRx + sync_pdu_rx_create(IGNORE, seconds)
 
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_tx(frametx, $npi_port, framerx , " ", " ", " ")
+    frame_cfg = { frame: frametx, port: $npi_port, frame0: framerx , port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
     test "Inject a ORIGIN-TIMESTAMP REQUEST frame into NPI port and receive frame from front port and check the correction field" do
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0, seq_idx=0, proto=0)
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP", 0xFEFEFEFE0000, 0, 0, ip) + frameHdrTx.dup + request_pdu_create($requestClockId, $requestPortNumber)
 
     size = 44+28+17
     off = 14+28
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_tx(frametx, $npi_port, " " , " ", " ", " ", size)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: size, port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$port0][:pc]}.pcap"
     data = pkts[0][:data].each_byte.map{|c| c.to_i}
     t_i "data #{data}"
@@ -93,13 +83,13 @@ def ip_test(ip)
     end
 
     test "Inject a ONE-STEP REQUEST frame into NPI port and receive frame from front port and check the correction field" do
-    #tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0, seq_idx=0, proto=0)
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ONE_STEP", (seconds * 1000000000) << 16, 0, 0, ip) + frameHdrTx.dup + request_pdu_create($requestClockId, $requestPortNumber)
 
     size = 44+28+17
     off = 14+28
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_tx(frametx, $npi_port, " " , " ", " ", " ", size)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: size, port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$port0][:pc]}.pcap"
     data = pkts[0][:data].each_byte.map{|c| c.to_i}
     t_i "data #{data}"
@@ -126,7 +116,7 @@ def ip_test(ip)
     action["ptp_action"] = "MESA_ACL_PTP_ACTION_ONE_STEP"
     $ts.dut.call("mesa_ace_add", 0, conf)
 
-    lowest_corr_none,range = nano_corr_lowest_measure(ip)
+    lowest_corr_none,range = nano_corr_lowest_measure(ip: ip, port0: $port0, port1: $port1)
 
     if ((lowest_corr_none < 0) || (lowest_corr_none > 3160))
         t_e("Unexpected correction field including egress delay. lowest_corr_none = #{lowest_corr_none}")

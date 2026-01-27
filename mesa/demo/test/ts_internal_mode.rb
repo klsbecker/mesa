@@ -8,16 +8,8 @@ require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_2x", {}, "", "loop")
 
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_pch = $ts.dut.call("mesa_capability", "MESA_CAP_TS_PCH")
-end
+cfg = { cap_array: ["PACKET_TX_IFH_SIZE"] }
+cap_check_ts(cfg)
 
 $port0 = 0
 $npi_port = 1
@@ -28,7 +20,7 @@ $acl_id = 1
 
 $max_diff = 4000
 # This is as long as Laguna is an FPGA with longer forwarding time
-if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
+if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
     $max_diff = 7650
 end
 
@@ -70,7 +62,8 @@ def tod_internal_mode_ingress_node_test
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
     frametx = tx_ifh_create($loop_port0, "MESA_PACKET_PTP_ACTION_TWO_STEP", idx["ts_id"]<<16) + frameHdrTx.dup + sync_pdu_create()
     tod_ret  = $ts.dut.call("mesa_ts_timeofday_get")
-    frame_tx(frametx, $npi_port, " ", " ", " ", " ", 60)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: 60, port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
 
     t_i("Update the TX FIFO in AIL. This will cause callback to Json with the TX timestamp")
     $ts.dut.call("mesa_tx_timestamp_update")
@@ -79,7 +72,7 @@ def tod_internal_mode_ingress_node_test
     ts_tx = $ts.dut.call("mesa_tx_timestamp_get")
 
     t_i("Calculate the TX TOD nanoseconds based on TX time stamp")
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
         tod_nano_tx = tc_to_tod_nano(ts_tx["ts"], tod_ret)
     else
         tod_nano_tx = ts_tx["ts"]
@@ -151,7 +144,8 @@ def tod_internal_mode_egress_node_test
 
     t_i("Transmit the Two-Step SYNC frame into NPI port")
     tod_ret  = $ts.dut.call("mesa_ts_timeofday_get")
-    frame_tx(frametx, $npi_port, " " , " ", " ", " ", 60)
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: 60, port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
 
     t_i ("Update the TX FIFO in AIL. This will cause callback to Json with the TX timestamp")
     $ts.dut.call("mesa_tx_timestamp_update")
@@ -160,7 +154,7 @@ def tod_internal_mode_egress_node_test
     ts_tx = $ts.dut.call("mesa_tx_timestamp_get")
 
     t_i ("Calculate the TX TOD nanoseconds based on TX time stamp")
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
         tod_nano_tx = tc_to_tod_nano(ts_tx["ts"], tod_ret)
     else
         tod_nano_tx = ts_tx["ts"]
@@ -214,7 +208,7 @@ def pch_read(port)
     chip_port = $ts.port_map[port]["chip_port"]
 t_i("port #{port} chip_port #{chip_port}")
     ret = {}
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
         out = $ts.dut.run("symreg SYS:PTPPORT[#{chip_port}]:PCH_CFG")
         split = out[:out].split(" ")
         regval = split[2].to_i(16)
@@ -223,8 +217,8 @@ t_i("port #{port} chip_port #{chip_port}")
         ret[:rx_mode] = (regval & 0x1C) >> 2
         ret[:err_mode] = regval & 0x03
     end
-    if (($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")) ||
-        ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")))
+    if ((cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")) ||
+        (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")))
         out = $ts.dut.run("mesa-cmd deb sym read DEV2G5[#{chip_port}]:PTP_CFG_STATUS:PTP_CFG")
         split = out[:out].split(" ")
         regval = split[13].to_i
@@ -232,7 +226,7 @@ t_i("port #{port} chip_port #{chip_port}")
         ret[:tx_mode] = (regval & 0x18) >> 3
         ret[:rx_mode] = regval & 0x07
         ret[:err_mode] = (regval & 0x6000) >> 13
-        if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
+        if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
             ret[:err_mode] = 3
         end
     end
@@ -241,7 +235,7 @@ end
 
 test "PCH operation" do
     # Test PCH operation mode
-    if ($cap_pch != 0)
+    if (cap_get("TS_PCH") != 0)
         port = $ts.dut.port_list[0]
 
         pch = pch_read(port)

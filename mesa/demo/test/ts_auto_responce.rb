@@ -17,16 +17,8 @@ $requestPortNumber = 0xABCD
 
 $ts = get_test_setup("mesa_pc_b2b_4x")
 
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_auto_resp = $ts.dut.call("mesa_capability", "MESA_CAP_TS_DELAY_REQ_AUTO_RESP")
-    assert($cap_auto_resp, "The Auto Response capability must be defined")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-end
+cfg = { cap_array: ["TS_DELAY_REQ_AUTO_RESP"] }
+cap_check_ts(cfg)
 
 def tod_auto_responce_test(domain)
     test "tod_auto_responce_test  domain = #{domain}" do
@@ -70,7 +62,11 @@ def tod_auto_responce_test(domain)
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, tod[0])
 
     # Transmit Delay Request on front port
-    frame_tx($frametx, $port0, framerx, "", "", "")
+    frame_cfg = {
+        frame: $frametx, port: $port0,
+        frame0: framerx, frame1: false, framenpi: false,
+        port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
     test "Configure auto delay response" do
@@ -82,13 +78,17 @@ def tod_auto_responce_test(domain)
     conf["flag_field_update"]["value"] = 0xAA
     $ts.dut.call("mesa_ts_autoresp_dom_cfg_set", domain, conf)
 
-    srcPortNumber = ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ? (0xFFC0 + $ts.dut.port_list[$port0] + 1) : (0xFF80 + $ts.dut.port_list[$port0] + 1)
+    srcPortNumber = (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ? (0xFFC0 + $ts.dut.port_list[$port0] + 1) : (0xFF80 + $ts.dut.port_list[$port0] + 1)
 
     #response_pdu_rx_create(controlField=IGNORE, secondsField=IGNORE, reqClockId=IGNORE, srcClockId=IGNORE, reqPortNumber=IGNORE, srcPortNumber=IGNORE, flagField=IGNORE)
     framerx = $frameHdrRx.dup + response_pdu_rx_create(IGNORE, IGNORE, $requestClockId, 0x0102030405060708, $requestPortNumber, srcPortNumber, 0xAA)
 
     # Transmit Delay Request on front port
-    frame_tx($frametx, $port0, framerx, "", "", "")
+    frame_cfg = {
+        frame: $frametx, port: $port0,
+        frame0: framerx, frame1: false, framenpi: false,
+        port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
     test "test the port configured SMAC" do
@@ -100,7 +100,11 @@ def tod_auto_responce_test(domain)
     framerx = $frameHdrRx.dup + response_pdu_rx_create()
 
     # Transmit Delay Request on front port
-    frame_tx($frametx, $port0, framerx, "", "", "")
+    frame_cfg = {
+        frame: $frametx, port: $port0,
+        frame0: framerx, frame1: false, framenpi: false,
+        port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 
     # Delete ACE rule

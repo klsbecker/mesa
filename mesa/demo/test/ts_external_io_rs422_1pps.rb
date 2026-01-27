@@ -7,35 +7,22 @@ require_relative 'libeasy/et'
 require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_4x")
-
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or
-            #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or
-            #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Laguna)")
-    assert(($ts.ts_external_clock_looped == true),
-           "External clock must be looped")
-    assert(($ts.ts_rs422 == true),
-           "External RS422 clock must be looped")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-end
+cfg = { ext_clk_loop: true, ext_rs422_clk_loop: true }
+cap_check_ts(cfg)
 
 $pcb = $ts.dut.pcb
 
-if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
     $mstoen_gpio = 55
     $slvoen_gpio = 54
     $saved_nano_max = 50    # The max of 50 nano is experimental
 end
-if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
+if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
     $mstoen_gpio = 49
     $slvoen_gpio = 48
     $saved_nano_max = 85   # The max of 85 nano is experimental
 end
-if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
+if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
     $saved_nano_max = 95   # The max of 95 nano is experimental
 end
 
@@ -131,15 +118,15 @@ test "test_conf" do
     # disable VLAN 1 to avoid looping
     $ts.dut.call("mesa_vlan_port_members_set", 1, "")
 
-    if (($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-        ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")))
+    if ((cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
+        (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")))
         # Assert buffer output enable
         $ts.dut.call("mesa_gpio_mode_set", 0, $mstoen_gpio, "MESA_GPIO_OUT")
         $ts.dut.call("mesa_gpio_mode_set", 0, $slvoen_gpio, "MESA_GPIO_OUT")
         $ts.dut.call("mesa_gpio_write", 0, $mstoen_gpio, true)
         $ts.dut.call("mesa_gpio_write", 0, $slvoen_gpio, false)
     end
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
         # Assert buffer output enable
         conf = $ts.dut.call("mesa_sgpio_conf_get", 0, 0)
         conf["port_conf"][1]["mode"][2] = "MESA_SGPIO_MODE_OFF"

@@ -8,18 +8,8 @@ require_relative 'ts_lib'
 
 $ts = get_test_setup("mesa_pc_b2b_2x")
 
-check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    assert(($ts.ts_external_clock_looped == true),
-           "External clock must be looped")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_core_clock = $ts.dut.call("mesa_capability", "MESA_CAP_INIT_CORE_CLOCK")
-end
+cfg = {ext_clk_loop: true}
+cap_check_ts(cfg)
 
 $pcb = $ts.dut.pcb
 
@@ -71,7 +61,7 @@ end
 
 def tod_adj_timer_test(domain_out, domain_in)
     test "tod_adj_timer_test  domain = #{domain_out}" do
-    if ($cap_core_clock != 0)
+    if (cap_get("INIT_CORE_CLOCK") != 0)
         # Get the core clock and set the maximum frequency adjustment
         misc = $ts.dut.call("mesa_misc_get")
         if (misc["core_clock_freq"] == "MESA_CORE_CLOCK_625MHZ")

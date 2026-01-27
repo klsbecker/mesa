@@ -23,17 +23,10 @@ $meba_cap = 0
 #    $ts.dut.looped_port_list << 3
 #end
 
+cfg = { cap_array: ["PACKET_TX_IFH_SIZE"], skip_on_fpga: true }
+cap_check_ts(cfg)
+
 check_capabilities do
-    $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    assert(($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")) ||
-           ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")),
-           "Family is #{$cap_family} - must be #{chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2")} (Jaguar2) or #{chip_family_to_id("MESA_CHIP_FAMILY_SPARX5")} (SparX-5) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN966X")} (Lan966x) or #{chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")} (Lan969x)")
-    $cap_fpga = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_FPGA")
-    assert(($cap_fpga == 0), "This test cannot pass on FPGA")
-    $cap_epid = $ts.dut.call("mesa_capability", "MESA_CAP_PACKET_IFH_EPID")
-    $cap_port_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_PORT_CNT")
     $loop_ports = []
     if (($ts.dut.looped_port_list != nil) && (($ts.dut.looped_port_list.length % 2) == 0))
         assert(dut_port_state_up($ts.dut.looped_port_list), "Loop ports must be up")
@@ -46,7 +39,7 @@ check_capabilities do
     t_i ("*********$loop_ports #{$loop_ports}  #{$loop_ports.length}*********")
     assert((($loop_ports != nil) && (($loop_ports.length % 2) == 0)),
            "Number of looped front ports must be multiples of two")
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
         assert(($ts.dut.looped_port_list_10g != nil) && ($ts.dut.looped_port_list_10g.length > 1),
             "On Jaguar2 two 10G front ports must be looped")
         $loop_port0_10g = $ts.dut.looped_port_list_10g[0]
@@ -57,7 +50,7 @@ end
 $npi_port = 1
 $cpu_queue = 7
 
-$port_map = $ts.dut.call("mesa_port_map_get", $cap_port_cnt)
+$port_map = $ts.dut.call("mesa_port_map_get", cap_get("PORT_CNT"))
 $misc_conf = $ts.dut.call("mesa_misc_get")
 t_i("Core Clock Frequency #{$misc_conf["core_clock_freq"]}")
 t_i("----------------------------------------------------")
@@ -88,7 +81,8 @@ def nano_delay_measure(port0, port1)
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
     frametx = tx_ifh_create(port0, "MESA_PACKET_PTP_ACTION_TWO_STEP", idx["ts_id"]<<16) + frameHdrTx.dup + sync_pdu_create()
     framerx = rx_ifh_create(port1) + frameHdrTx.dup + sync_pdu_rx_create()
-    frame_tx(frametx, $npi_port, " ", " ", " ", framerx, 60)
+    frame_cfg = { frame: frametx, port: $npi_port, framenpi: framerx, capture_size: 60, port0: nil, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     pkts = $ts.pc.get_pcap "#{$ts.links[$npi_port][:pc]}.pcap"
 
     if (pkts[1] == nil)
@@ -136,7 +130,8 @@ def tx_two_step_sync(port0, port1)
     frameHdrTx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c")
     frametx = tx_ifh_create(port0, "MESA_PACKET_PTP_ACTION_TWO_STEP", idx["ts_id"]<<16) + frameHdrTx.dup + sync_pdu_create()
     framerx = rx_ifh_create(port1) + frameHdrTx.dup + sync_pdu_rx_create()
-    frame_tx(frametx, $npi_port, " ", " ", " ", " ")
+    frame_cfg = { frame: frametx, port: $npi_port, port0: nil, port1: nil, npi_port: $npi_port }
+    frame_tx(frame_cfg)
     end
 end
 
@@ -246,7 +241,7 @@ def tod_latency_test(port0, port1, text)
     if $meba_cap[:out].include?("COPPER")
         min = -11
     end
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
         min = -11
         max = 11
         if ($ts.dut.pcb == "8281-SVB")
@@ -351,7 +346,7 @@ test "test_run" do
             next
         end
 
-        if ((port0 >= $cap_port_cnt) || (port1 >= $cap_port_cnt))
+        if ((port0 >= cap_get("PORT_CNT")) || (port1 >= cap_get("PORT_CNT")))
             next
         end
 
@@ -367,8 +362,8 @@ test "test_run" do
 
         # Test egress and ingress latency
 
-#        if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5") ||
-#            ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")))
+#        if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5") ||
+#            (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")))
             t_i("------------ Measuring 10G mode -----------------")
             if $meba_cap[:out].include?("10G_FDX")
                 t_i "Supports 10G"
@@ -379,7 +374,7 @@ test "test_run" do
                 if (conf["speed"] == "MESA_SPEED_10G")
                     tod_latency_test(port0, port1, "10G_FDX - NO FEC")
 
-                    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
+                    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
                         t_i "Run test with KR RS-FEC"
                         $ts.dut.run("mesa-cmd Port KR aneg #{port1+1} all")
                         $ts.dut.run("mesa-cmd Port KR aneg #{port0+1} all")
@@ -460,7 +455,7 @@ test "test_run" do
         end
     end
 
-    if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
         t_i("------------ Measuring 10G mode -----------------")
         if $meba_cap[:out].include?("10G_FDX")
             t_i "Supports 10G"
