@@ -324,7 +324,7 @@ static mesa_rc lan969x_board_init(meba_inst_t inst)
             // Turn on SFP LEDs while booting
             conf.port_conf[sgpio[p]].mode[0] = MESA_SGPIO_MODE_OFF;
             conf.port_conf[sgpio[p]].mode[1] = MESA_SGPIO_MODE_OFF;
-            conf.port_conf[p].int_pol_high[0] = true;
+            conf.port_conf[sgpio[p]].int_pol_high[0] = true;
         }
 
         /* 4 bit MUX_SELx (I2C) is controlled by the BSP driver - do not touch */
