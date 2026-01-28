@@ -1117,19 +1117,19 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
     char *p = eeprom;
     while (p < eeprom + sizeof(eeprom) - 1) {
         if (strstr(p, ev16r73a)) {
-            printf("Found plugin module %s in slot A\n", ev16r73a);
+            T_I(inst, "Found plugin module %s in slot A\n", ev16r73a);
             *plugin_module = ev16r73a;
             return MESA_RC_OK;
         } else if (strstr(p, ev12n54a)) {
-            printf("Found plugin module %s in slot A\n", ev12n54a);
+            T_I(inst, "Found plugin module %s in slot A\n", ev12n54a);
             *plugin_module = ev12n54a;
             return MESA_RC_OK;
         } else if (strstr(p, ev87s66a)) {
-            printf("Found plugin module %s in slot A\n", ev87s66a);
+            T_I(inst, "Found plugin module %s in slot A\n", ev87s66a);
             *plugin_module = ev87s66a;
             return MESA_RC_OK;
         } else if (strstr(p, ev42y23a)) {
-            printf("Found plugin module %s in slot A\n", ev42y23a);
+            T_I(inst, "Found plugin module %s in slot A\n", ev42y23a);
             *plugin_module = ev42y23a;
             return MESA_RC_OK;
         }
@@ -1138,23 +1138,23 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
 
     // Unrecognized pluging module
     char buf[64];
-    printf("Unrecognized plugin module in slot A\n");
+    T_W(inst, "Unrecognized plugin module in slot A\n");
     if (inst->iface.conf_get("plugin-module", buf, sizeof(buf), NULL) == MESA_RC_OK) {
         if (strstr(buf, ev16r73a)) {
             *plugin_module = ev16r73a;
-            printf("Assume %s\n", *plugin_module);
+            T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         } else if (strstr(buf, ev12n54a)) {
             *plugin_module = ev12n54a;
-            printf("Assume %s\n", *plugin_module);
+            T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         } else if (strstr(buf, ev87s66a)) {
             *plugin_module = ev87s66a;
-            printf("Assume %s\n", *plugin_module);
+            T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         } else if (strstr(buf, ev42y23a)) {
             *plugin_module = ev42y23a;
-            printf("Assume %s\n", *plugin_module);
+            T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         }
     }
@@ -1239,7 +1239,7 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         // MESA_PORT_MUX_MODE_5: 2xCu + 3x1G (LAN9668)
 
         if (MESA_RC_ERROR == read_plugin_module(inst, 0x54, &plugin_module)) {
-            printf("No plugin module found, use internal PHY only\n");
+            T_W(inst, "No plugin module found, use internal PHY only\n");
             // Just using the builtin PHYs
             inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
             lan966x_init_port_table(inst, 2, port_table_eds2);
@@ -1264,7 +1264,7 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
             lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8870) / sizeof(port_map_t),
                                     port_table_eds2_lan8870);
         } else {
-            printf(
+            T_W(inst,
                 "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
             // Just using the builtin PHYs
             inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
