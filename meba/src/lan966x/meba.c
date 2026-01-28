@@ -179,6 +179,23 @@ static port_map_t port_table_eds2_lan8840[] = {
      false,                                                                                             1},
 };
 
+
+#define MEBA_CAP_LAN8870 (MEBA_PORT_CAP_TRI_SPEED_COPPER & ~MEBA_PORT_CAP_AUTONEG)
+static port_map_t port_table_eds2_lan8870[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
+    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
+    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
+    {2, 0, MESA_MIIM_CONTROLLER_0, 3, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,
+     false,                                                                                             1},
+    {3, 0, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,
+     false,                                                                                             1},
+};
+
 // When using QSGMII, the SERDES_TX_INVERT must be enabled for the EDS2 board
 #define MEBA_CAP_EDS2_LAN8814 (MEBA_PORT_CAP_TRI_SPEED_COPPER | MEBA_PORT_CAP_SERDES_TX_INVERT)
 static port_map_t port_table_eds2_lan8814[] = {
@@ -1073,8 +1090,9 @@ static mesa_rc lan966x_event_enable(meba_inst_t inst, meba_event_t event_id, mes
 const char *ev16r73a = "EV16R73A";
 const char *ev12n54a = "EV12N54A";
 const char *ev87s66a = "EV87S66A";
+const char *ev42y23a = "EV42Y23A";
 
-mesa_rc read_plugin_module(int address, const char **plugin_module)
+mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_module)
 {
     char eeprom_name[128];
     char eeprom[128];
@@ -1102,19 +1120,47 @@ mesa_rc read_plugin_module(int address, const char **plugin_module)
     char *p = eeprom;
     while (p < eeprom + sizeof(eeprom) - 1) {
         if (strstr(p, ev16r73a)) {
+            printf("Found plugin module %s in slot A\n", ev16r73a);
             *plugin_module = ev16r73a;
             return MESA_RC_OK;
         } else if (strstr(p, ev12n54a)) {
+            printf("Found plugin module %s in slot A\n", ev12n54a);
             *plugin_module = ev12n54a;
             return MESA_RC_OK;
         } else if (strstr(p, ev87s66a)) {
+            printf("Found plugin module %s in slot A\n", ev87s66a);
             *plugin_module = ev87s66a;
+            return MESA_RC_OK;
+        } else if (strstr(p, ev42y23a)) {
+            printf("Found plugin module %s in slot A\n", ev42y23a);
+            *plugin_module = ev42y23a;
             return MESA_RC_OK;
         }
         p += strlen(p) + 1;
     }
 
     // Unrecognized pluging module
+    char buf[64];
+    printf("Unrecognized plugin module in slot A\n");
+    if (inst->iface.conf_get("plugin-module", buf, sizeof(buf), NULL) == MESA_RC_OK) {
+        if (strstr(buf, ev16r73a)) {
+            *plugin_module = ev16r73a;
+            printf("Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        } else if (strstr(buf, ev12n54a)) {
+            *plugin_module = ev12n54a;
+            printf("Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        } else if (strstr(buf, ev87s66a)) {
+            *plugin_module = ev87s66a;
+            printf("Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        } else if (strstr(buf, ev42y23a)) {
+            *plugin_module = ev42y23a;
+            printf("Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        }
+    }
     return MESA_RC_OK;
 }
 
@@ -1195,34 +1241,36 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         // MESA_PORT_MUX_MODE_3: 2xCu + 2xRGMII + 1xQSGMII (LAN9668)
         // MESA_PORT_MUX_MODE_5: 2xCu + 3x1G (LAN9668)
 
-        if (MESA_RC_ERROR == read_plugin_module(0x54, &plugin_module)) {
+        if (MESA_RC_ERROR == read_plugin_module(inst, 0x54, &plugin_module)) {
             printf("No plugin module found, use internal PHY only\n");
             // Just using the builtin PHYs
             inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
             lan966x_init_port_table(inst, 2, port_table_eds2);
         } else if (plugin_module == ev16r73a) {
-            printf("Found plugin module %s in slot A\n", ev16r73a);
             // Using QSGMII for both plugin modules
             inst->props.mux_mode = MESA_PORT_MUX_MODE_0;
             lan966x_init_port_table(inst, sizeof(port_table_eds2_vsc8574) / sizeof(port_map_t),
                                     port_table_eds2_vsc8574);
         } else if (plugin_module == ev12n54a) {
-            printf("Found plugin module %s in slot A\n", ev12n54a);
             // Using the builtin PHYs + LAN8840 in first slot
             inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
             lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8840) / sizeof(port_map_t),
                                     port_table_eds2_lan8840);
         } else if (plugin_module == ev87s66a) {
-            printf("Found plugin module %s in slot A\n", ev87s66a);
             // Using QSGMII for both plugin modules
             inst->props.mux_mode = MESA_PORT_MUX_MODE_0;
             lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8814) / sizeof(port_map_t),
                                     port_table_eds2_lan8814);
+        } else if (plugin_module == ev42y23a) {
+            // Using QSGMII for both plugin modules
+            inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
+            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8870) / sizeof(port_map_t),
+                                    port_table_eds2_lan8870);
         } else {
-            printf("Unrecognized plugin module in slot A, assume %s\n", ev87s66a);
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_0;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8814) / sizeof(port_map_t),
-                                    port_table_eds2_lan8814);
+            printf("Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
+            // Just using the builtin PHYs
+            inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
+            lan966x_init_port_table(inst, 2, port_table_eds2);
         }
 
         break;
