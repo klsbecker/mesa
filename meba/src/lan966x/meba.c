@@ -179,7 +179,6 @@ static port_map_t port_table_eds2_lan8840[] = {
      false,                                                                                             1},
 };
 
-
 #define MEBA_CAP_LAN8870 (MEBA_PORT_CAP_TRI_SPEED_COPPER & ~MEBA_PORT_CAP_AUTONEG)
 static port_map_t port_table_eds2_lan8870[] = {
     //--------------------------------------------------------------------------------------------------------------------------
@@ -188,12 +187,10 @@ static port_map_t port_table_eds2_lan8870[] = {
     // Port |                          | Addr|            INTERFACE | | Support|
     // Port |
     //--------------------------------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
-    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
-    {2, 0, MESA_MIIM_CONTROLLER_0, 3, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,
-     false,                                                                                             1},
-    {3, 0, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,
-     false,                                                                                             1},
+    {0, 0, MESA_MIIM_CONTROLLER_1, 1,  MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814, false, 0},
+    {1, 0, MESA_MIIM_CONTROLLER_1, 2,  MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814, false, 1},
+    {2, 0, MESA_MIIM_CONTROLLER_0, 3,  MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,     false, 1},
+    {3, 0, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,     false, 1},
 };
 
 // When using QSGMII, the SERDES_TX_INVERT must be enabled for the EDS2 board
@@ -1267,7 +1264,8 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
             lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8870) / sizeof(port_map_t),
                                     port_table_eds2_lan8870);
         } else {
-            printf("Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
+            printf(
+                "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
             // Just using the builtin PHYs
             inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
             lan966x_init_port_table(inst, 2, port_table_eds2);
