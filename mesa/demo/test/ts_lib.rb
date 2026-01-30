@@ -130,25 +130,28 @@ def rx_ifh_extract(frame)
     return ifh
 end
 
-# tx_ifh_create: Please note that this function is very time-sensitive, tests can fail if something is added here.
-# It's mandatory to run cap_get("PACKET_TX_IFH_SIZE") once before this function is run, and this can be setup in the cfg in each timestamping test if needed.
+# tx_ifh_create: Be careful when adding here as it can affect time-sensitive tests like ts_sequence_id.rb, Calls that take long time should be avoided.
 def tx_ifh_create(port=0, ptp_act="MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", ptp_ts=0xFEFEFEFE0000, domain=0, seq_idx=0, proto="")
     t_i("tx_ifh_create.  port = #{port}  ptp_act = #{ptp_act}  ptp_ts #{ptp_ts}  domain #{domain}  seq_idx #{seq_idx} proto #{proto}")
 
-    tx_info = $ts.dut.call("mesa_packet_tx_info_init")
-    tx_info["dst_port"] = port
-    tx_info["switch_frm"] = false
-    tx_info["masquerade_port"] = 0xFFFFFFFF
-    tx_info["pdu_offset"] = 14
-    tx_info["sequence_idx"] = seq_idx
-    tx_info["ptp_action"] = ptp_act
-    tx_info["ptp_domain"] = domain
-    tx_info["ptp_timestamp"] = ptp_ts
-    tx_info["inj_encap"]["type"] = case proto
-        when "ipv4" then "MESA_PACKET_ENCAP_TYPE_IP4"
-        when "ipv6" then "MESA_PACKET_ENCAP_TYPE_IP6"
-        else "MESA_PACKET_ENCAP_TYPE_NONE"
-    end
+    tx_info = {
+        "dst_port" => port,
+        "switch_frm" => false,
+        "masquerade_port" => 0xFFFFFFFF,
+        "pdu_offset" => 14,
+        "sequence_idx" => seq_idx,
+        "ptp_action" => ptp_act,
+        "ptp_domain" => domain,
+        "ptp_timestamp" => ptp_ts,
+        "inj_encap" => {
+            "type" => case proto
+                when "ipv4" then "MESA_PACKET_ENCAP_TYPE_IP4"
+                when "ipv6" then "MESA_PACKET_ENCAP_TYPE_IP6"
+                else "MESA_PACKET_ENCAP_TYPE_NONE"
+            end,
+            "tag_count" => 0
+        }
+    }
         
     return cmd_tx_ifh_push(tx_info)
 end
