@@ -127,7 +127,7 @@ mesa_rc meba_synce_spi_if_do_dpll_type_detection(meba_inst_t inst, const char *d
     if (strcmp(dpll_id, "i2c") == 0) {
         char i2c_dev[] = "/dev/i2c-0";
         if ((file = open(i2c_dev, O_RDWR)) < 0 || ioctl(file, I2C_SLAVE, 0x70) < 0) {
-            T_E(inst, "cannot specify i2c slave at 0x%02x! [%s]\n", 0x70, strerror(errno));
+            T_D(inst, "cannot specify i2c slave at 0x%02x! [%s]\n", 0x70, strerror(errno));
             return MESA_RC_ERROR;
         }
         inst->synce_i2c_if_fd = file;
