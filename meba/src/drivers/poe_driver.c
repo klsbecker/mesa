@@ -533,7 +533,6 @@ typedef enum {
     eBoot_bt_gen6__Unknown_error
 } telemetry_bt_gen6_boot_up_error_e;
 
-
 const char *telemetry_bt_gen6_boot_up_error_txt[] = {
     "eBoot_bt_gen6__No_error",
     "eBoot_bt_gen6__Application_CRC_error_Download_is_required_for_PD69200",
@@ -542,8 +541,7 @@ const char *telemetry_bt_gen6_boot_up_error_txt[] = {
     "eBoot_bt_gen6__hW_error_from_Boot_try_to_program_a_PD69210_PD69220_firmware_into_PD69200_device",
     "eBoot_bt_gen6__sys_type_error_from_APP_try_to_program_a_PD69220_firmware_into_PD69210_device",
     "eBoot_bt_gen6__sys_type_error_from_APP_try_to_program_a_PD69210_firmware_into_PD69220_device",
-    "eBoot_bt_gen6__Unknown_error"
-};
+    "eBoot_bt_gen6__Unknown_error"};
 
 typedef enum {
     eBoot_bt_gen7_0_no_error = 0,
@@ -572,8 +570,7 @@ const char *telemetry_bt_gen7_boot_up_error_txt[] = {
     "eBoot_bt_gen7_error_8__NVM_Program_Error",
     "eBoot_bt_gen7_error_9__Wrong_NVM_User_Row_Value",
     "eBoot_bt_gen7_error_10__Application_CRC_error",
-    "eBoot_bt_gen7_unknown_error_value"
-};
+    "eBoot_bt_gen7_unknown_error_value"};
 
 typedef struct {
     mesa_bool_t bit0_reset_or_restore;
@@ -2476,10 +2473,9 @@ static mesa_rc meba_poe_pd_get_software_version(const meba_poe_ctrl_inst_t *cons
     }
 
     DEBUG(inst, MEBA_TRACE_LVL_DEBUG,
-      "%s called line %d, rc=%d, b0:%d b1:%d b2:%d b3:%d b4:%d b5:%d b6:%d b7:%d b8:%d b9:%d b10:%d b11:%d b12:%d b13:%d b14:%d",
-      __FUNCTION__, __LINE__, rc,
-    buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9],
-    buf[10], buf[11], buf[12], buf[13], buf[14]);
+          "%s called line %d, rc=%d, b0:%d b1:%d b2:%d b3:%d b4:%d b5:%d b6:%d b7:%d b8:%d b9:%d b10:%d b11:%d b12:%d b13:%d b14:%d",
+          __FUNCTION__, __LINE__, rc, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+          buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14]);
 
     ptSoftware_version->hw_version = buf[2];
     ptSoftware_version->build_H = buf[3];        // Gen7 - Build_H #
@@ -2891,7 +2887,8 @@ mesa_rc Burn_gen7(const meba_poe_ctrl_inst_t *const inst, const char *hexdata, s
     meba_poe_pd77010_gen7_bt_get_bt_system_status(inst, &tBT_System_Status);
 
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "Line %d, Boot_Get_BT_System_Status 3, is_boot_mode: %d, %s",
-          __LINE__, tBT_System_Status.is_boot_mode, telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
+          __LINE__, tBT_System_Status.is_boot_mode,
+          telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
 
     if (tBT_System_Status.eGen7_bt_boot_up_error != eBoot_bt_gen7_error_6__Boot_During_Download) {
         DEBUG(inst, MEBA_TRACE_LVL_WARNING, "boot status error: %d ,requsted = 6",
@@ -2952,7 +2949,8 @@ mesa_rc Burn_gen7(const meba_poe_ctrl_inst_t *const inst, const char *hexdata, s
     meba_poe_pd77010_gen7_bt_get_bt_system_status(inst, &tBT_System_Status);
 
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "Line %d, Boot_Get_BT_System_Status 4, is_boot_mode: %d, %s",
-          __LINE__, tBT_System_Status.is_boot_mode, telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
+          __LINE__, tBT_System_Status.is_boot_mode,
+          telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
 
     meba_poe_gen7_bt_download_restart_or_download_abort_command(inst);
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "Line %d, Download_Restart_Abort_Command 2 OK", __LINE__);
@@ -2962,7 +2960,8 @@ mesa_rc Burn_gen7(const meba_poe_ctrl_inst_t *const inst, const char *hexdata, s
     meba_poe_pd77010_gen7_bt_get_bt_system_status(inst, &tBT_System_Status);
 
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "Line %d, Boot_Get_BT_System_Status 5, is_boot_mode: %d, %s",
-          __LINE__, tBT_System_Status.is_boot_mode, telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
+          __LINE__, tBT_System_Status.is_boot_mode,
+          telemetry_bt_gen7_boot_up_error_txt[tBT_System_Status.eGen7_bt_boot_up_error]);
 
     if ((tBT_System_Status.is_boot_mode) &&
         (tBT_System_Status.eGen7_bt_boot_up_error != eBoot_bt_gen7_0_no_error)) {
@@ -3274,16 +3273,16 @@ static mesa_bool_t is_gen6_firmware_version_identical(const meba_poe_ctrl_inst_t
         }
         }
 
-        DEBUG(inst, MEBA_TRACE_LVL_INFO,
-          "Detected PoE controller: %d, USER selection: %d",
-          ePoE_detected_controller_type,
-          private_data->tPoE_parameters.ePoE_gen6_controller_detection_type);
+        DEBUG(inst, MEBA_TRACE_LVL_INFO, "Detected PoE controller: %d, USER selection: %d",
+              ePoE_detected_controller_type,
+              private_data->tPoE_parameters.ePoE_gen6_controller_detection_type);
 
         // in case user select specific PoE controller - use it instead of the
         // auto detected PoE controller and warn if different
         if ((ePoE_detected_controller_type !=
              private_data->tPoE_parameters.ePoE_gen6_controller_detection_type) &&
-            (private_data->tPoE_parameters.ePoE_gen6_controller_detection_type != MEBA_POE_PD692X0_CONTROLLER_TYPE_AUTO_DETECTION)) {
+            (private_data->tPoE_parameters.ePoE_gen6_controller_detection_type !=
+             MEBA_POE_PD692X0_CONTROLLER_TYPE_AUTO_DETECTION)) {
             DEBUG(inst, MEBA_TRACE_LVL_WARNING,
                   "Detected PoE controller: %d is different than USER selection: %d",
                   ePoE_detected_controller_type,
@@ -3403,7 +3402,8 @@ static mesa_bool_t is_gen6_firmware_version_identical(const meba_poe_ctrl_inst_t
             private_data->builtin_firmware = "/etc/mscc/poe/firmware/pd69220_bt_firmware.s19";
             private_data->status.global.poe_file.prod_number = ePD69220_BT;
         } else { // if (ePoE_detected_controller_type == MEBA_POE_PD69210_CONTROLLER_TYPE) {
-            DEBUG(inst, MEBA_TRACE_LVL_INFO, "detected poe type: %d", ePoE_detected_controller_type);
+            DEBUG(inst, MEBA_TRACE_LVL_INFO, "detected poe type: %d",
+                  ePoE_detected_controller_type);
             DEBUG(inst, MEBA_TRACE_LVL_INFO, "loaded poe firmware: pd69210 BT firmware");
             private_data->builtin_firmware = "/etc/mscc/poe/firmware/pd69210_bt_firmware.s19";
             private_data->status.global.poe_file.prod_number = ePD69210_BT;
@@ -3413,12 +3413,13 @@ static mesa_bool_t is_gen6_firmware_version_identical(const meba_poe_ctrl_inst_t
             DEBUG(inst, MEBA_TRACE_LVL_INFO, "loaded poe firmware: pd69200 PREBT firmware");
             private_data->builtin_firmware = "/etc/mscc/poe/firmware/pd69200_at_firmware.s19";
             private_data->status.global.poe_file.prod_number = ePD69200_PREBT;
-        } else if(ePoE_detected_controller_type == MEBA_POE_GEN6_PD69220_CONTROLLER_TYPE) {
+        } else if (ePoE_detected_controller_type == MEBA_POE_GEN6_PD69220_CONTROLLER_TYPE) {
             DEBUG(inst, MEBA_TRACE_LVL_INFO, "loaded poe firmware: pd69220 PREBT firmware");
             private_data->builtin_firmware = "/etc/mscc/poe/firmware/pd69220_at_firmware.s19";
             private_data->status.global.poe_file.prod_number = ePD69220_PREBT;
         } else { // if (ePoE_detected_controller_type == MEBA_POE_PD69210_CONTROLLER_TYPE) {
-            DEBUG(inst, MEBA_TRACE_LVL_INFO, "detected poe type: %d", ePoE_detected_controller_type);
+            DEBUG(inst, MEBA_TRACE_LVL_INFO, "detected poe type: %d",
+                  ePoE_detected_controller_type);
             DEBUG(inst, MEBA_TRACE_LVL_INFO, "loaded poe firmware: pd69210 PREBT firmware");
             private_data->builtin_firmware = "/etc/mscc/poe/firmware/pd69210_at_firmware.s19";
             private_data->status.global.poe_file.prod_number = ePD69210_PREBT;
@@ -4078,7 +4079,8 @@ static mesa_rc meba_poe_pd_firmware_upgrade(const meba_poe_ctrl_inst_t *const in
 
     DEBUG(inst, MEBA_TRACE_LVL_INFO,
           "POE_BOOL_Is_system_status=%d ,Telemetry_gen6_bt_Boot_Up_Error=%s",
-          ePOE_BOOL_Is_system_status, telemetry_bt_gen6_boot_up_error_txt[tBT_System_Status.eGen6_bt_boot_up_error]);
+          ePOE_BOOL_Is_system_status,
+          telemetry_bt_gen6_boot_up_error_txt[tBT_System_Status.eGen6_bt_boot_up_error]);
 
     if (ePOE_BOOL_Is_system_status == true) {
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "System status emerging detected");
@@ -4898,7 +4900,8 @@ mesa_rc meba_poe_ctrl_pd_gen6_do_detection(const meba_poe_ctrl_inst_t *const ins
 
     DEBUG(inst, MEBA_TRACE_LVL_INFO,
           "POE_BOOL_Is_system_status=%d ,Telemetry_gen6_bt_Boot_Up_Error=%s ,rc=%d",
-          ePOE_BOOL_Is_system_status, telemetry_bt_gen6_boot_up_error_txt[tBT_System_Status.eGen6_bt_boot_up_error], rc);
+          ePOE_BOOL_Is_system_status,
+          telemetry_bt_gen6_boot_up_error_txt[tBT_System_Status.eGen6_bt_boot_up_error], rc);
 
     if (ePOE_BOOL_Is_system_status == true) {
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "System status on startup from app detected");
