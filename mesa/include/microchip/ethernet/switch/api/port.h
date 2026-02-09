@@ -944,10 +944,11 @@ typedef mesa_rc (*mesa_port_serdes_tap_get_t)(const mesa_inst_t                 
 
 /** \brief Serdes debug parameters */
 typedef enum {
-    MESA_SERDES_DFE_PRM,  /**< DFE prms. in this order : h1,h2,h3,h4,h5,dlev */
-    MESA_SERDES_CTLE_PRM, /**< CTLE prms. in this order: r,c,vga */
-    MESA_SERDES_TXEQ_PRM, /**< TxEQ prms. in this order: tap_dly, tap_adv,
-                             amplitude */
+    MESA_SERDES_DFE_PRM,    /**< DFE prms. in this order : h1,h2,h3,h4,h5,dlev */
+    MESA_SERDES_CTLE_PRM,   /**< CTLE prms. in this order: r,c,vga */
+    MESA_SERDES_TXEQ_PRM,   /**< TxEQ prms. in this order: tap_dly, tap_adv,
+                               amplitude */
+    MESA_SERDES_EYE_HEIGHT, /**< Height of the Eye, get function only */
 } mesa_serdes_debug_type_t;
 
 /** \brief Serdes debug configuration structure */
@@ -968,6 +969,19 @@ typedef struct {
 mesa_rc mesa_port_serdes_debug_set(const mesa_inst_t                     inst,
                                    const mesa_port_no_t                  port_no,
                                    const mesa_port_serdes_debug_t *const conf);
+
+/**
+ * \brief Used for Serdes debugging (read back parameters).
+ *
+ * \param inst [IN]     Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param conf [OUT]    Serdes debug configuration.
+ *
+ * \return Return code.
+ **/
+mesa_rc mesa_port_serdes_debug_get(const mesa_inst_t               inst,
+                                   const mesa_port_no_t            port_no,
+                                   mesa_port_serdes_debug_t *const conf);
 
 /** \brief SerDes PRBS test pattern enum */
 typedef enum {

@@ -1132,10 +1132,11 @@ typedef vtss_rc (*vtss_port_serdes_tap_get_t)(const vtss_inst_t                 
 
 /** \brief Serdes debug parameters */
 typedef enum {
-    VTSS_SERDES_DFE_PRM,  /**< DFE prms. in this order : h1,h2,h3,h4,h5,dlev */
-    VTSS_SERDES_CTLE_PRM, /**< CTLE prms. in this order: r,c,vga */
-    VTSS_SERDES_TXEQ_PRM, /**< TxEQ prms. in this order: tap_dly, tap_adv,
-                             amplitude */
+    VTSS_SERDES_DFE_PRM,    /**< DFE prms. in this order : h1,h2,h3,h4,h5,dlev */
+    VTSS_SERDES_CTLE_PRM,   /**< CTLE prms. in this order: r,c,vga */
+    VTSS_SERDES_TXEQ_PRM,   /**< TxEQ prms. in this order: tap_dly, tap_adv,
+                               amplitude */
+    VTSS_SERDES_EYE_HEIGHT, /**< Height of the Eye, get function only */
 } vtss_serdes_debug_type_t;
 
 /** \brief Serdes debug configuration structure */
@@ -1156,6 +1157,19 @@ typedef struct {
 vtss_rc vtss_port_serdes_debug_set(const vtss_inst_t                     inst,
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf);
+
+/**
+ * \brief Get Serdes debug parameters.
+ *
+ * \param inst [IN]     Target instance reference.
+ * \param port_no [IN]  Port number.
+ * \param conf [OUT]    Serdes debug configuration.
+ *
+ * \return Return code.
+ **/
+vtss_rc vtss_port_serdes_debug_get(const vtss_inst_t               inst,
+                                   const vtss_port_no_t            port_no,
+                                   vtss_port_serdes_debug_t *const conf);
 
 #if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
 

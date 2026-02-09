@@ -4448,6 +4448,14 @@ vtss_rc vtss_cil_port_serdes_debug(struct vtss_state_s                  *vtss_st
     return VTSS_RC_OK;
 }
 
+vtss_rc vtss_cil_port_serdes_debug_get(struct vtss_state_s            *vtss_state,
+                                       const vtss_port_no_t            port_no,
+                                       vtss_port_serdes_debug_t *const conf)
+{
+    VTSS_RC(fa_debug_serdes_get(vtss_state, port_no, conf));
+    return VTSS_RC_OK;
+}
+
 #if defined(VTSS_FEATURE_PORT_CONF_BULK)
 /* Apply the port configuration to hardware */
 /* Configuration is applied in parallel where possible */

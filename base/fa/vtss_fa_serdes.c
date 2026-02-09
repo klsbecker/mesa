@@ -2052,41 +2052,109 @@ static vtss_rc fa_serdes_oscal_ena(vtss_state_t *vtss_state, lmu_ss_t *ss, u32 p
 }
 #endif
 
-static vtss_rc fa_serdes_dfe_read(vtss_state_t *vtss_state, lmu_ss_t *ss, u32 port_no)
+static vtss_rc fa_serdes_dfe_read(vtss_state_t *vtss_state,
+                                  lmu_ss_t     *ss,
+                                  u32           port_no,
+                                  u32          *h1,
+                                  u32          *h2,
+                                  u32          *h3,
+                                  u32          *h4,
+                                  u32          *h5,
+                                  u32          *dlev)
 {
     u32 indx, type, val, sd_tgt;
+    u32 h1_val, h2_val, h3_val, h4_val, h5_val, dlev_val;
+
     /* Map API port to Serdes instance */
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &indx, &type));
     sd_tgt = fa_get_lane_target(vtss_state, type, indx);
 
     if (type == FA_SERDES_TYPE_6G || type == FA_SERDES_TYPE_10G) {
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_C5(sd_tgt), &val);
-        pr("ln_h1 (max 0x1F)  :0x%x\n", val);
+        h1_val = val;
+        if (ss != NULL) {
+            pr("ln_h1 (max 0x1F)  :0x%x\n", val);
+        }
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_C6(sd_tgt), &val);
-        pr("ln_h2 (max 0x1F)  :0x%x\n", val);
+        h2_val = val;
+        if (ss != NULL) {
+            pr("ln_h2 (max 0x1F)  :0x%x\n", val);
+        }
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_C7(sd_tgt), &val);
-        pr("ln_h3 (max 0xF)   :0x%x\n", val);
+        h3_val = val;
+        if (ss != NULL) {
+            pr("ln_h3 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_C8(sd_tgt), &val);
-        pr("ln_h4 (max 0xF)   :0x%x\n", val);
+        h4_val = val;
+        if (ss != NULL) {
+            pr("ln_h4 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_C9(sd_tgt), &val);
-        pr("ln_h5 (max 0xF)   :0x%x\n", val);
+        h5_val = val;
+        if (ss != NULL) {
+            pr("ln_h5 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_CA(sd_tgt), &val);
-        pr("ln_dlev (max 0x7F):0x%x\n", val);
+        dlev_val = val;
+        if (ss != NULL) {
+            pr("ln_dlev (max 0x7F):0x%x\n", val);
+        }
     } else {
 #if defined(VTSS_FEATURE_SD_25G)
         REG_RD(VTSS_SD25G_TARGET_LANE_CA(sd_tgt), &val);
-        pr("ln_h1 (max 0x1F)  :0x%x\n", val);
+        h1_val = val;
+        if (ss != NULL) {
+            pr("ln_h1 (max 0x1F)  :0x%x\n", val);
+        }
         REG_RD(VTSS_SD25G_TARGET_LANE_CB(sd_tgt), &val);
-        pr("ln_h2 (max 0x1F)  :0x%x\n", val);
+        h2_val = val;
+        if (ss != NULL) {
+            pr("ln_h2 (max 0x1F)  :0x%x\n", val);
+        }
         REG_RD(VTSS_SD25G_TARGET_LANE_CC(sd_tgt), &val);
-        pr("ln_h3 (max 0xF)   :0x%x\n", val);
+        h3_val = val;
+        if (ss != NULL) {
+            pr("ln_h3 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD25G_TARGET_LANE_CD(sd_tgt), &val);
-        pr("ln_h4 (max 0xF)   :0x%x\n", val);
+        h4_val = val;
+        if (ss != NULL) {
+            pr("ln_h4 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD25G_TARGET_LANE_CE(sd_tgt), &val);
-        pr("ln_h5 (max 0xF)   :0x%x\n", val);
+        h5_val = val;
+        if (ss != NULL) {
+            pr("ln_h5 (max 0xF)   :0x%x\n", val);
+        }
         REG_RD(VTSS_SD25G_TARGET_LANE_CF(sd_tgt), &val);
-        pr("ln_dlev (max 0x7F):0x%x\n", val);
+        dlev_val = val;
+        if (ss != NULL) {
+            pr("ln_dlev (max 0x7F):0x%x\n", val);
+        }
+#else
+        h1_val = h2_val = h3_val = h4_val = h5_val = dlev_val = 0;
 #endif
+    }
+
+    /* Return values via output parameters if provided */
+    if (h1 != NULL) {
+        *h1 = h1_val;
+    }
+    if (h2 != NULL) {
+        *h2 = h2_val;
+    }
+    if (h3 != NULL) {
+        *h3 = h3_val;
+    }
+    if (h4 != NULL) {
+        *h4 = h4_val;
+    }
+    if (h5 != NULL) {
+        *h5 = h5_val;
+    }
+    if (dlev != NULL) {
+        *dlev = dlev_val;
     }
 
     return VTSS_RC_OK;
@@ -3250,6 +3318,38 @@ vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
     return VTSS_RC_OK;
 }
 
+vtss_rc fa_debug_serdes_get(vtss_state_t                   *vtss_state,
+                            const vtss_port_no_t            port_no,
+                            vtss_port_serdes_debug_t *const conf)
+{
+    if (conf->debug_type == VTSS_SERDES_DFE_PRM) {
+        VTSS_RC(fa_serdes_dfe_read(vtss_state, NULL, port_no, &conf->serdes_prm[0], /* h1 */
+                                   &conf->serdes_prm[1],                            /* h2 */
+                                   &conf->serdes_prm[2],                            /* h3 */
+                                   &conf->serdes_prm[3],                            /* h4 */
+                                   &conf->serdes_prm[4],                            /* h5 */
+                                   &conf->serdes_prm[5]));                          /* dlev */
+    } else if (conf->debug_type == VTSS_SERDES_CTLE_PRM) {
+        u32 eqr, eqc, vga;
+        VTSS_RC(fa_ctle_read(vtss_state, port_no, &eqr, &eqc, &vga));
+        conf->serdes_prm[0] = eqr; /* r (EQR) */
+        conf->serdes_prm[1] = eqc; /* c (EQC) */
+        conf->serdes_prm[2] = vga; /* vga */
+    } else if (conf->debug_type == VTSS_SERDES_TXEQ_PRM) {
+        u16 tap_dly, tap_adv, ampl;
+        VTSS_RC(fa_port_kr_tap_get(vtss_state, port_no, &tap_dly, &tap_adv, &ampl));
+        conf->serdes_prm[0] = tap_dly;
+        conf->serdes_prm[1] = tap_adv;
+        conf->serdes_prm[2] = ampl;
+    } else if (conf->debug_type == VTSS_SERDES_EYE_HEIGHT) {
+        VTSS_RC(fa_kr_eye_height(vtss_state, port_no, 3, &conf->serdes_prm[0]));
+    } else {
+        /* Empty on purpose */
+    }
+
+    return VTSS_RC_OK;
+}
+
 static vtss_rc fa_serdes_10g_eye_setup(vtss_state_t  *vtss_state,
                                        lmu_ss_t      *ss,
                                        u32            action,
@@ -3487,7 +3587,7 @@ vtss_rc fa_debug_chip_serdes(vtss_state_t                  *vtss_state,
         }
     } else if (info->action == 5U) {
         // Read DFE settings
-        VTSS_RC(fa_serdes_dfe_read(vtss_state, ss, port_no));
+        VTSS_RC(fa_serdes_dfe_read(vtss_state, ss, port_no, NULL, NULL, NULL, NULL, NULL, NULL));
     } else if (info->action == 6U) {
         VTSS_RC(fa_serdes_ctle_pr(vtss_state, ss, port_no));
     } else if (info->action == 7U) {

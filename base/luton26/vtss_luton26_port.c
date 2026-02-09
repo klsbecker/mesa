@@ -2883,6 +2883,13 @@ vtss_rc vtss_cil_port_serdes_debug(vtss_state_t                         *vtss_st
     return VTSS_RC_OK;
 }
 
+vtss_rc vtss_cil_port_serdes_debug_get(vtss_state_t                   *vtss_state,
+                                       const vtss_port_no_t            port_no,
+                                       vtss_port_serdes_debug_t *const conf)
+{
+    return VTSS_RC_OK;
+}
+
 vtss_rc vtss_l26_port_debug_print(vtss_state_t                  *vtss_state,
                                   lmu_ss_t                      *ss,
                                   const vtss_debug_info_t *const info)

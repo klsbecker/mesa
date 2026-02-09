@@ -1678,6 +1678,13 @@ vtss_rc vtss_cil_port_serdes_debug(vtss_state_t                         *vtss_st
     return VTSS_RC_OK;
 }
 
+vtss_rc vtss_cil_port_serdes_debug_get(vtss_state_t                   *vtss_state,
+                                       const vtss_port_no_t            port_no,
+                                       vtss_port_serdes_debug_t *const conf)
+{
+    return VTSS_RC_OK;
+}
+
 static vtss_rc lan966x_port_buf_conf_set(vtss_state_t *vtss_state)
 {
     int q, i;

@@ -2174,6 +2174,21 @@ vtss_rc vtss_port_serdes_debug_set(const vtss_inst_t                     inst,
     return rc;
 }
 
+vtss_rc vtss_port_serdes_debug_get(const vtss_inst_t               inst,
+                                   const vtss_port_no_t            port_no,
+                                   vtss_port_serdes_debug_t *const conf)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+    VTSS_ENTER();
+    if ((rc = vtss_inst_port_no_check(inst, &vtss_state, port_no)) == VTSS_RC_OK) {
+        VTSS_D("port_no: %u", port_no);
+        rc = vtss_cil_port_serdes_debug_get(vtss_state, port_no, conf);
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
 #if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
 
 vtss_rc vtss_port_serdes_prbs_conf_set(const vtss_inst_t                         inst,
