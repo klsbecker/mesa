@@ -542,7 +542,6 @@ static vtss_rc fa_port_25g_kr_tap_set(vtss_state_t        *vtss_state,
 }
 #endif
 
-#if defined(VTSS_FEATURE_PORT_KR_IRQ)
 static vtss_rc fa_port_10g_kr_tap_set(vtss_state_t        *vtss_state,
                                       const vtss_port_no_t port_no,
                                       u16                  tap_dly,
@@ -641,7 +640,7 @@ vtss_rc fa_port_kr_tap_get(vtss_state_t        *vtss_state,
 
     return VTSS_RC_OK;
 }
-
+#if defined(VTSS_FEATURE_PORT_KR_IRQ)
 /** \brief 10G KR coefficient types */
 typedef enum {
     VTSS_COEF_PRESET,
@@ -3240,12 +3239,10 @@ vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
 //            VTSS_RC(fa_serdes_oscal_set(vtss_state, sd_tgt, port_no));
 #endif
         }
-#if defined(VTSS_FEATURE_PORT_KR_IRQ)
     } else if (conf->debug_type == VTSS_SERDES_TXEQ_PRM) {
         VTSS_RC(fa_port_kr_tap_set(vtss_state, port_no, (u16)conf->serdes_prm[0],
                                    (u16)conf->serdes_prm[1],
                                    (u16)conf->serdes_prm[2])); // TxEQ set
-#endif
     } else {
         // Empty on purpose
     }
@@ -3501,7 +3498,6 @@ vtss_rc fa_debug_chip_serdes(vtss_state_t                  *vtss_state,
         VTSS_RC(fa_serdes_dfe_set(vtss_state, ss, port_no, FALSE)); // DFE Disable
     } else if (info->action == 9U) {
         VTSS_RC(fa_serdes_dfe_set(vtss_state, ss, port_no, TRUE)); // DFE Enable
-#if defined(VTSS_FEATURE_PORT_KR_IRQ)
     } else if (info->action == 10U) {
         u16 tap_dly = 0, tap_adv = 0, ampl = 0;
         VTSS_RC(fa_port_kr_tap_get(vtss_state, port_no, &tap_dly, &tap_adv,
@@ -3509,7 +3505,6 @@ vtss_rc fa_debug_chip_serdes(vtss_state_t                  *vtss_state,
         pr("Tap_dly   (CP):%d\n", tap_dly);
         pr("Tap_adv   (CM):%d\n", tap_adv);
         pr("Amplitude:(C0):%d\n", ampl);
-#endif
     } else if (info->action == 11U) {
         VTSS_RC(fa_port_kr_square_wave(vtss_state, ss, port_no, TRUE));
     } else if (info->action == 12U) {
