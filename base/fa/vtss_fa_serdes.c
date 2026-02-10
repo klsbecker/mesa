@@ -411,6 +411,20 @@ static void buf_set(char *str, u32 *u_ptr)
     lmu_czstrcpy(str, buf.s);
 }
 
+static vtss_rc fa_port_kr_tap_validate(const vtss_port_no_t port_no,
+                                       u16                  tap_dly,
+                                       u16                  tap_adv,
+                                       u16                  ampl)
+{
+    if (tap_dly > 31U || tap_adv > 15U || ampl > 511U) {
+        VTSS_E(
+            "port %u: TX EQ parameters out of range (tap_dly=%u max=31, tap_adv=%u max=15, ampl=%u max=511)",
+            port_no, tap_dly, tap_adv, ampl);
+        return VTSS_RC_ERROR;
+    }
+    return VTSS_RC_OK;
+}
+
 #if defined(VTSS_FEATURE_SD_25G)
 static void kr_ampcode_2_drv(u32 ampcode, u32 *ipdriver, u32 *vcdriver)
 {
@@ -504,6 +518,8 @@ static vtss_rc fa_port_25g_kr_tap_set(vtss_state_t        *vtss_state,
                                       u16                  ampl)
 {
     u32 sd_indx, sd_type, sd25g_tgt, ipdriver = 0, vcdriver = 0;
+
+    VTSS_RC(fa_port_kr_tap_validate(port_no, tap_dly, tap_adv, ampl));
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
     sd25g_tgt = VTSS_TO_SD25G_LANE(sd_indx);
 
@@ -549,6 +565,8 @@ static vtss_rc fa_port_10g_kr_tap_set(vtss_state_t        *vtss_state,
                                       u16                  ampl)
 {
     u32 sd_indx, sd_type, sd_tgt;
+
+    VTSS_RC(fa_port_kr_tap_validate(port_no, tap_dly, tap_adv, ampl));
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
     sd_tgt = fa_get_lane_target(vtss_state, sd_type, sd_indx);
 
@@ -2462,7 +2480,14 @@ static vtss_rc fa_ctle_write(vtss_state_t *vtss_state, u32 port_no, u32 eqr, u32
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &indx, &type));
     sd_tgt = fa_get_lane_target(vtss_state, type, indx);
 
+    /* Validate parameters against hardware limits */
     if (type == FA_SERDES_TYPE_6G || type == FA_SERDES_TYPE_10G) {
+        if (eqr > 15U || eqc > 15U || vga > 15U) {
+            VTSS_E(
+                "port %u: RX CTLE parameters out of range (eqr=%u max=15, eqc=%u max=15, vga=%u max=15)",
+                port_no, eqr, eqc, vga);
+            return VTSS_RC_ERROR;
+        }
         REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_0B(sd_tgt),
                 VTSS_F_SD10G_LANE_TARGET_LANE_0B_CFG_EQ_RES_3_0(vga),
                 VTSS_M_SD10G_LANE_TARGET_LANE_0B_CFG_EQ_RES_3_0);
@@ -2474,6 +2499,12 @@ static vtss_rc fa_ctle_write(vtss_state_t *vtss_state, u32 port_no, u32 eqr, u32
                 VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_EQC_FORCE_3_0);
     } else {
 #if defined(VTSS_FEATURE_SD_25G)
+        if (eqr > 15U || eqc > 15U || vga > 31U) {
+            VTSS_E(
+                "port %u: RX CTLE parameters out of range (eqr=%u max=15, eqc=%u max=15, vga=%u max=31)",
+                port_no, eqr, eqc, vga);
+            return VTSS_RC_ERROR;
+        }
         REG_WRM(VTSS_SD25G_TARGET_LANE_21(sd_tgt),
                 VTSS_F_SD25G_TARGET_LANE_21_LN_CFG_VGA_CTRL_BYP_4_0(vga),
                 VTSS_M_SD25G_TARGET_LANE_21_LN_CFG_VGA_CTRL_BYP_4_0);
@@ -3194,7 +3225,7 @@ vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
                             const vtss_port_serdes_debug_t *const conf)
 
 {
-    u32 sd_type, indx, sd_tgt, dfe_rstn;
+    u32 sd_type, indx, sd_tgt;
     /* Map API port to Serdes instance */
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &indx, &sd_type));
     sd_tgt = fa_get_lane_target(vtss_state, sd_type, indx);
@@ -3256,57 +3287,9 @@ vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
 #endif
         }
     } else if (conf->debug_type == VTSS_SERDES_CTLE_PRM) {
-        if (sd_type == FA_SERDES_TYPE_10G) {
-            REG_WRM_SET(VTSS_SD10G_LANE_TARGET_LANE_0D(sd_tgt),
-                        VTSS_M_SD10G_LANE_TARGET_LANE_0D_CFG_EQR_BYP);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_2F(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_2F_CFG_VGA_CTRL_3_0(conf->serdes_prm[0]),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_2F_CFG_VGA_CTRL_3_0);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_2F(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_2F_CFG_VGA_CP_2_0(conf->serdes_prm[1]),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_2F_CFG_VGA_CP_2_0);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_0E(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_0E_CFG_EQC_FORCE_3_0(conf->serdes_prm[2]),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_EQC_FORCE_3_0);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_0B(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_0B_CFG_EQ_RES_3_0(conf->serdes_prm[3]),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_0B_CFG_EQ_RES_3_0);
-            REG_RD(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt), &dfe_rstn);
-            dfe_rstn = (VTSS_X_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN(dfe_rstn));
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN(1),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
-                    VTSS_F_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN(dfe_rstn),
-                    VTSS_M_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN);
-        } else {
-#if defined(VTSS_FEATURE_SD_25G)
-            REG_WRM_CLR(VTSS_SD25G_TARGET_CMU_FF(sd_tgt),
-                        VTSS_M_SD25G_TARGET_CMU_FF_REGISTER_TABLE_INDEX);
-            REG_WRM_SET(VTSS_SD25G_TARGET_LANE_23(sd_tgt),
-                        VTSS_M_SD25G_TARGET_LANE_23_LN_CFG_VGA_BYP);
-            REG_WRM_SET(VTSS_SD25G_TARGET_LANE_1F(sd_tgt),
-                        VTSS_M_SD25G_TARGET_LANE_1F_LN_CFG_EQR_BYP);
-            REG_WRM(VTSS_SD25G_TARGET_LANE_22(sd_tgt),
-                    VTSS_F_SD25G_TARGET_LANE_22_LN_CFG_EQR_FORCE_3_0(conf->serdes_prm[0]),
-                    VTSS_M_SD25G_TARGET_LANE_22_LN_CFG_EQR_FORCE_3_0);
-            REG_WRM(VTSS_SD25G_TARGET_LANE_1C(sd_tgt),
-                    VTSS_F_SD25G_TARGET_LANE_1C_LN_CFG_EQC_FORCE_3_0(conf->serdes_prm[1]),
-                    VTSS_M_SD25G_TARGET_LANE_1C_LN_CFG_EQC_FORCE_3_0);
-            REG_WRM(VTSS_SD25G_TARGET_LANE_21(sd_tgt),
-                    VTSS_F_SD25G_TARGET_LANE_21_LN_CFG_VGA_CTRL_BYP_4_0(conf->serdes_prm[2]),
-                    VTSS_M_SD25G_TARGET_LANE_21_LN_CFG_VGA_CTRL_BYP_4_0);
-            REG_RD(VTSS_SD25G_TARGET_LANE_40(sd_tgt), &dfe_rstn);
-            dfe_rstn = VTSS_X_SD25G_TARGET_LANE_40_LN_R_DFE_RSTN(dfe_rstn);
-            REG_WRM(VTSS_SD25G_TARGET_LANE_40(sd_tgt), VTSS_F_SD25G_TARGET_LANE_40_LN_R_DFE_RSTN(1),
-                    VTSS_M_SD25G_TARGET_LANE_40_LN_R_DFE_RSTN);
-            REG_WRM(VTSS_SD25G_TARGET_LANE_40(sd_tgt),
-                    VTSS_F_SD25G_TARGET_LANE_40_LN_R_DFE_RSTN(dfe_rstn),
-                    VTSS_M_SD25G_TARGET_LANE_40_LN_R_DFE_RSTN);
-
-//            VTSS_RC(fa_serdes_oscal_set(vtss_state, sd_tgt, port_no));
-#endif
-        }
+        /* CTLE parameters: r (eqr), c (eqc), vga */
+        VTSS_RC(fa_ctle_write(vtss_state, port_no, conf->serdes_prm[0], conf->serdes_prm[1],
+                              conf->serdes_prm[2]))
     } else if (conf->debug_type == VTSS_SERDES_TXEQ_PRM) {
         VTSS_RC(fa_port_kr_tap_set(vtss_state, port_no, (u16)conf->serdes_prm[0],
                                    (u16)conf->serdes_prm[1],

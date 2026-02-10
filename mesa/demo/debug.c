@@ -307,20 +307,20 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
         if (!mreq->has_dfe && !mreq->has_ctle && !mreq->has_txeq) {
             cli_printf("Usage:\n");
             cli_printf("dfe:  For 10G: h1,h2,h3,h4,h5,0. For 25G: h1,h2,h3,h4,h5,dlev\n");
-            cli_printf("ctle: For 10G: r,c,vga,0         For 25G: vga_r,vga_c,c,gain\n");
+            cli_printf("ctle: eqr,eqc,vga\n");
             cli_printf("txeq: tap_dly, tap_adv, amplitude\n");
             cli_printf("Syntax:\n");
             cli_printf(
-                "mesa-cmd deb serdes <port> dfe|ctle|txeq <h1,h2,h3,h4,h5,dlev> || <vga_r,vga_c,c,gain> || <tap_dly,tap_adv,amplitude>\n");
+                "mesa-cmd deb serdes <port> dfe|ctle|txeq <h1,h2,h3,h4,h5,dlev> || <eqr,eqc,vga> || <tap_dly,tap_adv,amplitude>\n");
             return;
         }
 
         if (mreq->has_dfe && (mreq->value_cnt != 6)) {
             cli_printf(
-                "Error. Expecting 6 values for dfe (<h1,h2,h3,h4,h5,dlev> or <h1,h2,h3,h4,h5,0>\n");
+                "Error. Expecting 6 values for dfe (<h1,h2,h3,h4,h5,dlev> or <h1,h2,h3,h4,h5,0>)\n");
             return;
-        } else if (mreq->has_ctle && (mreq->value_cnt != 4)) {
-            cli_printf("Error. Expecting 4 values for ctle (<vga_r,vga_c,c,gain> or <r,c,vga,0>)\n");
+        } else if (mreq->has_ctle && (mreq->value_cnt != 3)) {
+            cli_printf("Error. Expecting 3 values for ctle (<eqr,eqc,vga>)\n");
             return;
         } else if (mreq->has_txeq && (mreq->value_cnt != 3)) {
             cli_printf("Error. Expecting 3 values for txeq (<tap_dly,tap_adv,amplitude>)\n");
@@ -612,7 +612,7 @@ static cli_parm_t cli_parm_table[] = {
      cli_parm_reg_value},
     {"dfe",
      "Rx equalization: deb serdes <port> dfe h1,h2,h3,h4,h5,0 (10g) or h1,h2,h3,h4,h5,dlev (25g)", CLI_PARM_FLAG_NONE, cli_parm_keyword},
-    {"ctle", "Rx equalization: deb serdes <port> ctle r,c,vga,0 (10g) or vga_r,vga_c,c,gain (25g)",
+    {"ctle", "Rx equalization: deb serdes <port> ctle vga_r,vga_c,c,gain (10g) or r,c,vga,0 (25g)",
      CLI_PARM_FLAG_NONE, cli_parm_keyword},
     {"txeq", "Tx equalization: deb serdes <port> txeq dly,adv,ampl", CLI_PARM_FLAG_NONE,
      cli_parm_keyword},
