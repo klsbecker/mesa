@@ -18,20 +18,22 @@ def nano_corr_lowest_measure(ip: "", port0:, port1:)
 
     # Create the SYNC frame
     if (ip != "")
-        size = 40+28
+        size = 44+28+17
         off = 14+28
+        if (ip == "ipv6")
+            size += 20
+            off += 20
+        end
         frametx = frame_create("01:80:C2:00:00:30", "00:00:00:00:05:07", "#{ip} udp") + sync_pdu_create(0)
-        framerx = frame_create("01:80:C2:00:00:30", "00:00:00:00:05:07", "#{ip} ign udp ign") + sync_pdu_rx_create(0)
     else
         size = 40
         off = 14
         frametx = frame_create("01:80:C2:00:00:30", "00:00:00:00:05:07") + sync_pdu_create(0)
-        framerx = frame_create("01:80:C2:00:00:30", "00:00:00:00:05:07") + sync_pdu_rx_create(0)
     end
 
     for i in 0..5
         # Transmit SYNC frame into port0
-        frame_cfg = { frame: frametx, port: port0, frame0: false, frame1: framerx, capture_size: size, port0: port0, port1: port1, npi_port: nil }
+        frame_cfg = { frame: frametx, port: port0, frame0: false, capture_size: size, port0: port0, port1: port1, npi_port: nil }
         frame_tx(frame_cfg)
         pkts = $ts.pc.get_pcap "#{$ts.links[port1][:pc]}.pcap"
         data = pkts[0][:data].each_byte.map{|c| c.to_i}
@@ -231,7 +233,7 @@ def request_pdu_create(requestClockId, requestPortNumber)
 
     t_i("request_pdu_create requestClockId #{requestClockId} requestPortNumber #{requestPortNumber}")
 
-    request_pdu = "ptp-request hdr-clockId #{requestClockId} hdr-portNumber #{requestPortNumber} "
+    request_pdu = "ptp-request hdr-clockId #{requestClockId} hdr-portNumber #{requestPortNumber} data repeat 2 0x00 "
 
     return request_pdu
 end

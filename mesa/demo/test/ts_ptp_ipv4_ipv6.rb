@@ -34,6 +34,13 @@ def ip_test(ip)
     seconds = 10
     domain = 0
 
+    size = 44+28+17
+    off = 14+28
+    if (ip == "ipv6")
+        size += 20
+        off += 20
+    end
+
     # Port PTP domain configuration
     conf = $ts.dut.call("mesa_ts_operation_mode_get", $ts.dut.port_list[$port0])
     conf["domain"] = domain
@@ -49,18 +56,24 @@ def ip_test(ip)
     test "Inject a ORIGIN-TIMESTAMP SYNC frame into NPI port and receive frame from front port and check the origin timestamp" do
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP_SEQ", 0xFEFEFEFE0000, 0, 0, ip) + frameHdrTx.dup + sync_pdu_create()
     frameHdrRx = frame_create("00:02:03:04:05:06", "00:08:09:0a:0b:0c", "#{ip} ign udp ign")
-    framerx = frameHdrRx + sync_pdu_rx_create(IGNORE, seconds)
 
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
-    frame_cfg = { frame: frametx, port: $npi_port, frame0: framerx , port0: $port0, port1: $port1, npi_port: $npi_port }
+    frame_cfg = { frame: frametx, port: $npi_port, capture_size: size, port0: $port0, port1: $port1, npi_port: $npi_port }
     frame_tx(frame_cfg)
+    pkts = $ts.pc.get_pcap "#{$ts.links[$port0][:pc]}.pcap"
+    data = pkts[0][:data].each_byte.map{|c| c.to_i}
+    t_i "data #{data}"
+
+    origin_sec = ((data[off+34]<<40) + (data[off+35]<<32) + (data[off+36]<<24) + (data[off+37]<<16) + (data[off+38]<<8) + (data[off+39]))
+    t_i "origin_sec #{origin_sec}"
+    if (origin_sec != seconds+3)
+        t_e "Origin not as expected"
+    end
     end
 
     test "Inject a ORIGIN-TIMESTAMP REQUEST frame into NPI port and receive frame from front port and check the correction field" do
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ORIGIN_TIMESTAMP", 0xFEFEFEFE0000, 0, 0, ip) + frameHdrTx.dup + request_pdu_create($requestClockId, $requestPortNumber)
 
-    size = 44+28+17
-    off = 14+28
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
     frame_cfg = { frame: frametx, port: $npi_port, capture_size: size, port0: $port0, port1: $port1, npi_port: $npi_port }
     frame_tx(frame_cfg)
@@ -74,7 +87,7 @@ def ip_test(ip)
     origin_f = origin_sec.to_f + origin_nsec/1000000000.0
     t_i "nano_correction #{nano_correction}"
     t_i "origin_f #{origin_f}"
-    if (nano_correction > 1000)
+    if (nano_correction > 1000) || (nano_correction < 300)
         t_e "Origin not as expected"
     end
     if ((origin_f > 13.2) || (origin_f < seconds))
@@ -85,8 +98,6 @@ def ip_test(ip)
     test "Inject a ONE-STEP REQUEST frame into NPI port and receive frame from front port and check the correction field" do
     frametx = tx_ifh_create($ts.dut.port_list[$port0], "MESA_PACKET_PTP_ACTION_ONE_STEP", (seconds * 1000000000) << 16, 0, 0, ip) + frameHdrTx.dup + request_pdu_create($requestClockId, $requestPortNumber)
 
-    size = 44+28+17
-    off = 14+28
     $ts.dut.call("mesa_ts_domain_timeofday_set", domain, $tod_ts[0])
     frame_cfg = { frame: frametx, port: $npi_port, capture_size: size, port0: $port0, port1: $port1, npi_port: $npi_port }
     frame_tx(frame_cfg)
@@ -100,11 +111,11 @@ def ip_test(ip)
     origin_f = origin_sec.to_f + origin_nsec/1000000000.0
     t_i "nano_correction #{nano_correction}"
     t_i "origin_f #{origin_f}"
-    if (nano_correction > 800000000)
+    if (nano_correction > 800000000) || (nano_correction < 100000000)
         t_e "Origin not as expected"
     end
     if (origin_f != 0)
-        t_e "Origin not as expected"
+        t_e "Origin not as expected.  origin_sec #{origin_sec}  origin_nsec #{origin_nsec}"
     end
     end
 
@@ -162,7 +173,7 @@ end
 
 test "test_run" do
     ip_test("ipv4")
-#    ip_test("ipv6")
+    ip_test("ipv6")
 end
 
 test_summary
