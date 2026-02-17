@@ -3585,9 +3585,9 @@ vtss_rc fa_debug_chip_serdes(vtss_state_t                  *vtss_state,
         u16 tap_dly = 0, tap_adv = 0, ampl = 0;
         VTSS_RC(fa_port_kr_tap_get(vtss_state, port_no, &tap_dly, &tap_adv,
                                    &ampl)); // TxEQ read
-        pr("Tap_dly   (CP):%d\n", tap_dly);
-        pr("Tap_adv   (CM):%d\n", tap_adv);
-        pr("Amplitude:(C0):%d\n", ampl);
+        pr("Pre       (C-1):%d\n", tap_adv);
+        pr("Main      (C0) :%d\n", ampl);
+        pr("Post      (C+1):%d\n", tap_dly);
     } else if (info->action == 11U) {
         VTSS_RC(fa_port_kr_square_wave(vtss_state, ss, port_no, TRUE));
     } else if (info->action == 12U) {
@@ -4058,8 +4058,7 @@ static vtss_rc vtss_fa_sd_board_settings(vtss_state_t  *vtss_state,
                                          u32            sd_indx,
                                          u32            sd_type)
 {
-    vtss_rc rc = VTSS_RC_OK;
-#if defined(VTSS_FEATURE_PORT_KR_IRQ)
+    vtss_rc           rc = VTSS_RC_OK;
     vtss_port_speed_t speed = vtss_state->port.conf[port_no].speed;
     u32               value;
     u16               tap_dly = 0, tap_adv = 0, ampl = 0;
@@ -4098,7 +4097,7 @@ static vtss_rc vtss_fa_sd_board_settings(vtss_state_t  *vtss_state,
     if (changed && rc == VTSS_RC_OK) {
         rc = fa_port_kr_tap_set(vtss_state, port_no, tap_dly, tap_adv, ampl);
     }
-#endif
+
     return rc;
 }
 

@@ -308,10 +308,10 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
             cli_printf("Usage:\n");
             cli_printf("dfe:  For 10G: h1,h2,h3,h4,h5,0. For 25G: h1,h2,h3,h4,h5,dlev\n");
             cli_printf("ctle: eqr,eqc,vga\n");
-            cli_printf("txeq: tap_dly, tap_adv, amplitude\n");
+            cli_printf("txeq: pre (C-1), main (C0), post (C+1)\n");
             cli_printf("Syntax:\n");
             cli_printf(
-                "mesa-cmd deb serdes <port> dfe|ctle|txeq <h1,h2,h3,h4,h5,dlev> || <eqr,eqc,vga> || <tap_dly,tap_adv,amplitude>\n");
+                "mesa-cmd deb serdes <port> dfe|ctle|txeq <h1,h2,h3,h4,h5,dlev> || <eqr,eqc,vga> || <pre,main,post>\n");
             return;
         }
 
@@ -323,7 +323,7 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
             cli_printf("Error. Expecting 3 values for ctle (<eqr,eqc,vga>)\n");
             return;
         } else if (mreq->has_txeq && (mreq->value_cnt != 3)) {
-            cli_printf("Error. Expecting 3 values for txeq (<tap_dly,tap_adv,amplitude>)\n");
+            cli_printf("Error. Expecting 3 values for txeq (<pre,main,post>)\n");
             return;
         }
 
@@ -334,9 +334,19 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
         } else if (mreq->has_txeq) {
             conf.debug_type = MESA_SERDES_TXEQ_PRM;
         }
-        for (uint8_t i = 0; i < mreq->value_cnt; i++) {
-            conf.serdes_prm[i] = mreq->value_list[i];
-            sprintf(numbuf + strlen(numbuf), "%d ", mreq->value_list[i]);
+
+        if (mreq->has_txeq) {
+            /* Remap from user input order <pre,main,post> to internal order */
+            conf.serdes_prm[0] = mreq->value_list[2]; /* post */
+            conf.serdes_prm[1] = mreq->value_list[0]; /* pre */
+            conf.serdes_prm[2] = mreq->value_list[1]; /* main */
+            sprintf(numbuf, "%d %d %d", mreq->value_list[0], mreq->value_list[1],
+                    mreq->value_list[2]);
+        } else {
+            for (uint8_t i = 0; i < mreq->value_cnt; i++) {
+                conf.serdes_prm[i] = mreq->value_list[i];
+                sprintf(numbuf + strlen(numbuf), "%d ", mreq->value_list[i]);
+            }
         }
         (void)mesa_port_serdes_debug_set(NULL, iport, &conf);
     }
@@ -396,7 +406,7 @@ static cli_cmd_t cli_cmd_table[] = {
     {"Debug serdes <port_list> [dfe] [ctle] [txeq] <value_list>",
      "deb serdes <port> dfe h1,h2,h3,h4,h5,0 (10g) or h1,h2,h3,h4,h5,dlev (25g)\n "
      "deb serdes <port> ctle r,c,vga,0 (10g)  or vga_r,vga_c,c,gain (25g)\n "
-     "deb serdes <port> txeq dly,adv,ampl\n ", cli_cmd_debug_serdes, CLI_CMD_FLAG_ALL_PORTS},
+     "deb serdes <port> txeq pre,main,post\n ", cli_cmd_debug_serdes, CLI_CMD_FLAG_ALL_PORTS},
     {"Debug PHY cls-45 Read <port_list> <page> <addr16>", "Read PHY clause-45 register",
      cli_cmd_debug_phy_clause45_read, CLI_CMD_FLAG_ALL_PORTS},
     {"Debug PHY cls-45 Write <port_list> <page> <addr16> <value>", "Write PHY clause-45 register",
