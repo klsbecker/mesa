@@ -34,7 +34,6 @@ i2c_config_t sparx5_gen7_i2c_config[] = {
 
 void set_sparx_parameters(meba_poe_firmware_type_t poe_type)
 {
-
     // poe firmware type - TYPE_PREBT , GEN6_BT
     // poe_default_parameters.eMeba_poe_firmware_type = SPARX5_POE_FIRMWARE_TYPE_DEFAULT;
 
