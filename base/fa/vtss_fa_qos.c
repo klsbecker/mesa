@@ -1310,8 +1310,8 @@ static void ll_group_init(vtss_qos_leak_layer_t *ll, u32 sys_clk_per_100ps)
         if ((1000000U % leak_interval) > (leak_interval / 2U)) {
             lg->resolution += 1U;
         }
-        lg->leak_time = 1000U * leak_interval;     /* Calculate leak_time in 1nS units
-                                                     (leak_interval is in uS) */
+        lg->leak_time = 1000U * leak_interval; /* Calculate leak_time in 1nS units
+                                                 (leak_interval is in uS) */
         ses32 =
             (1000U * leak_interval) / sys_clk_per_100ps; /* We can service one SE in ~10 cycles.
                                                            Calculate the maximum number of SEs
