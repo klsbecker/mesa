@@ -1307,6 +1307,9 @@ static void ll_group_init(vtss_qos_leak_layer_t *ll, u32 sys_clk_per_100ps)
             (131071U * 1000U) / lg->max_rate; /* Calculate leak_interval in uS (max_rate is kbps) */
         lg->resolution = 1000000U / leak_interval; /* Calculate resolution in bps
                                                      (leak_interval is in uS) */
+        if ((1000000U % leak_interval) > (leak_interval / 2U)) {
+            lg->resolution += 1U;
+        }
         lg->leak_time = 1000U * leak_interval;     /* Calculate leak_time in 1nS units
                                                      (leak_interval is in uS) */
         ses32 =
@@ -1731,8 +1734,12 @@ vtss_rc vtss_fa_qos_shaper_conf_set(vtss_state_t        *vtss_state,
     if (shaper->rate != VTSS_BITRATE_DISABLED) {
         if (shaper->mode != VTSS_SHAPER_MODE_FRAME) {
             VTSS_RC(fa_qos_leak_list_link(vtss_state, layer, se, shaper->rate, &resolution));
-            cir_64 = VTSS_DIV64_ROUND_UP(((u64)shaper->rate * 1000U), (u64)resolution);
-            cir = MIN(VTSS_BITMASK(17), (u32)cir_64);
+            cir_64 = (u64)shaper->rate * 1000U;
+            cir = (u32)(cir_64 / (u64)resolution);
+            if ((cir_64 % (u64)resolution) > ((u64)resolution / 2U)) {
+                cir += 1U;
+            }
+            cir = MIN(VTSS_BITMASK(17), cir);
             cbs = MIN(VTSS_BITMASK(6), VTSS_DIV_ROUND_UP(shaper->level, 4096U));
             mode = (u32)shaper->mode;
         } else {
