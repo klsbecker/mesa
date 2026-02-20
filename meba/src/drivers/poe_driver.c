@@ -540,8 +540,7 @@ const char *telemetry_bt_gen6_boot_up_error_txt[] = {
     "eBoot_bt_gen6__hW_error_from_Boot_try_to_program_a_PD69210_PD69220_firmware_into_PD69200_device",
     "eBoot_bt_gen6__sys_type_error_from_APP_try_to_program_a_PD69220_firmware_into_PD69210_device",
     "eBoot_bt_gen6__sys_type_error_from_APP_try_to_program_a_PD69210_firmware_into_PD69220_device",
-    "eBoot_bt_gen6__Unknown_error"
-};
+    "eBoot_bt_gen6__Unknown_error"};
 
 typedef enum {
     eBoot_bt_gen7_0_no_error = 0,
@@ -570,8 +569,7 @@ const char *telemetry_bt_gen7_boot_up_error_txt[] = {
     "eBoot_bt_gen7_error_8__NVM_Program_Error",
     "eBoot_bt_gen7_error_9__Wrong_NVM_User_Row_Value",
     "eBoot_bt_gen7_error_10__Application_CRC_error",
-    "eBoot_bt_gen7_unknown_error_value"
-};
+    "eBoot_bt_gen7_unknown_error_value"};
 
 typedef struct {
     mesa_bool_t bit0_reset_or_restore;
@@ -631,8 +629,8 @@ typedef struct {
     telemetry_bt_gen6_boot_up_error_e eTelemetry_bt_gen6_boot_up_error;
     telemetry_bt_gen7_boot_up_error_e eTelemetry_bt_gen7_boot_up_error;
 
-    int iFF_byte_counter;   // no i2c response
-    int i00_byte_counter;   // poe data buffer empty
+    int iFF_byte_counter; // no i2c response
+    int i00_byte_counter; // poe data buffer empty
 } poe_driver_private_t;
 
 uint8_t prod_class_error_selection[4][2] = {
@@ -797,7 +795,6 @@ static mesa_rc pd_rd_ex(const meba_poe_ctrl_inst_t *const inst,
     VTSS_MSLEEP(wait_before_reading); // Wait before reading
     return pd_rd(inst, data, size);
 }
-
 
 void check_reading_byte(uint8_t data, poe_driver_private_t *private_data)
 {
@@ -1164,7 +1161,7 @@ static mesa_rc pd_tx_rx(const meba_poe_ctrl_inst_t *const inst,
 
     memset(buf_rx, 0, PD_BUFFER_SIZE);
     rc1 = get_15_bytes_comm_protocol_reply(inst, buf_rx, buf_tx[1], &ePOE_BOOL_Is_system_status,
-                                          &tBT_System_Status);
+                                           &tBT_System_Status);
 
     // Do the I2C transmission and check report key.
     if (rc1 == MESA_RC_OK) {
@@ -1196,9 +1193,9 @@ mesa_rc pd_gen6_bt_get_serial_number(const meba_poe_ctrl_inst_t *const inst,
 {
     // Send request to get serial number
     uint8_t buf[PD_BUFFER_SIZE] = {REQUEST_KEY, DUMMY_SEQ_NUM, GLOBAL_KEY, PRDCTINFO_KEY,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
 
     // T_DG(VTSS_TRACE_POEBT_GRP_CUSTOM, "pd_gen6_bt_get_serial_number");
     char *fname = "GET SERIAL NUMBER";
@@ -1224,9 +1221,9 @@ mesa_rc meba_poe_pd_get_individual_mask(const meba_poe_ctrl_inst_t *const inst,
 {
     // Send request to get status
     uint8_t buf[PD_BUFFER_SIZE] = {REQUEST_KEY,     DUMMY_SEQ_NUM, GLOBAL_KEY, INDIV_MASK_KEY,
-                                         mask_key_number, DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE};
+                                   mask_key_number, DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE};
 
     char *fname = "GET INDIVIDUAL MASK";
     MESA_RC(pd_tx_rx(inst, __FUNCTION__, __LINE__, buf, fname));
@@ -1663,9 +1660,9 @@ mesa_rc meba_poe_pd69200_get_total_power(const meba_poe_ctrl_inst_t *const inst,
 {
     // Send request to get status
     uint8_t buf[PD_BUFFER_SIZE] = {REQUEST_KEY,     DUMMY_SEQ_NUM, GLOBAL_KEY, SUPPLY_KEY,
-                                         TOTAL_POWER_KEY, DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
-                                         DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE};
+                                   TOTAL_POWER_KEY, DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE, DUMMY_BYTE,
+                                   DUMMY_BYTE,      DUMMY_BYTE,    DUMMY_BYTE};
 
     char *fname = "GET TOTAL PWR";
     MESA_RC(pd_tx_rx(inst, __FUNCTION__, __LINE__, buf, fname));
@@ -1720,9 +1717,9 @@ mesa_rc meba_poe_pd69200_prebt_get_port_measurements(const meba_poe_ctrl_inst_t 
 
     // Send request to get status
     uint8_t buf[PD_BUFFER_SIZE] = {REQUEST_KEY, DUMMY_SEQ_NUM, CHANNEL_KEY, PREBT_PARAMZ_KEY,
-                                         channel,     DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
+                                   channel,     DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
 
     char *fname = "GET PORT MEASUREMENTS";
     MESA_RC(pd_tx_rx(inst, __FUNCTION__, __LINE__, buf, fname));
@@ -2107,8 +2104,8 @@ mesa_rc get_15_bytes_comm_protocol_reply(const meba_poe_ctrl_inst_t *const inst,
                                          mesa_bool_t        *pePOE_BOOL_Is_system_status,
                                          bt_system_status_t *ptBT_System_Status)
 {
-    uint8_t bRxMsg[PD_BUFFER_SIZE];
-    poe_driver_private_t      *private_data = (poe_driver_private_t *)(inst->private_data);
+    uint8_t               bRxMsg[PD_BUFFER_SIZE];
+    poe_driver_private_t *private_data = (poe_driver_private_t *)(inst->private_data);
 
     private_data->iFF_byte_counter = 0; // no i2c response
     private_data->i00_byte_counter = 0; // poe data buffer empty
@@ -2465,10 +2462,9 @@ static mesa_rc meba_poe_pd_get_software_version(const meba_poe_ctrl_inst_t *cons
     }
 
     DEBUG(inst, MEBA_TRACE_LVL_DEBUG,
-      "%s called line %d, rc=%d, b0:%d b1:%d b2:%d b3:%d b4:%d b5:%d b6:%d b7:%d b8:%d b9:%d b10:%d b11:%d b12:%d b13:%d b14:%d",
-      __FUNCTION__, __LINE__, rc,
-    buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9],
-    buf[10], buf[11], buf[12], buf[13], buf[14]);
+          "%s called line %d, rc=%d, b0:%d b1:%d b2:%d b3:%d b4:%d b5:%d b6:%d b7:%d b8:%d b9:%d b10:%d b11:%d b12:%d b13:%d b14:%d",
+          __FUNCTION__, __LINE__, rc, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
+          buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14]);
 
     ptSoftware_version->hw_version = buf[2];
     ptSoftware_version->build_H = buf[3];        // Gen7 - Build_H #
@@ -5418,60 +5414,71 @@ char *get_poe_ieee_port_state_description(meba_poe_ieee_port_state_t port_state)
 char *get_prebt_title_by_ports_status(uint8_t bt_port_status)
 {
     switch (bt_port_status) {
-    case PREBT_0x00_ON__LEGACY_PD_DET:                return "0x00: ON, Valid capacitor detected";
-    case PREBT_0x01_ON__802_2PAIR_3AF_DET:            return "0x01: ON, Valid resistor detected";
-    case PREBT_0x02_ON__802_4PAIR_DET:                return "0x02: ON, 4-pair power (IEEE)";
-    case PREBT_0x03_ON__802_2PAIR_POWER_SEQUENCE:     return "0x03: ON, 2-pair power (CDP)";
-    case PREBT_0x04_ON__802_4PAIR_POWER_SEQUENCE:     return "0x04: ON, 4-pair power (CDP)";
-    case PREBT_0x06_OFF_MAIN_PS_TO_HIGH:              return "0x06: OFF, Main supply voltage is high";
-    case PREBT_0x07_OFF_MAIN_PS_TO_LOW:               return "0x07: OFF, Main supply voltage is low";
-    case PREBT_0x08_OFF_DIS_ALL_PORTS_PIN_ACT:        return "0x08: OFF, Disable all ports pin is active";
-    case PREBT_0x0C_OFF_NON_EXIST_PORT_NUM:           return "0x0C: OFF, Non-existing port number";
-    case PREBT_0x11_OFF_PWR_UP_IN_PROCESS:            return "0x11: yet undefined";
-    case PREBT_0x12_OFF_INTERNAL_HW_FAULT:            return "0x12: OFF, Internal hardware fault";
-    case PREBT_0x1A_OFF_USER_SETTING:                 return "0x1A: OFF, User setting";
-    case PREBT_0x1B_OFF_DET_IN_PROCESS:               return "0x1B: OFF, Detection is in process";
-    case PREBT_0x1C_OFF_NON_802_3AF_PD:               return "0x1C: OFF, Non-802.3AFAT powered device";
-    case PREBT_0x1D_OFF_SUCCESION_OF_OVL_AND_UDL:     return "0x1D: OFF, Overload and Underload states";
-    case PREBT_0x1E_OFF_UNDERLOAD_OR_CAP_TO_SMALL:    return "0x1E: OFF, Underload state";
-    case PREBT_0x1F_OFF_OVERLOAD_OR_CAP_TO_BIG:       return "0x1F: OFF, Overload state";
-    case PREBT_0x20_OFF_PWR_BUDGET_EXCEDDED:          return "0x20: OFF, Power budget exceeded";
-    case PREBT_0x21_OFF_INTERNAL_HW_ROUTING_ERROR:    return "0x21: OFF, Internal hardware fault";
-    case PREBT_0x24_OFF_EXT_VOLT_INJ_CAP_DET_MODE:    return "0x24: OFF, Voltage injection into the port";
-    case PREBT_0x25_OFF_IMPROPER_CAP_DET_MODE:        return "0x25: OFF, Improper Capacitor Detection results or Detection values indicating short";
+    case PREBT_0x00_ON__LEGACY_PD_DET:             return "0x00: ON, Valid capacitor detected";
+    case PREBT_0x01_ON__802_2PAIR_3AF_DET:         return "0x01: ON, Valid resistor detected";
+    case PREBT_0x02_ON__802_4PAIR_DET:             return "0x02: ON, 4-pair power (IEEE)";
+    case PREBT_0x03_ON__802_2PAIR_POWER_SEQUENCE:  return "0x03: ON, 2-pair power (CDP)";
+    case PREBT_0x04_ON__802_4PAIR_POWER_SEQUENCE:  return "0x04: ON, 4-pair power (CDP)";
+    case PREBT_0x06_OFF_MAIN_PS_TO_HIGH:           return "0x06: OFF, Main supply voltage is high";
+    case PREBT_0x07_OFF_MAIN_PS_TO_LOW:            return "0x07: OFF, Main supply voltage is low";
+    case PREBT_0x08_OFF_DIS_ALL_PORTS_PIN_ACT:     return "0x08: OFF, Disable all ports pin is active";
+    case PREBT_0x0C_OFF_NON_EXIST_PORT_NUM:        return "0x0C: OFF, Non-existing port number";
+    case PREBT_0x11_OFF_PWR_UP_IN_PROCESS:         return "0x11: yet undefined";
+    case PREBT_0x12_OFF_INTERNAL_HW_FAULT:         return "0x12: OFF, Internal hardware fault";
+    case PREBT_0x1A_OFF_USER_SETTING:              return "0x1A: OFF, User setting";
+    case PREBT_0x1B_OFF_DET_IN_PROCESS:            return "0x1B: OFF, Detection is in process";
+    case PREBT_0x1C_OFF_NON_802_3AF_PD:            return "0x1C: OFF, Non-802.3AFAT powered device";
+    case PREBT_0x1D_OFF_SUCCESION_OF_OVL_AND_UDL:  return "0x1D: OFF, Overload and Underload states";
+    case PREBT_0x1E_OFF_UNDERLOAD_OR_CAP_TO_SMALL: return "0x1E: OFF, Underload state";
+    case PREBT_0x1F_OFF_OVERLOAD_OR_CAP_TO_BIG:    return "0x1F: OFF, Overload state";
+    case PREBT_0x20_OFF_PWR_BUDGET_EXCEDDED:       return "0x20: OFF, Power budget exceeded";
+    case PREBT_0x21_OFF_INTERNAL_HW_ROUTING_ERROR: return "0x21: OFF, Internal hardware fault";
+    case PREBT_0x24_OFF_EXT_VOLT_INJ_CAP_DET_MODE:
+        return "0x24: OFF, Voltage injection into the port";
+    case PREBT_0x25_OFF_IMPROPER_CAP_DET_MODE:
+        return "0x25: OFF, Improper Capacitor Detection results or Detection values indicating short";
     case PREBT_0x26_OFF_DISCHARGED_LOAD_CAP_DET_MODE: return "0x26: OFF, Discharged load";
     case PREBT_0x2B_ON__FORCE:                        return "0x2B: ON, Detection regardless - Force On";
     case PREBT_0x2C_OFF_FORCE_ERROR:                  return "0x2C: Undefined error during Force On";
     case PREBT_0x2D_OFF_FORCE_PS_TOO_HIGH:            return "0x2D: Supply voltage higher than settings";
     case PREBT_0x2E_OFF_FORCE_PS_TOO_LOW:             return "0x2E: Supply voltage lower than settings";
-    case PREBT_0x2F_OFF_FORCE_DIS_PDU_FLAG_WAS_RAISE: return "0x2F: Disable PDU flag raised during Force On";
-    case PREBT_0x31_OFF_FORCE_802_3AF_OVERLOAD:       return "0x31: OFF, Forced power error due to Overload";
-    case PREBT_0x32_OFF_FORCE_OUT_OF_PWR_BUDGET:      return "0x32: OFF, Out of power budget during Force On";
-    case PREBT_0x33_UNKNOWN_FORCE_COMMUNICATION_ERR:  return "0x33: Communication error with PoE devices after Force On";
-    case PREBT_0x34_OFF_SHORT_CONDITION:              return "0x34: OFF, Short condition";
-    case PREBT_0x35_OFF_OVER_TEMP_AT_PORT:            return "0x35: OFF, Over temperature at the port";
-    case PREBT_0x36_OFF_DEVICE_TOO_HOT:               return "0x36: OFF, Device is too hot";
-    case PREBT_0x37_OFF_UNKNOWN_DEVICE_PORT_STATUS:   return "0x37: Unknown device port status";
-    case PREBT_0x38_OFF_FORCE_PWR_ERR_SHORT_CIRCUIT:  return "0x38: Force Power Error Short Circuit";
-    case PREBT_0x39_OFF_FORCE_PWR_ERR_CH_OVER_TEMP:   return "0x39: Force Power Error Channel Over Temperature";
-    case PREBT_0x3A_OFF_FORCE_PWR_ERR_CHIP_OVER_TEMP: return "0x3A: Force Power Error Chip Over Temperature";
-    case PREBT_0x3C_OFF_PWR_MANAGEMENT_STATIC:        return "0x3C: Power Management-Static";
-    case PREBT_0x3D_OFF_PWR_MANAGEMENT_STATIC_OV:     return "0x3D: Power Management-Static -ovl";
-    case PREBT_0x3E_OFF_FORCE_PWR_ERR_MNGMNT_STAT:    return "0x3E: Force Power Error Management StaticV";
-    case PREBT_0x3F_OFF_FORCE_PWR_ERR_MNGMNT_STAT_OV: return "0x3F: Force Power Error Management Static -ovl";
-    case PREBT_0x43_OFF_CLASS_ERROR:                  return "0x43: OFF, Class Error";
-    case PREBT_0x44_OFF_DURING_HOST_CRASH:            return "0x44: OFF, Port turn off during host crash";
+    case PREBT_0x2F_OFF_FORCE_DIS_PDU_FLAG_WAS_RAISE:
+        return "0x2F: Disable PDU flag raised during Force On";
+    case PREBT_0x31_OFF_FORCE_802_3AF_OVERLOAD:
+        return "0x31: OFF, Forced power error due to Overload";
+    case PREBT_0x32_OFF_FORCE_OUT_OF_PWR_BUDGET:
+        return "0x32: OFF, Out of power budget during Force On";
+    case PREBT_0x33_UNKNOWN_FORCE_COMMUNICATION_ERR:
+        return "0x33: Communication error with PoE devices after Force On";
+    case PREBT_0x34_OFF_SHORT_CONDITION:             return "0x34: OFF, Short condition";
+    case PREBT_0x35_OFF_OVER_TEMP_AT_PORT:           return "0x35: OFF, Over temperature at the port";
+    case PREBT_0x36_OFF_DEVICE_TOO_HOT:              return "0x36: OFF, Device is too hot";
+    case PREBT_0x37_OFF_UNKNOWN_DEVICE_PORT_STATUS:  return "0x37: Unknown device port status";
+    case PREBT_0x38_OFF_FORCE_PWR_ERR_SHORT_CIRCUIT: return "0x38: Force Power Error Short Circuit";
+    case PREBT_0x39_OFF_FORCE_PWR_ERR_CH_OVER_TEMP:
+        return "0x39: Force Power Error Channel Over Temperature";
+    case PREBT_0x3A_OFF_FORCE_PWR_ERR_CHIP_OVER_TEMP:
+        return "0x3A: Force Power Error Chip Over Temperature";
+    case PREBT_0x3C_OFF_PWR_MANAGEMENT_STATIC:    return "0x3C: Power Management-Static";
+    case PREBT_0x3D_OFF_PWR_MANAGEMENT_STATIC_OV: return "0x3D: Power Management-Static -ovl";
+    case PREBT_0x3E_OFF_FORCE_PWR_ERR_MNGMNT_STAT:
+        return "0x3E: Force Power Error Management StaticV";
+    case PREBT_0x3F_OFF_FORCE_PWR_ERR_MNGMNT_STAT_OV:
+        return "0x3F: Force Power Error Management Static -ovl";
+    case PREBT_0x43_OFF_CLASS_ERROR:       return "0x43: OFF, Class Error";
+    case PREBT_0x44_OFF_DURING_HOST_CRASH: return "0x44: OFF, Port turn off during host crash";
     case PREBT_0x45_OFF_FROM_DELIVERED_TO_HOST_SHUTDOWN:
         return "0x45: OFF, Delivered power port was forced to be shut down at host crash";
-    case PREBT_0x46_OFF_FROM_ENABLED_TO_HOST_SHUTDOWN: return "0x46: OFF, An enabled port was forced to be shut down at host crash";
-    case PREBT_0x47_OFF_FORCE_POWER_CRASH_ERROR:       return "0x47: Force Power Crash Error";
-    case PREBT_0x48_OFF_RECOVERY_UDL:                  return "0x48: OFF, Recovery UDL";
-    case PREBT_0x49_OFF_RECOVERY_PG_EVENT:             return "0x49: OFF, Recovery PG Event";
-    case PREBT_0x4A_OFF_RECOVERY_OVL:                  return "0x4A: OFF, Recovery OVL";
-    case PREBT_0x4B_OFF_RECOVERY_SC:                   return "0x4B: OFF, Recovery SC";
-    case PREBT_0x4C_OFF_RECOVERY_VOLTAGE_INJECTION:    return "0x4C: OFF, Recovery Voltage injection";
-    case PREBT_0x4D_OFF_DVDT_FAIL_DURING_STARTUP:      return "0x4D: OFF, DVDT fail during startup";
-    default:                                           {
+    case PREBT_0x46_OFF_FROM_ENABLED_TO_HOST_SHUTDOWN:
+        return "0x46: OFF, An enabled port was forced to be shut down at host crash";
+    case PREBT_0x47_OFF_FORCE_POWER_CRASH_ERROR:    return "0x47: Force Power Crash Error";
+    case PREBT_0x48_OFF_RECOVERY_UDL:               return "0x48: OFF, Recovery UDL";
+    case PREBT_0x49_OFF_RECOVERY_PG_EVENT:          return "0x49: OFF, Recovery PG Event";
+    case PREBT_0x4A_OFF_RECOVERY_OVL:               return "0x4A: OFF, Recovery OVL";
+    case PREBT_0x4B_OFF_RECOVERY_SC:                return "0x4B: OFF, Recovery SC";
+    case PREBT_0x4C_OFF_RECOVERY_VOLTAGE_INJECTION: return "0x4C: OFF, Recovery Voltage injection";
+    case PREBT_0x4D_OFF_DVDT_FAIL_DURING_STARTUP:   return "0x4D: OFF, DVDT fail during startup";
+    default:                                        {
         return "?????";
     }
     }
@@ -6993,9 +7000,9 @@ mesa_rc meba_poe_pd_bt_get_BT_port_measurements(const meba_poe_ctrl_inst_t *cons
 
     // Send request to get status
     uint8_t buf[PD_BUFFER_SIZE] = {REQUEST_KEY, DUMMY_SEQ_NUM, CHANNEL_KEY, BT_PORT_MEASE_KEY,
-                                         channel,     DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
-                                         DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
+                                   channel,     DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE,  DUMMY_BYTE,
+                                   DUMMY_BYTE,  DUMMY_BYTE,    DUMMY_BYTE};
 
     char *fname = "GET BT PORT MEASUREMENTS";
     MESA_RC(pd_tx_rx(inst, __FUNCTION__, __LINE__, buf, fname));
