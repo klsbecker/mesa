@@ -97,6 +97,8 @@
 #define VTSS_FEATURE_ACL                             /**< Access Control Lists */
 #define VTSS_FEATURE_ACL_EXT_DIP                     /**< ACL extended IPv6 rule with DIP matching \
                                                       */
+#define VTSS_FEATURE_IPV4_MC_SIP                     /**< Source specific IPv4 multicast */
+#define VTSS_FEATURE_IPV6_MC_SIP                     /**< Source specific IPv6 multicast */
 #if !VTSS_OPT_LIGHT
 #define VTSS_FEATURE_QCL                           /**< QoS: QoS Control Lists */
 #define VTSS_FEATURE_QCL_DMAC_DIP                  /**< QoS: QoS Control Lists, match on either    \
@@ -111,8 +113,6 @@
                                                       counters */
 #define VTSS_FEATURE_VLAN_TX_TAG                   /**< VLAN tagging per (VID, port) */
 #define VTSS_FEATURE_PVLAN                         /**< Private VLANs */
-#define VTSS_FEATURE_IPV4_MC_SIP                   /**< Source specific IPv4 multicast */
-#define VTSS_FEATURE_IPV6_MC_SIP                   /**< Source specific IPv6 multicast */
 #define VTSS_FEATURE_EEE                           /**< Energy Efficient Ethernet */
 #define VTSS_FEATURE_LED_POW_REDUC                 /**< LED power reduction */
 #define VTSS_FEATURE_MIRROR_CPU                    /**< CPU mirroring */
@@ -255,6 +255,9 @@
 #define VTSS_FEATURE_TEMP_SENSOR /**< Temperature Sensor */
 #endif
 
+#define VTSS_FEATURE_IPV4_MC_SIP /**< Source specific IPv4 multicast */
+#define VTSS_FEATURE_IPV6_MC_SIP /**< Source specific IPv6 multicast */
+
 #if !VTSS_OPT_LIGHT
 #if !defined(VTSS_OPT_FPGA) && !defined(VTSS_ARCH_LAIKA)
 #define VTSS_FEATURE_PORT_KR_IRQ    /**< 10G/25GBase KR, 802.3ap clause 72                         \
@@ -307,8 +310,6 @@
 #define VTSS_FEATURE_PVLAN                       /**< Private VLANs */
 #define VTSS_FEATURE_VLAN_PORT_V2                /**< VLAN port configuration, V2 features */
 #define VTSS_FEATURE_VLAN_TX_TAG                 /**< VLAN tagging per (VID, port) */
-#define VTSS_FEATURE_IPV4_MC_SIP                 /**< Source specific IPv4 multicast */
-#define VTSS_FEATURE_IPV6_MC_SIP                 /**< Source specific IPv6 multicast */
 #define VTSS_FEATURE_MAC_AGE_AUTO                /**< Automatic MAC address ageing */
 #define VTSS_FEATURE_MAC_CPU_QUEUE               /**< CPU queue per MAC address */
 #define VTSS_FEATURE_EEE                         /**< Energy Efficient Ethernet */

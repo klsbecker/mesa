@@ -690,9 +690,9 @@ vtss_rc vtss_cil_l2_flood_conf_set(vtss_state_t *vtss_state)
 }
 
 #if defined(VTSS_FEATURE_IPV4_MC_SIP)
-vtss_rc vtss_cil_l2_ip_mc_update(vtss_state_t     *vtss_state,
-                                 vtss_ipmc_data_t *ipmc,
-                                 vtss_ipmc_cmd_t   cmd)
+vtss_rc vtss_cil_l2_ip_mc_update(struct vtss_state_s *vtss_state,
+                                 vtss_ipmc_data_t    *ipmc,
+                                 vtss_ipmc_cmd_t      cmd)
 {
     vtss_vcap_obj_t     *obj = &vtss_state->vcap.is2.obj;
     int                  i, user = (ipmc->src.ssm ? VTSS_IS2_USER_SSM : VTSS_IS2_USER_ASM);

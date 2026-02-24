@@ -71,8 +71,8 @@
 #define VTSS_VCAP_SUPER_ROW_CNT 256U /* Number of rows in one block (full rules) */
 #endif
 #if defined(VTSS_STREAM_CNT)
-// Full CLM rules, X1 LPM rules, full IS2 rules
-#define VTSS_VCAP_SUPER_RULE_CNT (VTSS_STREAM_CNT + VTSS_LPM_CNT + VTSS_ACE_CNT)
+// Full CLM rules, X1 LPM rules, full IS2 rules (ACL), half/quarter IS2-B rules (IPMC)
+#define VTSS_VCAP_SUPER_RULE_CNT (VTSS_STREAM_CNT + VTSS_LPM_CNT + VTSS_ACE_CNT + VTSS_STREAM_CNT)
 #else
 #define VTSS_VCAP_SUPER_RULE_CNT                                                                   \
     (VTSS_VCAP_SUPER_BLK_CNT * VTSS_VCAP_SUPER_ROW_CNT * 6U) /* Six rules per row */

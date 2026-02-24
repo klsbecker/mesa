@@ -5,6 +5,7 @@
 #include "vtss_api.h"
 #include "vtss_state.h"
 #include "vtss_common.h"
+#include "vtss_util.h"
 
 #if defined(VTSS_FEATURE_LAYER2)
 
@@ -6034,11 +6035,12 @@ vtss_rc vtss_cmn_hw_prot_port_disable_set(struct vtss_state_s *vtss_state,
 #if defined(VTSS_FEATURE_IPV4_MC_SIP) || defined(VTSS_FEATURE_IPV6_MC_SIP)
 u32 vtss_cmn_ip2u32(vtss_ip_addr_internal_t *ip, BOOL ipv6)
 {
-    u32 addr = 0, i;
+    u32 addr = 0, i, a;
 
     if (ipv6) {
-        for (i = 12; i < 16; i++) {
-            addr += (ip->ipv6.addr[i] << ((15 - i) * 8));
+        for (i = 12; i < 16U; i++) {
+            a = ip->ipv6.addr[i];
+            addr += (a << ((15U - i) * 8U));
         }
     } else {
         addr = ip->ipv4;
@@ -6052,8 +6054,9 @@ static u64 vtss_cmn_ip_mc_src_key(vtss_ipmc_src_data_t *src, BOOL ipv6)
     u64 key = vtss_cmn_ip2u32(&src->sip, ipv6);
 
     key = (key << 32);
-    if (src->ssm)
-        key += (1 << 12);
+    if (src->ssm) {
+        key += VTSS_BIT(12);
+    }
     key += src->vid;
     return key;
 }
@@ -6062,7 +6065,8 @@ static u64 vtss_cmn_ip_mc_src_key(vtss_ipmc_src_data_t *src, BOOL ipv6)
 static u64 vtss_cmn_ip_mc_dst_key(vtss_ipmc_dst_data_t *dst, BOOL ipv6)
 {
     u32 dip = vtss_cmn_ip2u32(&dst->dip, ipv6);
-    u64 key = (ipv6 ? dip : (dip & 0x007fffff));
+    u32 msb = (ipv6 ? dip : (dip & 0x007fffffU));
+    u64 key = msb;
 
     key = (key << 32);
     key += dip;
@@ -6076,11 +6080,12 @@ static vtss_rc vtss_cmn_ip_mc_add(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
     vtss_ipmc_dst_t *dst = NULL, *dst_prev = NULL;
     vtss_vid_t       fid;
     u64              sip, ipmc_sip = vtss_cmn_ip_mc_src_key(&ipmc->src, ipmc->ipv6);
-    u32              dip, ipmc_dip = vtss_cmn_ip_mc_dst_key(&ipmc->dst, ipmc->ipv6);
+    u64              dip, ipmc_dip = vtss_cmn_ip_mc_dst_key(&ipmc->dst, ipmc->ipv6);
 
     /* Search for source entry or the place to insert the new entry */
-    src_list = &obj->src_used[ipmc->ipv6];
-    for (src = *src_list; src != NULL; src_prev = src, src = src->next) {
+    src_list = &obj->src_used[ipmc->ipv6 ? 1 : 0];
+    src = *src_list;
+    while (src != NULL) {
         sip = vtss_cmn_ip_mc_src_key(&src->data, ipmc->ipv6);
         if (sip > ipmc_sip) {
             /* Found bigger entry */
@@ -6094,7 +6099,11 @@ static vtss_rc vtss_cmn_ip_mc_add(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
                 /* Found identical entry */
                 break;
             }
+        } else {
+            // Empty on purpose
         }
+        src_prev = src;
+        src = src->next;
     }
 
     if (src == NULL) {
@@ -6103,11 +6112,12 @@ static vtss_rc vtss_cmn_ip_mc_add(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
             VTSS_I("no more source entries");
             return VTSS_RC_ERROR;
         }
-        ipmc->src_add = 1;
+        ipmc->src_add = TRUE;
     } else {
         /* Source found, search for destination entry or the place to insert the
          * new entry */
-        for (dst = src->dest; dst != NULL; dst_prev = dst, dst = dst->next) {
+        dst = src->dest;
+        while (dst != NULL) {
             dip = vtss_cmn_ip_mc_dst_key(&dst->data, ipmc->ipv6);
             if (dip > ipmc_dip) {
                 /* Found bigger entry */
@@ -6123,6 +6133,8 @@ static vtss_rc vtss_cmn_ip_mc_add(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
                 ipmc->dst.id = dst->data.id;
                 break;
             }
+            dst_prev = dst;
+            dst = dst->next;
         }
     }
 
@@ -6132,7 +6144,7 @@ static vtss_rc vtss_cmn_ip_mc_add(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
             VTSS_I("no more destination entries");
             return VTSS_RC_ERROR;
         }
-        ipmc->dst_add = 1;
+        ipmc->dst_add = TRUE;
     }
 
     /* Check that resources can be added in device */
@@ -6193,8 +6205,9 @@ static vtss_rc vtss_cmn_ip_mc_del(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
     vtss_ipmc_dst_t *dst = NULL, *dst_prev = NULL;
 
     /* Search for source entry */
-    src_list = &obj->src_used[ipmc->ipv6];
-    for (src = *src_list; src != NULL; src_prev = src, src = src->next) {
+    src_list = &obj->src_used[ipmc->ipv6 ? 1 : 0];
+    src = *src_list;
+    while (src != NULL) {
         if (src->data.vid == ipmc->src.vid &&
             ((!ipmc->ipv6 && ipmc->src.sip.ipv4 == src->data.sip.ipv4) ||
              (ipmc->ipv6 &&
@@ -6203,6 +6216,8 @@ static vtss_rc vtss_cmn_ip_mc_del(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
             /* Found entry */
             break;
         }
+        src_prev = src;
+        src = src->next;
     }
 
     if (src == NULL) {
@@ -6212,7 +6227,8 @@ static vtss_rc vtss_cmn_ip_mc_del(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
     }
 
     /* Search for destination entry */
-    for (dst = src->dest; dst != NULL; dst_prev = dst, dst = dst->next) {
+    dst = src->dest;
+    while (dst != NULL) {
         if ((!ipmc->ipv6 && dst->data.dip.ipv4 == ipmc->dst.dip.ipv4) ||
             (ipmc->ipv6 &&
              VTSS_MEMCMP(&dst->data.dip.ipv6, &ipmc->dst.dip.ipv6, sizeof(vtss_ipv6_t)) == 0)) {
@@ -6220,6 +6236,8 @@ static vtss_rc vtss_cmn_ip_mc_del(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
             ipmc->dst.id = dst->data.id;
             break;
         }
+        dst_prev = dst;
+        dst = dst->next;
     }
 
     if (dst == NULL) {
@@ -6229,26 +6247,28 @@ static vtss_rc vtss_cmn_ip_mc_del(vtss_state_t *vtss_state, vtss_ipmc_data_t *ip
     }
 
     /* Move destination entry to free list */
-    if (dst_prev == NULL)
+    if (dst_prev == NULL) {
         src->dest = dst->next;
-    else
+    } else {
         dst_prev->next = dst->next;
+    }
     dst->next = obj->dst_free;
     obj->dst_free = dst;
     obj->dst_count--;
 
     /* Free source, if it was the last destination */
     if (src->dest == NULL) {
-        if (src_prev == NULL)
+        if (src_prev == NULL) {
             *src_list = src->next;
-        else
+        } else {
             src_prev->next = src->next;
+        }
         src->next = obj->src_free;
         obj->src_free = src;
         obj->src_count--;
-        ipmc->src_del = 1;
+        ipmc->src_del = TRUE;
     }
-    ipmc->dst_del = 1;
+    ipmc->dst_del = TRUE;
 
     /* Delete resources */
     return vtss_cil_l2_ip_mc_update(vtss_state, ipmc, VTSS_IPMC_CMD_DEL);
@@ -6263,19 +6283,19 @@ static void vtss_cmn_ipv4_mc_data_init(vtss_ipmc_data_t *ipmc,
     ipmc->src.vid = vid;
     ipmc->src.sip.ipv4 = sip;
     ipmc->dst.dip.ipv4 = dip;
-    if (sip == 0) {
+    if (sip == 0U) {
         /* Zero SIP indicates ASM */
         ipmc->src.fid = vid;
     } else {
-        ipmc->src.ssm = 1;
+        ipmc->src.ssm = TRUE;
     }
 }
 
-vtss_rc vtss_cmn_ipv4_mc_add(vtss_state_t    *vtss_state,
-                             const vtss_vid_t vid,
-                             const vtss_ip_t  sip,
-                             const vtss_ip_t  dip,
-                             const BOOL       member[VTSS_PORT_ARRAY_SIZE])
+vtss_rc vtss_cmn_ipv4_mc_add(struct vtss_state_s *vtss_state,
+                             const vtss_vid_t     vid,
+                             const vtss_ip_t      sip,
+                             const vtss_ip_t      dip,
+                             const BOOL           member[VTSS_PORT_ARRAY_SIZE])
 {
     vtss_ipmc_data_t ipmc;
     vtss_port_no_t   port_no;
@@ -6287,10 +6307,10 @@ vtss_rc vtss_cmn_ipv4_mc_add(vtss_state_t    *vtss_state,
     return vtss_cmn_ip_mc_add(vtss_state, &ipmc);
 }
 
-vtss_rc vtss_cmn_ipv4_mc_del(vtss_state_t    *vtss_state,
-                             const vtss_vid_t vid,
-                             const vtss_ip_t  sip,
-                             const vtss_ip_t  dip)
+vtss_rc vtss_cmn_ipv4_mc_del(struct vtss_state_s *vtss_state,
+                             const vtss_vid_t     vid,
+                             const vtss_ip_t      sip,
+                             const vtss_ip_t      dip)
 {
     vtss_ipmc_data_t ipmc;
 
@@ -6306,7 +6326,7 @@ static void vtss_cmn_ipv6_mc_data_init(vtss_ipmc_data_t *ipmc,
     vtss_ipv6_t sipv6;
 
     VTSS_MEMSET(ipmc, 0, sizeof(*ipmc));
-    ipmc->ipv6 = 1;
+    ipmc->ipv6 = TRUE;
     ipmc->src.vid = vid;
     ipmc->src.sip.ipv6 = sip;
     ipmc->dst.dip.ipv6 = dip;
@@ -6315,15 +6335,15 @@ static void vtss_cmn_ipv6_mc_data_init(vtss_ipmc_data_t *ipmc,
         /* Zero SIP indicates ASM */
         ipmc->src.fid = vid;
     } else {
-        ipmc->src.ssm = 1;
+        ipmc->src.ssm = TRUE;
     }
 }
 
-vtss_rc vtss_cmn_ipv6_mc_add(vtss_state_t     *vtss_state,
-                             const vtss_vid_t  vid,
-                             const vtss_ipv6_t sip,
-                             const vtss_ipv6_t dip,
-                             const BOOL        member[VTSS_PORT_ARRAY_SIZE])
+vtss_rc vtss_cmn_ipv6_mc_add(struct vtss_state_s *vtss_state,
+                             const vtss_vid_t     vid,
+                             const vtss_ipv6_t    sip,
+                             const vtss_ipv6_t    dip,
+                             const BOOL           member[VTSS_PORT_ARRAY_SIZE])
 {
     vtss_ipmc_data_t ipmc;
     vtss_port_no_t   port_no;
@@ -6335,10 +6355,10 @@ vtss_rc vtss_cmn_ipv6_mc_add(vtss_state_t     *vtss_state,
     return vtss_cmn_ip_mc_add(vtss_state, &ipmc);
 }
 
-vtss_rc vtss_cmn_ipv6_mc_del(vtss_state_t     *vtss_state,
-                             const vtss_vid_t  vid,
-                             const vtss_ipv6_t sip,
-                             const vtss_ipv6_t dip)
+vtss_rc vtss_cmn_ipv6_mc_del(struct vtss_state_s *vtss_state,
+                             const vtss_vid_t     vid,
+                             const vtss_ipv6_t    sip,
+                             const vtss_ipv6_t    dip)
 {
     vtss_ipmc_data_t ipmc;
 
@@ -9398,10 +9418,10 @@ static void vtss_debug_print_eps(vtss_state_t                  *vtss_state,
 #if defined(VTSS_FEATURE_IPV4_MC_SIP) || defined(VTSS_FEATURE_IPV6_MC_SIP)
 static void vtss_debug_print_ipv6_addr(lmu_ss_t *ss, vtss_ipv6_t *ipv6)
 {
-    int i;
+    u8 i;
 
-    for (i = 0; i < 16; i++) {
-        pr("%02x%s", ipv6->addr[i], (i & 1) && i != 15 ? ":" : "");
+    for (i = 0; i < 16U; i++) {
+        pr("%02x%s", ipv6->addr[i], (i & 1) && i != 15U ? ":" : "");
     }
 }
 
@@ -9413,11 +9433,12 @@ static void vtss_debug_print_ipmc(vtss_state_t                  *vtss_state,
     vtss_ipmc_src_t  *src;
     vtss_ipmc_dst_t  *dst;
     lmu_fmt_buf_t     buf;
-    u32               ipv6, src_free_count = 0, dst_free_count = 0;
-    BOOL              header;
+    u32               i, src_free_count = 0, dst_free_count = 0;
+    BOOL              ipv6, header;
 
-    if (!vtss_debug_group_enabled(ss, info, VTSS_DEBUG_GROUP_IPMC))
+    if (!vtss_debug_group_enabled(ss, info, VTSS_DEBUG_GROUP_IPMC)) {
         return;
+    }
 
     for (src = ipmc->obj.src_free; src != NULL; src = src->next) {
         src_free_count++;
@@ -9426,7 +9447,7 @@ static void vtss_debug_print_ipmc(vtss_state_t                  *vtss_state,
         dst_free_count++;
     }
 
-    vtss_debug_print_value(ss, "State size", sizeof(*ipmc));
+    vtss_debug_print_value(ss, "State size", (u32)sizeof(*ipmc));
     vtss_debug_print_value(ss, "Source count", ipmc->obj.src_count);
     vtss_debug_print_value(ss, "Source free", src_free_count);
     vtss_debug_print_value(ss, "Source maximum", ipmc->obj.src_max);
@@ -9436,29 +9457,32 @@ static void vtss_debug_print_ipmc(vtss_state_t                  *vtss_state,
     pr("\n");
 
     /* SIP Table */
-    for (ipv6 = 0; ipv6 < 2; ipv6++) {
+    for (i = 0; i < 2U; i++) {
+        ipv6 = (i > 0U);
         VTSS_FMT(buf, ipv6 ? "  %-40s" : "  %-11s", "DIP");
-        for (src = ipmc->obj.src_used[ipv6]; src != NULL; src = src->next) {
+        for (src = ipmc->obj.src_used[i]; src != NULL; src = src->next) {
             pr("%-6s%-6s%-6s%s\n", "Type", "VID", "FID", "SIP");
             pr("%-6s%-6u%-6u", src->data.ssm ? "SSM" : "ASM", src->data.vid, src->data.fid);
-            if (ipv6)
+            if (ipv6) {
                 vtss_debug_print_ipv6_addr(ss, &src->data.sip.ipv6);
-            else
+            } else {
                 pr("0x%08x", src->data.sip.ipv4);
+            }
             pr("\n\n");
-            header = 1;
+            header = TRUE;
             for (dst = src->dest; dst != NULL; dst = dst->next) {
                 if (header) {
-                    vtss_debug_print_port_header(vtss_state, ss, buf.s, 0, 1);
-                    header = 0;
+                    vtss_debug_print_port_header(vtss_state, ss, buf.s, 0, TRUE);
+                    header = FALSE;
                 }
                 pr("  ");
-                if (ipv6)
+                if (ipv6) {
                     vtss_debug_print_ipv6_addr(ss, &dst->data.dip.ipv6);
-                else
+                } else {
                     pr("0x%08x", dst->data.dip.ipv4);
+                }
                 pr(" ");
-                vtss_debug_print_ports(vtss_state, ss, dst->data.member, 1);
+                vtss_debug_print_ports(vtss_state, ss, dst->data.member, TRUE);
             }
             pr("\n");
         }

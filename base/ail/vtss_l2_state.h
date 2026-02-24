@@ -321,7 +321,9 @@ typedef struct {
 #define VTSS_IPMC_SRC_MAX 256
 #define VTSS_IPMC_DST_MAX 2048
 #else
-#if defined(VTSS_ARCH_OCELOT) || defined(VTSS_ARCH_LAN966X)
+#if defined(VTSS_STREAM_CNT)
+#define VTSS_IPMC_DST_MAX VTSS_STREAM_CNT
+#elif defined(VTSS_ARCH_OCELOT) || defined(VTSS_ARCH_LAN966X)
 #define VTSS_IPMC_DST_MAX (2 * 64) /* Half IS2 rules */
 #elif defined(VTSS_ARCH_SERVAL_T)
 #define VTSS_IPMC_DST_MAX (4 * 6 * 64) /* Quarter IS2 rules in VCAP_SUPER */
@@ -880,11 +882,6 @@ typedef struct {
     u32                rb_poll_idx; // Counter polling index
 #endif
 } vtss_l2_state_t;
-
-#if defined(VTSS_FEATURE_IPV4_MC_SIP) || defined(VTSS_FEATURE_IPV6_MC_SIP)
-BOOL    l26_ssm_validate_fid(u16 *fid, BOOL fid_only);
-vtss_rc l26_ssm_conflict_adjustment(vtss_ipmc_src_t *ssm);
-#endif /* VTSS_FEATURE_IPV4_MC_SIP || VTSS_FEATURE_IPV6_MC_SIP */
 
 vtss_rc vtss_l2_inst_create(struct vtss_state_s *vtss_state);
 vtss_rc vtss_l2_restart_sync(struct vtss_state_s *vtss_state);
