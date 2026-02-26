@@ -704,7 +704,10 @@ typedef struct {
     int        line;       /**< line number */
 } mepa_lock_t;
 
-/** \brief PHY type */
+/** \brief PHY type. Do NOT extend this anymore, this is kept for backwards
+ *         compatibility. If more capabilities are needed, extend the mepa_cap_t
+ *         with the new capabilites which is used with the function
+ *         mepa_capability */
 typedef enum {
     MEPA_CAP_SPEED_MASK_1G = 0x1,  /**< PHY supports maximum speed of 1G. */
     MEPA_CAP_SPEED_MASK_2G5 = 0x2,/**< PHY supports maximum speed of 2G5. */
@@ -725,6 +728,11 @@ typedef struct {
     mepa_phy_cap_t       cap;             /**< PHY capability 1G or 10G phy. */
     mepa_port_no_t       ts_base_port;    /**< Timestamping base port number. VSC-phys like vsc8574 have 2 different timestamping base ports 0 and 1 in a phy. See note above. */
     void                *ts_base;         /**< Timestamping base port */
+
+    const char          *manufactor_name; /**< Manufactor name */
+    const char          *model_name;      /**< Model name */
+    const char          *firmware_rev;    /**< Firmware revision */
+    char                 serial_number[16];  /**< Serial number */
 } mepa_phy_info_t;
 
 /** \brief Debug layer */
@@ -897,9 +905,20 @@ typedef struct {
 
 /** \brief Capability info */
 typedef enum {
+    /* Start MACSEC */
     MEPA_CAP_MACSEC_SECY_CNT = 100000000, /* MACSec Secy count */
     MEPA_CAP_MACSEC_MAX_SA,               /* MACSec Max SA */
-    MEPA_CAP_MACSEC_MAX_SC                /* MACSec Max SC */
+    MEPA_CAP_MACSEC_MAX_SC,               /* MACSec Max SC */
+    /* Start Speed */
+    MEPA_CAP_SPEED_1G,                    /* PHY supports maximum speed of 1G. */
+    MEPA_CAP_SPEED_2G5,                   /* PHY supports maximum speed of 2G5. */
+    MEPA_CAP_SPEED_10G,                   /* PHY supports maximum speed of 10G. */
+    MEPA_CAP_SPEED_25G,                   /* PHY supports maximum speed of 25G. */
+    /* Start timestamping */
+    MEPA_CAP_TS_GEN_1,                    /* PHY supports timestamping capability of GEN-1 devices such as vsc8574. */
+    MEPA_CAP_TS_GEN_2,                    /* PHY supports timestamping capability of GEN-2 devices such as vsc8584, vsc8490. */
+    MEPA_CAP_TS_GEN_3,                    /* PHY supports timestamping capability of GEN-3 devices such as Lan8814. */
+    MEPA_CAP_TS_NONE,                     /* PHY does not support timestamping capability. */
 } mepa_cap_t;
 
 #include <microchip/ethernet/hdr_end.h>  /**< ALL INCLUDE ABOVE THIS LINE */
