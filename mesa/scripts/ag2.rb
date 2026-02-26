@@ -128,6 +128,7 @@ $methods_blacklist = [
     "meba_phy_ts_fifo_get",
     "meba_phy_macsec_frame_get",
     "meba_phy_macsec_inst_count_get",
+    "meba_phy_info_get",
     "vtss_phy_inst_create",
     "vtss_phy_inst_destroy",
     "vtss_phy_init_conf_set",
