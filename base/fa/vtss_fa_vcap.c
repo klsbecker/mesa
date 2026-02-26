@@ -4307,7 +4307,7 @@ static vtss_rc fa_debug_acl(vtss_state_t                  *vtss_state,
     if (a == 0U || a == 3U) {
         VTSS_RC(fa_debug_vcap(vtss_state, VTSS_VCAP_TYPE_IS2, ss, info, fa_debug_is2));
     }
-    if (a == 0 || a == 4) {
+    if (a == 0U || a == 4U) {
         VTSS_RC(fa_debug_vcap(vtss_state, VTSS_VCAP_TYPE_IS2_B, ss, info, fa_debug_is2));
     }
 #if defined(VTSS_FEATURE_ES2)
