@@ -6,7 +6,7 @@
 set -e
 
 if (( $# < 2 )); then
-   echo "Usage: $0 all|fam|ca1/ca2/oc/st/j2/mr/mc/m8/fa/la [<test_server>] <test_script> [brief|clean|short|skip]"
+   echo "Usage: $0 all|fam|ca1/ca2/oc/st/j2/mr/mc/m8/fa/la [<test_server>] <test_script> [brief|clean|keep|short|skip|wait]"
    exit
 fi
 
@@ -17,6 +17,8 @@ last=${!#}
 brief=0
 clean=0
 skip=0
+keep=0
+wait=0
 
 # Build list and platform list
 build_list="mipsel arm arm64"
@@ -64,6 +66,11 @@ while true ; do
             clean=1
             ;;
 
+        keep)
+            # Keep reservation after test
+            keep=1
+            ;;
+
         short)
             # Short output may be used for pasting into Jira
             suffix+="--short "
@@ -72,6 +79,11 @@ while true ; do
         skip)
             # Skip test, just build
             skip=1
+            ;;
+
+        wait)
+            # Wait until free
+            wait=300
             ;;
 
         *)
@@ -204,16 +216,29 @@ for platform in $platform_list; do
             ;;
     esac
 
-    rel=1
     if [ -f $HOME/.mscc-libeasy-topology.yaml ]; then
         et release
-        rel=0
     fi
     if [ $ts2 != 0 ]; then
         ts=$ts2
     fi
     echo "=== Reserve: $ts ($name)"
-    if [[ $(et status $ts | grep free) ]]; then
+    skip=1
+    while true
+    do
+        if [[ $(et status $ts | grep free) ]]; then
+            skip=0
+            break
+        elif [ $wait == 0 ]; then
+            break
+        else
+            echo "Busy, waiting"
+            sleep 10
+            wait=$((wait - 10))
+        fi
+    done
+
+    if [ $skip == 0 ]; then
         if [ $brief == 1 ]; then
             et reserve $ts > /dev/null
         else
@@ -227,7 +252,9 @@ for platform in $platform_list; do
 
         echo "=== Run: $file"
         dr "./$file | libeasy/xml2console.rb $suffix"
-        if [ $rel == 1 ]; then
+        if [ $keep == 1 ]; then
+            echo "Keeping reservation of $ts"
+        else
             et release
         fi
     else
