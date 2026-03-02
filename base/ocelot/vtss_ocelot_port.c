@@ -820,12 +820,11 @@ static vtss_rc sd1g_prbs_read_status(vtss_state_t                         *vtss_
     BOOL active, no_sync, compl_n;
 
     SRVL_RD(VTSS_HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS, &status_reg_val);
-    SRVL_RD(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0, &err_cnt_reg_val);
+    SRVL_RD(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0, &cfg_reg_val);
 
-    active = (VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_PRBS_SEL(cfg_reg_val) != 0);
+    active = (VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_TEST_MODE(cfg_reg_val) != 0);
     compl_n = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_COMPLETE_N, status_reg_val);
     no_sync = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_NOSYNC, status_reg_val);
-    active = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_ACTIVE, status_reg_val);
 
     sdxg_prbs_populate_status(active, no_sync, compl_n, err_cnt_reg_val, status);
     return VTSS_RC_OK;
