@@ -137,7 +137,7 @@ workers = (0...$opt_threads).map do
                 end
 
                 if s.to_i == 0
-                    c = "git show :#{f} | clang-format-19 --assume-filename=#{f}"
+                    c = "git show :#{f} | clang-format --assume-filename=#{f}"
                     stage_file_out, e, s = Open3.capture3(c)
                     msg << "#{c} -> #{s}"
                     STDERR.puts "#{c} ERROR: #{e}" if !s.success?
@@ -147,7 +147,7 @@ workers = (0...$opt_threads).map do
                     puts "Style being applied on the fly for #{f}"
 
                     # Fix the staged file
-                    c = "git show :#{f} | clang-format-19 --assume-filename=#{f} | git hash-object -t blob -w --path=#{f} --stdin"
+                    c = "git show :#{f} | clang-format --assume-filename=#{f} | git hash-object -t blob -w --path=#{f} --stdin"
                     o, e, s = Open3.capture3(c)
                     msg << "#{c} -> #{s}"
                     STDERR.puts "#{c} ERROR: #{e}" if !s.success?
@@ -163,7 +163,7 @@ workers = (0...$opt_threads).map do
 
                     # also fix the file in the wortree
                     if s.to_i == 0
-                        c = "clang-format-19 -i #{f}"
+                        c = "clang-format -i #{f}"
                         o, e, s = Open3.capture3(c)
                         msg << "#{c} -> #{s}"
                         STDERR.puts "#{c} ERROR: #{e}" if !s.success?
@@ -171,7 +171,7 @@ workers = (0...$opt_threads).map do
                 end
 
             else
-                c = "clang-format-19 -i #{f}"
+                c = "clang-format -i #{f}"
                 o, e, s = Open3.capture3(c)
                 msg << "#{c} -> #{s}"
                 STDERR.puts "#{c} ERROR: #{e}" if !s.success?

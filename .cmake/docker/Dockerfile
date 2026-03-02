@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 ###############################################################################
-FROM ubuntu:oracular-20241009 AS ubuntu_base
+FROM ubuntu:plucky-20241213 AS ubuntu_base
 
 ENV TZ=Europe/Copenhagen LANG='en_US.UTF-8' LC_ALL='en_US.UTF-8' LANGUAGE=en
 
@@ -25,19 +25,21 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
   && update-locale LANG=en_US.UTF-8 LANGUAGE=en
 
 # Needed when running from within Microchip network
-# From https://pitstop.microchip.com/Certs/
-COPY ./.cmake/docker/mchp-ca.cer /usr/share/ca-certificates/mchp-ca.crt
-COPY ././.cmake/docker/Cisco_Umbrella_Root_CA.cer /usr/share/ca-certificates/cisco-umbrella-primary.crt
-
-RUN sh -c "echo mchp-ca.crt >> /etc/ca-certificates.conf" \
- && sh -c "echo cisco-umbrella-primary.crt >> /etc/ca-certificates.conf" \
+COPY ./.cmake/docker/cert_mchp-ca01.mchp-main.com_2029-04-29.crt /usr/share/ca-certificates/cert_mchp-ca01.mchp-main.com_2029-04-29.crt
+COPY ./.cmake/docker/cert_mchp-rootca02_2044_04_29.crt /usr/share/ca-certificates/cert_mchp-rootca02_2044_04_29.crt
+COPY ./.cmake/docker/cisco-umbrella-primary.crt /usr/share/ca-certificates/cisco-umbrella-primary.crt
+RUN echo cert_mchp-ca01.mchp-main.com_2029-04-29.crt >> /etc/ca-certificates.conf \
+ && echo cert_mchp-rootca02_2044_04_29.crt >> /etc/ca-certificates.conf \
+ && echo cisco-umbrella-primary.crt >> /etc/ca-certificates.conf \
  && update-ca-certificates --fresh
 
 
 ###############################################################################
 FROM ubuntu_base AS build-env-oss
 
-RUN apt-get install -y \
+RUN apt-get update \
+  && apt-get upgrade -y \
+  && apt-get install -y \
     clang \
     clang-format \
     clang-tidy \
@@ -50,18 +52,14 @@ RUN apt-get install -y \
     libpcap-dev \
     lsb-release \
     ninja-build \
+    python3 \
+    python3-pip \
     ruby-full \
     ruby-parslet \
     software-properties-common \
     sudo \
     wget \
     zlib1g-dev
-
-RUN wget -O /tmp/llvm.sh https://apt.llvm.org/llvm.sh \
-  && chmod +x /tmp/llvm.sh  \
-  && /tmp/llvm.sh 18 \
-  && apt-get install -y \
-    clang-format-18
 
 RUN gem install nokogiri -v '1.15.3' --source 'https://rubygems.org/' \
  && gem install asciidoctor -v '2.0.8' --source 'https://rubygems.org/' \
@@ -73,6 +71,10 @@ ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/easytest/
 RUN mkdir /easytest \
  && cd /easytest \
  && git clone https://bitbucket.microchip.com/scm/unge/sw-tools-easytest.git easytest
+
+# Enable use of python command
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 100 \
+ && python -m pip install --break-system-packages --root-user-action ignore ansi2html
 
 # A common entrypoint for setting up things before running the user command(s)
 COPY ./.cmake/docker/entrypoint.sh /entrypoint.sh

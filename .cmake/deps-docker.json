@@ -2,8 +2,8 @@
     {
         "id": "mesa-build-env",
         "type": "docker",
-        "docker-tag": "23",
-        "docker-sha": "sha256:917a5dcb043e99771f68c1abdcde834b3f255fd88e3902c3a74e9ffd1855361a",
+        "docker-tag": "24",
+        "docker-sha": "<none>",
         "docker-path": "artifacts-aws.devops.microchip.com:7996/ung/mesa/mesa-build-env"
     }
 ]
