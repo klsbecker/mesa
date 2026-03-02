@@ -66,7 +66,7 @@ vtss_rc vtss_sd25g28_get_conf_from_mode(vtss_sd25g28_mode_t             mode,
     ret_val->cfg_icp_base_sel_3_0 = 3U;
     ret_val->cfg_icp_sel_2_0 = 3;
     ret_val->cfg_rsel_2_0 = 5U;
-    ret_val->ln_cfg_cdr_m_7_0 = 6U;
+    ret_val->ln_cfg_cdr_m_7_0 = 4U;
     ret_val->ln_cfg_dis_2ndorder = 1U;
     ret_val->ln_cfg_filter2nd_yz_6_0 = 8U;
     switch (mode) {
