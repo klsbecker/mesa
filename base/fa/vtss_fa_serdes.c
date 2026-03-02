@@ -519,7 +519,6 @@ static vtss_rc fa_port_25g_kr_tap_set(vtss_state_t        *vtss_state,
 {
     u32 sd_indx, sd_type, sd25g_tgt, ipdriver = 0, vcdriver = 0;
 
-    VTSS_RC(fa_port_kr_tap_validate(port_no, tap_dly, tap_adv, ampl));
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
     sd25g_tgt = VTSS_TO_SD25G_LANE(sd_indx);
 
