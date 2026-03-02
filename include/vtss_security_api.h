@@ -512,6 +512,7 @@ typedef struct {
     vtss_ace_u16_t data;  /**< MAC data */
     vtss_ace_ptp_t ptp;   /**< PTP header filtering (overrides smac byte 2,4 and
                              data fields) */
+    vtss_vcap_u8_t mel;   /**< MEG level (7 bit) */
 } vtss_ace_frame_etype_t;
 
 /** \brief Frame data for VTSS_ACE_TYPE_LLC */
@@ -765,6 +766,7 @@ BOOL vtss_rleg_list_get(const vtss_rleg_list_t *l, vtss_l3_rleg_id_t rleg);
 typedef struct {
     vtss_ace_u16_t etype; /**< Ethernet Type value */
     vtss_ace_u16_t data;  /**< MAC data */
+    vtss_vcap_u8_t mel;   /**< MEG level (7 bit) */
 } vtss_hace_frame_etype_t;
 
 /** \brief Frame data for VTSS_ACE_TYPE_LLC */

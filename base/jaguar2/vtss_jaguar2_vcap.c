@@ -2821,6 +2821,7 @@ static vtss_rc jr2_is2_entry_add(vtss_state_t     *vtss_state,
     vtss_vcap_udp_tcp_t    *sport, *dport;
     vtss_vcap_vid_t         sp, dp;
     vtss_vcap_u128_t        sip, dip;
+    vtss_vcap_u16_t         et;
     u8                      m;
     vtss_ace_u32_t         *ptp;
     BOOL                    tcp, found = 0;
@@ -2991,15 +2992,22 @@ static vtss_rc jr2_is2_entry_add(vtss_state_t     *vtss_state,
         jr2_vcap_key_u48_set(&data, IS2_KO_ETYPE_DMAC, &etype->dmac);
         jr2_vcap_key_u48_set(&data, IS2_KO_ETYPE_SMAC, &etype->smac);
         jr2_vcap_key_bit_set(&data, IS2_KO_ETYPE_ETYPE_LEN, VTSS_VCAP_BIT_1);
-        oam = (etype->etype.mask[0] == 0xff && etype->etype.mask[1] == 0xff
-                   ? (etype->etype.value[0] == 0x89 && etype->etype.value[1] == 0x02
-                          ? VTSS_VCAP_BIT_1
-                          : VTSS_VCAP_BIT_0)
-                   : VTSS_VCAP_BIT_ANY);
-        jr2_vcap_key_bit_set(&data, IS2_KO_ETYPE_OAM, oam);
-        if (oam != VTSS_VCAP_BIT_1) {
-            jr2_vcap_key_u16_set(&data, IS2_KO_ETYPE_ETYPE, &etype->etype);
+        et = etype->etype;
+        if (et.mask[0] == 0xff && et.mask[1] == 0xff) {
+            if (et.value[0] == 0x89 && et.value[1] == 0x02) {
+                oam = VTSS_VCAP_BIT_1;
+                et.value[0] = 0x00;
+                et.value[1] = etype->mel.value;
+                et.mask[0] = 0x00;
+                et.mask[1] = etype->mel.mask;
+            } else {
+                oam = VTSS_VCAP_BIT_0;
+            }
+        } else {
+            oam = VTSS_VCAP_BIT_ANY;
         }
+        jr2_vcap_key_bit_set(&data, IS2_KO_ETYPE_OAM, oam);
+        jr2_vcap_key_u16_set(&data, IS2_KO_ETYPE_ETYPE, &et);
         if (etype->ptp.enable) {
             jr2_is2_ptp_key_set(&data, IS2_KO_ETYPE_PAYLOAD, &etype->ptp.header);
         } else {

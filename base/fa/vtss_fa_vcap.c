@@ -3053,7 +3053,7 @@ static vtss_rc fa_is2_entry_add(vtss_state_t     *vtss_state,
     vtss_vcap_u8_t          *proto = NULL;
     vtss_vcap_udp_tcp_t     *sport, *dport;
     vtss_vcap_u128_t         sip, dip;
-    vtss_vcap_vid_t          et;
+    vtss_vcap_u16_t          et;
     fa_is2_key_info_t        info = {0};
     u32                      addr, offs, i, n = 1U, l4_rng = 0U;
     u32                      type = IS2_X6_TYPE_MAC_ETYPE;
@@ -3093,10 +3093,20 @@ static vtss_rc fa_is2_entry_add(vtss_state_t     *vtss_state,
         goto apply;
     }
 
-    et.value = fa_u8_to_u16(etype->etype.value);
-    et.mask = fa_u8_to_u16(etype->etype.mask);
-    oam = (et.mask == 0xffffU ? (et.value == 0x8902U ? VTSS_VCAP_BIT_1 : VTSS_VCAP_BIT_0)
-                              : VTSS_VCAP_BIT_ANY);
+    et = etype->etype;
+    if (fa_u8_to_u16(et.mask) == 0xffffU) {
+        if (fa_u8_to_u16(et.value) == 0x8902) {
+            oam = VTSS_VCAP_BIT_1;
+            et.value[0] = 0x00;
+            et.value[1] = etype->mel.value;
+            et.mask[0] = 0x00;
+            et.mask[1] = etype->mel.mask;
+        } else {
+            oam = VTSS_VCAP_BIT_0;
+        }
+    } else {
+        oam = VTSS_VCAP_BIT_ANY;
+    }
 
     if (key->type == VTSS_ACE_TYPE_IPV4) {
         /* IPv4 */
@@ -3147,7 +3157,8 @@ static vtss_rc fa_is2_entry_add(vtss_state_t     *vtss_state,
             info.ip4 = VTSS_VCAP_BIT_0;
             FA_BIT_SET(IS2, IP_7TUPLE_OAM_Y1731, oam);
             if (oam != VTSS_VCAP_BIT_1) {
-                info.dport = et;
+                info.dport.value = fa_u8_to_u16(et.value);
+                info.dport.mask = fa_u8_to_u16(et.mask);
             }
             if (key->ptp.enable) {
                 fa_is2_ptp_key_set(data, IS2_KO_IP_7TUPLE_L4_PAYLOAD_0, &key->ptp.header);
@@ -3295,9 +3306,7 @@ static vtss_rc fa_is2_entry_add(vtss_state_t     *vtss_state,
         smac_dmac = TRUE;
         FA_BIT_SET(IS2, MAC_ETYPE_ETYPE_LEN, VTSS_VCAP_BIT_1);
         FA_BIT_SET(IS2, MAC_ETYPE_OAM_Y1731, oam);
-        if (oam != VTSS_VCAP_BIT_1) {
-            fa_vcap_key_u16_set(data, IS2_KO_MAC_ETYPE_ETYPE, &etype->etype);
-        }
+        fa_vcap_key_u16_set(data, IS2_KO_MAC_ETYPE_ETYPE, &et);
         if (key->ptp.enable) {
             fa_is2_ptp_key_set(data, IS2_KO_MAC_ETYPE_L2_PAYLOAD_ETYPE_0, &key->ptp.header);
         } else {
@@ -3803,6 +3812,7 @@ static vtss_rc fa_debug_is2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         FA_DEBUG_MAC(IS2, "smac", MAC_ETYPE_L2_SMAC_0);
         FA_DEBUG_BITS(IS2, "etype_len", MAC_ETYPE_ETYPE_LEN);
         FA_DEBUG_BITS(IS2, "etype", MAC_ETYPE_ETYPE);
+        FA_DEBUG_BITS(IS2, "oam_y1731", MAC_ETYPE_OAM_Y1731);
         pr("\n");
         FA_DEBUG_BITS_64(IS2, "l2_payload", MAC_ETYPE_L2_PAYLOAD_ETYPE_0);
         return VTSS_RC_OK;
@@ -4984,6 +4994,7 @@ vtss_rc vtss_cil_vcap_ace_add(struct vtss_state_s    *vtss_state,
         key->smac = etype->smac;
         key->etype.etype = etype->etype;
         key->etype.data = etype->data;
+        key->etype.mel = etype->mel;
         key->ptp = etype->ptp;
         break;
     case VTSS_ACE_TYPE_LLC:

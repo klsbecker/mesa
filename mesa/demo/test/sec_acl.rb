@@ -152,6 +152,14 @@ test_table =
          f_1: {cmd: "et 0xaaaa data hex 0103"}
      },
      {
+         txt: "etype/oam",
+         # MEL 00XX111 means range [3 - 5]
+         ace: {type: "ETYPE", etype: {v: [0x89,0x02], m: [0xff, 0xff]}, mel: {v: 0x07, m: 0x67}},
+         key: {etype: ["DEFAULT"]},
+         f_0: {cmd: "oam-ccm mel 4"},
+         f_1: {cmd: "oam-ccm mel 6"}
+     },
+     {
          txt: "llc/dmac",
          ace: {type: "LLC", dmac: {v: [1,2,3,4,5,6], m: [0xff,0xff,0xff,0xff,0xff,0xff]}},
          key: {etype: ["DEFAULT", "EXT"]},
@@ -639,6 +647,7 @@ def ace_test(t, type_ext)
         k = f["etype"]
         vcap_vm_set(k, "etype", v, :etype)
         vcap_vm_set(k, "data", v, :data)
+        vcap_vm_set(k, "mel", v, :mel)
     when "LLC"
         k = f["llc"]
         vcap_vm_set(k, "llc", v, :llc)
@@ -778,6 +787,10 @@ test_table.each do |t|
         else
             skip_ext = true
         end
+    end
+    if (v[:mel] != nil and acl_ext_mac == 0)
+        # MEL filtering not supported
+        skip = true
     end
 
     key_list = ["DEFAULT"]

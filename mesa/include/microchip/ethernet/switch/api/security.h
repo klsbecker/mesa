@@ -313,6 +313,7 @@ typedef struct {
     mesa_ace_u16_t etype; // Ethernet Type value
     mesa_ace_u16_t data;  // MAC data
     mesa_ace_ptp_t ptp;   // PTP header filtering (overrides smac byte 2,4 and data fields)
+    mesa_vcap_u8_t mel;   // MEG level (7 bit)
 } mesa_ace_frame_etype_t;
 
 // Frame data for MESA_ACE_TYPE_LLC
@@ -505,6 +506,7 @@ mesa_bool_t mesa_rleg_list_get(const mesa_rleg_list_t *l, mesa_l3_rleg_id_t rleg
 typedef struct {
     mesa_ace_u16_t etype; // Ethernet Type value
     mesa_ace_u16_t data;  // MAC data
+    mesa_vcap_u8_t mel;   // MEG level (7 bit)
 } mesa_hace_frame_etype_t CAP(ACL_HACL);
 
 // Frame data for MESA_ACE_TYPE_LLC
