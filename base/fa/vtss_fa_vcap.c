@@ -3095,7 +3095,7 @@ static vtss_rc fa_is2_entry_add(vtss_state_t     *vtss_state,
 
     et = etype->etype;
     if (fa_u8_to_u16(et.mask) == 0xffffU) {
-        if (fa_u8_to_u16(et.value) == 0x8902) {
+        if (fa_u8_to_u16(et.value) == 0x8902U) {
             oam = VTSS_VCAP_BIT_1;
             et.value[0] = 0x00;
             et.value[1] = etype->mel.value;
