@@ -179,6 +179,19 @@ static port_map_t port_table_eds2_lan8840[] = {
      false,                                                                                             1},
 };
 
+static port_map_t port_table_eds2_lan8842[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
+    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
+    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
+    {3, 0, MESA_MIIM_CONTROLLER_0, 0, MESA_PORT_INTERFACE_SGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
+     false,                                                                                             1},
+};
+
 #define MEBA_CAP_LAN8870 (MEBA_PORT_CAP_TRI_SPEED_COPPER & ~MEBA_PORT_CAP_AUTONEG)
 static port_map_t port_table_eds2_lan8870[] = {
     //--------------------------------------------------------------------------------------------------------------------------
@@ -1088,6 +1101,7 @@ const char *ev16r73a = "EV16R73A";
 const char *ev12n54a = "EV12N54A";
 const char *ev87s66a = "EV87S66A";
 const char *ev42y23a = "EV42Y23A";
+const char *ev58g16a = "EV58G16A";
 
 mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_module)
 {
@@ -1132,6 +1146,10 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
             T_I(inst, "Found plugin module %s in slot A\n", ev42y23a);
             *plugin_module = ev42y23a;
             return MESA_RC_OK;
+        } else if (strstr(p, ev58g16a)) {
+            T_I(inst, "Found plugin module %s in slot A\n", ev58g16a);
+            *plugin_module = ev58g16a;
+            return MESA_RC_OK;
         }
         p += strlen(p) + 1;
     }
@@ -1154,6 +1172,10 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
             return MESA_RC_OK;
         } else if (strstr(buf, ev42y23a)) {
             *plugin_module = ev42y23a;
+            T_W(inst, "Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        } else if (strstr(buf, ev58g16a)) {
+            *plugin_module = ev58g16a;
             T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         }
@@ -1263,6 +1285,11 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
             inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
             lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8870) / sizeof(port_map_t),
                                     port_table_eds2_lan8870);
+        } else if (plugin_module == ev58g16a) {
+            // Using the builtin PHYs + lan8842 in first slot
+            inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
+            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8842) / sizeof(port_map_t),
+                                    port_table_eds2_lan8842);
         } else {
             T_W(inst,
                 "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
