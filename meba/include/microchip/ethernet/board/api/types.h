@@ -220,7 +220,9 @@ typedef enum {
     // PoE Initialize
     MEBA_POE_INITIALIZE, // 9
     // Phy Initialize
-    MEBA_PHY_INITIALIZE // 10
+    MEBA_PHY_INITIALIZE, // 10
+    // Phy create Entry
+    MEBA_ENTRY_PHY_SET, // 11
 } meba_reset_point_t;
 
 typedef enum {

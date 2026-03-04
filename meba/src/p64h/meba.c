@@ -91,6 +91,7 @@ static mesa_rc lk_reset(meba_inst_t inst, meba_reset_point_t reset)
         inst->phy_device_cnt = board->front_port_cnt;
         meba_phy_driver_init(inst);
         break;
+    case MEBA_ENTRY_PHY_SET: break;
     }
 
     return rc;

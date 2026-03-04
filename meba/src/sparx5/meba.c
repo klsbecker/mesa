@@ -1837,6 +1837,7 @@ static mesa_rc fa_reset(meba_inst_t inst, meba_reset_point_t reset)
         inst->phy_device_cnt = board->port_cnt;
         meba_phy_driver_init(inst);
         break;
+    case MEBA_ENTRY_PHY_SET: break;
     }
     T_D(inst, "Called - %d - Done", reset);
     return rc;
