@@ -15,23 +15,28 @@
 
 static vtss_rc l26_npi_mask_set(vtss_state_t *vtss_state)
 {
-    vtss_packet_rx_conf_t *conf = &vtss_state->packet.rx_conf;
+    vtss_npi_conf_t                 *conf = &vtss_state->packet.npi_conf;
+    vtss_packet_rx_queue_npi_conf_t *qc;
+    vtss_port_no_t                   port_no = VTSS_PORT_NO_NONE;
+    u32                              val = 0, qmask = 0, i;
 
-    if (vtss_state->packet.npi_conf.enable) {
-        u32 val, qmask, i;
-        for (qmask = i = 0; i < vtss_state->packet.rx_queue_count; i++) {
-            if (conf->queue[i].npi.enable) {
-                qmask |= VTSS_BIT(i); /* NPI redirect */
-            }
+    for (i = 0; i < vtss_state->packet.rx_queue_count; i++) {
+        qc = &vtss_state->packet.rx_conf.queue[i].npi;
+        if (qc->port_enable) {
+            // Use specific port
+            port_no = qc->port_no;
+            qmask |= VTSS_BIT(i);
+        } else if (qc->enable && conf->enable) {
+            // Use NPI port
+            port_no = conf->port_no;
+            qmask |= VTSS_BIT(i);
         }
-        val = VTSS_F_SYS_SYSTEM_EXT_CPU_CFG_EXT_CPU_PORT(VTSS_CHIP_PORT(vtss_state->packet.npi_conf
-                                                                            .port_no)) |
-              VTSS_F_SYS_SYSTEM_EXT_CPU_CFG_EXT_CPUQ_MSK(qmask);
-        L26_WR(VTSS_SYS_SYSTEM_EXT_CPU_CFG, val);
-    } else {
-        L26_WR(VTSS_SYS_SYSTEM_EXT_CPU_CFG, 0); /* No redirect by default */
     }
-
+    if (port_no < vtss_state->port_count) {
+        val = (VTSS_F_SYS_SYSTEM_EXT_CPU_CFG_EXT_CPU_PORT(VTSS_CHIP_PORT(port_no)) |
+               VTSS_F_SYS_SYSTEM_EXT_CPU_CFG_EXT_CPUQ_MSK(qmask));
+    }
+    L26_WR(VTSS_SYS_SYSTEM_EXT_CPU_CFG, val);
     return VTSS_RC_OK;
 }
 

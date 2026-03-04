@@ -47,7 +47,11 @@ vtss_rc vtss_npi_conf_set(const vtss_inst_t inst, const vtss_npi_conf_t *const c
 
 /** \brief CPU Rx queue NPI configuration */
 typedef struct {
-    BOOL enable; /**< Enable redirect of frames to NPI port */
+    BOOL           enable;      // Enable redirect of frames to NPI port
+    BOOL           port_enable; // Enable redirect of frames to specific port
+    vtss_port_no_t port_no;     // Port number used for redirect
+    BOOL           prio_enable; // Enable priority
+    vtss_prio_t    prio;        // Priority used on port/NPI
 } vtss_packet_rx_queue_npi_conf_t;
 
 /** \brief CPU Rx queue buffer size in bytes */

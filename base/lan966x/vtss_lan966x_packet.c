@@ -16,17 +16,25 @@
 
 static vtss_rc lan966x_npi_mask_set(vtss_state_t *vtss_state)
 {
-    vtss_packet_rx_conf_t *conf = &vtss_state->packet.rx_conf;
-    vtss_port_no_t         port_no = vtss_state->packet.npi_conf.port_no;
-    u32                    val = 0, qmask, i;
+    vtss_npi_conf_t                 *conf = &vtss_state->packet.npi_conf;
+    vtss_packet_rx_queue_npi_conf_t *qc;
+    vtss_port_no_t                   port_no = VTSS_PORT_NO_NONE;
+    u32                              val, qmask = 0, i;
 
     val = QSYS_EXT_CPU_CFG_EXT_CPU_KILL_ENA(1) | QSYS_EXT_CPU_CFG_INT_CPU_KILL_ENA(1);
-    if (port_no < vtss_state->port_count) {
-        for (qmask = i = 0; i < vtss_state->packet.rx_queue_count; i++) {
-            if (conf->queue[i].npi.enable) {
-                qmask |= VTSS_BIT(i); /* NPI redirect */
-            }
+    for (i = 0; i < vtss_state->packet.rx_queue_count; i++) {
+        qc = &vtss_state->packet.rx_conf.queue[i].npi;
+        if (qc->port_enable) {
+            // Use specific port
+            port_no = qc->port_no;
+            qmask |= VTSS_BIT(i);
+        } else if (qc->enable && conf->enable) {
+            // Use NPI port
+            port_no = conf->port_no;
+            qmask |= VTSS_BIT(i);
         }
+    }
+    if (port_no < vtss_state->port_count) {
         val |= (QSYS_EXT_CPU_CFG_EXT_CPU_PORT(VTSS_CHIP_PORT(port_no)) |
                 QSYS_EXT_CPU_CFG_EXT_CPUQ_MSK(qmask));
     }

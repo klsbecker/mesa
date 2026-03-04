@@ -41,7 +41,12 @@ mesa_rc mesa_npi_conf_set(const mesa_inst_t inst, const mesa_npi_conf_t *const c
 
 // CPU Rx queue NPI configuration
 typedef struct {
-    mesa_bool_t enable; // Enable redirect of frames to NPI port
+    mesa_bool_t    enable;      // Enable redirect of frames to NPI port
+    mesa_bool_t    port_enable; // Enable redirect of frames to specific port
+    mesa_port_no_t port_no;     // Port number used for redirect
+    mesa_bool_t    prio_enable; // Enable priority
+    mesa_prio_t    prio;        // Priority used on port/NPI
+
 } mesa_packet_rx_queue_npi_conf_t;
 
 // CPU Rx queue buffer size in bytes

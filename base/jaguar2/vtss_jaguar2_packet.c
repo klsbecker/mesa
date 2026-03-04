@@ -24,32 +24,31 @@
  *  NPI
  * ================================================================= */
 
-static vtss_rc jr2_npi_redirect_qu_to_port(vtss_state_t          *vtss_state,
-                                           vtss_packet_rx_queue_t qu,
-                                           vtss_phys_port_no_t    chip_port)
-{
-    JR2_WRM(VTSS_QFWD_SYSTEM_FRAME_COPY_CFG(QFWD_FRAME_COPY_CFG_CPU_QU(qu)),
-            VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL(chip_port),
-            VTSS_M_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL);
-
-    return VTSS_RC_OK;
-}
-
 static vtss_rc jr2_npi_mask_set(vtss_state_t *vtss_state)
 {
-    vtss_packet_rx_conf_t *rx_conf = &vtss_state->packet.rx_conf;
-    vtss_npi_conf_t       *npi_conf = &vtss_state->packet.npi_conf;
-    vtss_packet_rx_queue_t qu;
+    vtss_packet_rx_conf_t           *rx_conf = &vtss_state->packet.rx_conf;
+    vtss_npi_conf_t                 *npi_conf = &vtss_state->packet.npi_conf;
+    vtss_packet_rx_queue_npi_conf_t *qc;
+    vtss_packet_rx_queue_t           qu;
+    u32                              port;
 
     for (qu = 0; qu < vtss_state->packet.rx_queue_count; qu++) {
-        BOOL npi_redirect = npi_conf->port_no != VTSS_PORT_NO_NONE && rx_conf->queue[qu].npi.enable;
-
-        VTSS_RC(jr2_npi_redirect_qu_to_port(vtss_state, qu,
-                                            npi_redirect
-                                                ? VTSS_CHIP_PORT(npi_conf->port_no)
-                                                : vtss_state->packet.default_qu_redirect[qu]));
+        qc = &rx_conf->queue[qu].npi;
+        if (qc->port_enable) {
+            // Use specific port
+            port = VTSS_CHIP_PORT(qc->port_no);
+        } else if (npi_conf->port_no != VTSS_PORT_NO_NONE && qc->enable) {
+            // Use NPI port
+            port = VTSS_CHIP_PORT(npi_conf->port_no);
+        } else {
+            // Use default CPU port
+            port = vtss_state->packet.default_qu_redirect[qu];
+        }
+        JR2_WR(VTSS_QFWD_SYSTEM_FRAME_COPY_CFG(QFWD_FRAME_COPY_CFG_CPU_QU(qu)),
+               VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL(port) |
+                   VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_VAL(qc->prio_enable ? qc->prio : qu) |
+                   VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_ENA(1));
     }
-
     return VTSS_RC_OK;
 }
 
@@ -1248,7 +1247,7 @@ static vtss_rc jr2_packet_init(vtss_state_t *vtss_state)
 {
     vtss_packet_rx_queue_t qu;
     u32                    val;
-    u32                    i;
+    u32                    i, port;
     int                    pcp, dei;
 
     // The extraction queues can be redirected to any port.
@@ -1260,13 +1259,12 @@ static vtss_rc jr2_packet_init(vtss_state_t *vtss_state)
     for (qu = 0; qu < vtss_state->packet.rx_queue_count; qu++) {
         i = QFWD_FRAME_COPY_CFG_CPU_QU(qu);
         JR2_RD(VTSS_QFWD_SYSTEM_FRAME_COPY_CFG(i), &val);
-        vtss_state->packet.default_qu_redirect[qu] =
-            VTSS_X_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL(val);
-        JR2_WRM(VTSS_QFWD_SYSTEM_FRAME_COPY_CFG(i),
-                VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_VAL(qu) |
-                    VTSS_M_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_ENA,
-                VTSS_M_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_VAL |
-                    VTSS_M_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_ENA);
+        port = VTSS_X_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL(val);
+        vtss_state->packet.default_qu_redirect[qu] = port;
+        JR2_WR(VTSS_QFWD_SYSTEM_FRAME_COPY_CFG(i),
+               VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_PORT_VAL(port) |
+                   VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_VAL(qu) |
+                   VTSS_F_QFWD_SYSTEM_FRAME_COPY_CFG_FRMC_QOS_ENA(1));
     }
 
     // Set-up default packet Rx endianness, position of status word, and who
