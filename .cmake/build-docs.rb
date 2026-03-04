@@ -50,3 +50,8 @@ end
 run "cd mesa/docs/scripts; ./dg.rb -r #{rev} -s #{git_sha}"
 run "cp ./mesa-doc.html images/." if File.exist? "./images"
 run "cp ./mesa-doc.html ws/." if File.exist? "./ws"
+
+#MEPA-Doc
+run "cd mepa/docs/scripts; ./dg.rb -r #{rev} -s #{git_sha}"
+run "cp ./mepa/mepa-doc.html images/." if File.exist? "./images"
+run "cp ./mepa/mepa-doc.html #{$ws}/." if File.exist? "#{$ws}"
