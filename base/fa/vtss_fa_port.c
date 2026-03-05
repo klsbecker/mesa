@@ -2729,6 +2729,26 @@ static vtss_rc fa_port_flush_poll(vtss_state_t *vtss_state, vtss_phys_port_no_t 
             break;
         }
 
+#if VTSS_OPT_LIGHT && !defined(VTSS_ARCH_LAIKA)
+        // Drain the CPU extraction FIFO
+        // For LMSTAX the frame extraction and port flush (this)
+        // are running in the same thread therefore we need to
+        // empty the CPU queues here
+        {
+            u32                  present, rounds;
+            vtss_packet_rx_grp_t grp;
+            for (grp = 0U; grp < 2U; grp++) {
+                rounds = 0U;
+                REG_RD(VTSS_DEVCPU_QS_XTR_DATA_PRESENT, &present);
+                while (((present >> grp) & 1U) != 0U && rounds < 1000U) {
+                    rounds++;
+                    (void)fa_rx_frame_discard_grp(vtss_state, grp);
+                    REG_RD(VTSS_DEVCPU_QS_XTR_DATA_PRESENT, &present);
+                }
+            }
+        }
+#endif
+
         if (delay_cnt++ == 2000U) {
             u32           base, idx;
             lmu_fmt_buf_t buf;

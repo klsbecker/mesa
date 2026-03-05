@@ -634,6 +634,9 @@ vtss_rc vtss_fa_cell_cal_debug(vtss_state_t *vtss_state, lmu_ss_t *ss);
 u32     vtss_get_fifo_size(vtss_state_t *vtss_state, vtss_port_no_t port_no);
 vtss_rc fa_dsm_calc_and_apply_calendar(vtss_state_t *vtss_state, BOOL force);
 vtss_rc fa_cell_calendar_auto(vtss_state_t *vtss_state);
+#if VTSS_OPT_LIGHT && !defined(VTSS_ARCH_LAIKA)
+vtss_rc fa_rx_frame_discard_grp(vtss_state_t *vtss_state, vtss_packet_rx_grp_t xtr_grp);
+#endif
 #if defined(VTSS_EVC_STAT_CNT)
 vtss_rc vtss_fa_sdx_counters_update(vtss_state_t              *vtss_state,
                                     vtss_stat_idx_t           *stat_idx,
