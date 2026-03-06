@@ -2729,6 +2729,24 @@ static vtss_rc fa_port_flush_poll(vtss_state_t *vtss_state, vtss_phys_port_no_t 
             break;
         }
 
+#if VTSS_OPT_LIGHT && !defined(VTSS_ARCH_LAIKA)
+        // Drain the CPU DST Queue one frame at a time.
+        // This will allow the port SRC MEM to be emptied into the CPU DST Queue.
+        // For LMSTAX the frame extraction and port flush (this)
+        // are running in the same thread therefore we need to
+        // empty the CPU queues here
+        if (delay_cnt > 100U) {
+            u32                  present;
+            vtss_packet_rx_grp_t grp;
+
+            REG_RD(VTSS_DEVCPU_QS_XTR_DATA_PRESENT, &present);
+            if (present != 0U) {
+                grp = (vtss_packet_rx_grp_t)VTSS_OS_CTZ(present);
+                (void)fa_rx_frame_discard_grp(vtss_state, grp);
+            }
+        }
+#endif
+
         if (delay_cnt++ == 2000U) {
             u32           base, idx;
             lmu_fmt_buf_t buf;
