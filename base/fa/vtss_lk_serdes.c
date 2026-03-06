@@ -10,14 +10,45 @@ vtss_rc vtss_fa_port2sd(vtss_state_t *vtss_state, vtss_port_no_t port_no, u32 *s
 {
     *sd_indx = 0;
     *sd_type = FA_SERDES_TYPE_UNKNOWN;
+
+    u32 p = VTSS_CHIP_PORT(port_no);
+    if (p > 31) {
+        return VTSS_RC_ERROR;
+    }
+
+    switch (vtss_state->port.conf[port_no].if_type) {
+    case VTSS_PORT_INTERFACE_QSGMII:
+    case VTSS_PORT_INTERFACE_QXGMII:
+        *sd_indx = (p / 4) * 2;
+        VTSS_N("(QUAD 1G/2G5 SD) QxGMII p:%d SD10G_LANE index: %d", p, *sd_indx);
+        break;
+    default:
+        if (p & 0x01) {
+            return VTSS_RC_ERROR;
+        }
+        *sd_indx = p / 2;
+    }
+
+    *sd_type = FA_SERDES_TYPE_10G;
     return VTSS_RC_OK;
 }
 
-u32 vtss_fa_port2sd_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no) { return 0; }
+/* Returns index 0-15 for 10G ports for LK */
+u32 vtss_fa_port2sd_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no)
+{
+    u32 sd_indx = 0U, sd_type;
+    (void)vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type);
+    return sd_indx;
+}
 
-u32 vtss_fa_sd_lane_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no) { return 0; }
+/* Returns serdes LANE index 0-15 for LK */
+u32 vtss_fa_sd_lane_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no)
+{
+    u32 indx = 0U, type;
 
-
+    (void)vtss_fa_port2sd(vtss_state, port_no, &indx, &type);
+    return indx;
+}
 
 vtss_rc vtss_fa_sd_cfg(vtss_state_t *vtss_state, vtss_port_no_t port_no, vtss_serdes_mode_t mode)
 {
