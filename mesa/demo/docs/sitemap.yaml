@@ -1,0 +1,48 @@
+# Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+# SPDX-License-Identifier: MIT
+
+---
+conf:
+    rel_name: "MEPA-2024.09"
+
+pages:
+    - name: "Introduction"
+      src:  "mesa/demo/docs/introduction.adoc"
+
+    - name: "Getting started"
+      src:  "mesa/demo/docs/getting-started.adoc"
+
+    - name: "HW Supported"
+      src:  "mesa/demo/docs/supported_hw.adoc"
+
+    - name: "MEPA Sample Applications"
+      pages:
+        - src: "mesa/demo/docs/port-config.adoc"
+        - src: "mesa/demo/docs/kat-demo.adoc"
+        - src: "mesa/demo/docs/macsec-demo.adoc"
+        - src: "mesa/demo/docs/macsec-key-rollover-demo.adoc"
+        - src: "mesa/demo/docs/synce-demo.adoc"
+        - src: "mesa/demo/docs/gpio-demo.adoc"
+        - src: "mesa/demo/docs/loopback-demo.adoc"
+        - src: "mesa/demo/docs/diagnostics-demo.adoc"
+        - src: "mesa/demo/docs/crossconnect-demo.adoc"
+        - src: "mesa/demo/docs/phy-warmstart-app.adoc"
+        - src: "mesa/demo/docs/timestamp-demo.adoc"
+
+    - name: "MEPA App Reference"
+      pages:
+        - src: "mesa/demo/mepa_apps/phy_port_config.c"
+        - src: "mesa/demo/mepa_apps/phy_loopback.c"
+        - src: "mesa/demo/mepa_apps/phy_xconnect_demo.c"
+        - src: "mesa/demo/mepa_apps/phy_macsec_rollover_demo.c"
+        - src: "mesa/demo/mepa_scripts/port_config_json.json"
+        - src: "mesa/demo/mepa_scripts/loopback_config.json"
+        - src: "mesa/demo/mepa_scripts/xconnect_config.json"
+    - name: "MEPA .h reference"
+      pages:
+        - src:  "me/include/microchip/ethernet/common.h"
+        - src:  "mepa/include/microchip/ethernet/phy/api/types.h"
+        - src:  "mepa/include/microchip/ethernet/phy/api/phy.h"
+        - src:  "mepa/include/microchip/ethernet/phy/api.h"
+        - src:  "mepa/vtss/include/vtss_phy_10g_api.h"
+---

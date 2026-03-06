@@ -1,0 +1,1197 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= Getting started for EDSx Board
+
+== Getting started for EDSx and EDS2 Board
+
+MEPA as such is a C library, but the MEPA packet includes a mesa-demo application,
+and scripts to build a complete bootable firmware image including a
+Linux root file system, mesa-demo application ,MESA library and MEPA library.
+
+The MEPA packet includes both sources and binaries. Binaries make it easy to
+load the pre-build code on a reference system and explore the mesa-demo application.
+But most users of the MEPA library will eventually need to build their own
+application, or integrate MEPA into an existing application. Doing this requires
+compiling the sources.
+
+This document will cover how to prepare a development system, build the sources,
+load the binaries, and start the MEPA demo application.
+
+== Pre-requests and preparations
+
+In order to follow this getting started guide, a version of the MEPA packet and a
+reference board is needed.
+
+Further more, to build and load the MEPA library and mesa-demo application a Linux
+development machine with root access is needed. This guide is using a Ubuntu
+Server version 18.04 with 8G of memory. Other distributions does also work, but
+they are expected to need other dependencies not documented here.
+
+When loading the firmware, this guide assumes that the Linux development machine
+is located at the same network as the reference board.
+
+NOTE: If you aldready have the build image for EDSx `arm64_vsc7558_edsx.itb` or 
+`arm64_vsc7558_edsx.ext4`, then you can direclty jump to Section 6 to know how to
+load this binary images to EDSx Board.
+
+NOTE: If you Already have the Build image for EDS2 `armv7_lan966x.itb` or
+`armv7_lan966x.ext4.gz`, then you can directly Skip to Section 6 to know how to
+load the Binary Images to EDS2 Board.
+
+=== Installing basic SW dependencies
+
+The first step is to install a couple of host tools needed by MESA. The packet
+manager and the name of the specific packets differs from distributions to
+distribution. Here are the instructions on how to do this on Ubuntu 18:
+
+----
+sudo apt-get install cmake cmake-curses-gui build-essential ruby ruby-parslet libjson-c-dev
+----
+
+Beside from this, the folder `/opt/mscc` must be created, and the user(s) building MEPA, but have the needed credentials to access this folder.
+This folder is used to store dependent projects such as the BSP and toolchain.
+
+The user which will download and install these dependent proejcts in `/opt/mscc` must have write access to this folder.
+
+The user installing and the user building may be the same or different user/group.
+
+Next we need a folder called `mscc` in `/opt` where the toolchains
+and BSP will be installed as explained later in the guide.
+
+----
+sudo mkdir -p /opt/mscc
+----
+
+==== Install and setup tftp server
+
+In order to load the SW to the reference board, we need a tftp server. If a tftp
+server is already available on your network, then you may skip this step. If
+not, then it can be installed using the instructions below:
+
+----
+sudo apt-get install tftpd-hpa
+sudo mkdir /var/lib/tftpboot
+sudo chmod 777 /var/lib/tftpboot/
+
+sudo ufw allow 69/udp   -- Open Port 69 in Firewall(If Enabled)
+sudo systemctl restart tftpd-hpa
+----
+
+== Extracting the sources
+
+The first step is to extract the MESA packet:
+
+----
+$ tar xvzf mepa-<version>.tar.gz
+$ cd mepa-<version>
+----
+
+== Create a CMake project (and download BSP and toolchain)
+
+To build the sources a CMake project is needed. The easiest way to create a
+CMake project is to run  `./.cmake/create_cmake_project.rb` script:
+
+----
+$ ./.cmake/create_cmake_project.rb
+Usage: create_cmake_project <preset name> [output-folder]
+
+Valid presets:
+    mipsel
+    mipsel-debug
+    arm64
+    arm64-debug
+    arm64-asan
+    arm
+    arm-debug
+    x86
+----
+
+Lets prepare a project for arm64 based targets:
+
+----
+$ ./.cmake/create_cmake_project.rb arm64
+----
+
+Once the script is run the appropriate released package will be extracted in `/opt/mscc/` folder. The BSP source package will be also be
+installed automatically if not availbale in `/opt/mscc/`. User must have write permission to `/opt/mscc` install BSP, Toolchain and MESA +
+
+This Script will automatically pull the last released MESA Package and copy a package of MESA inside MEPA repository. +
+
+Following is the expected result to be displayed while creating CMake Project.
+
+----
+
+$ ./.cmake/create_cmake_project.rb arm64
+{MESA}: mesa-v2025.09
+Fetching latest copy...
+{BSP}: mscc-brsdk-arm64-2024.12
+{Toolchain}: mscc-toolchain-bin-2024.02.6-108
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /opt/mscc/mscc-brsdk-arm64-2024.12/arm64-armv8_a-linux-gnu/xstax/release/x86_64-linux/bin/aarch64-linux-gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /opt/mscc/mscc-brsdk-arm64-2024.12/arm64-armv8_a-linux-gnu/xstax/release/x86_64-linux/bin/aarch64-linux-g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Project name          = mepa_api
+--   Type                = Release
+--   c_flags             = -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -O2 -g0 -Wall -Wno-unknown-pragmas -Wlogical-op -Wno-array-bounds -Wno-stringop-overflow -fasynchronous-unwind-tables -std=c11 -D_POSIX_C_SOURCE=200809L -D_BSD_SOURCE -D_DEFAULT_SOURCE -ldl -O3 -DNDEBUG
+--   EXE_LINKER_FLAGS    =
+--   shared_linker_flags =
+-- Build mepa including
+-- Looking for include file endian.h
+-- Looking for include file endian.h - found
+-- Looking for include file asm/byteorder.h
+-- Looking for include file asm/byteorder.h - found
+-- Excluding file: /home/administrator/GitHub/sw-mepa/mepa/microchip/lan80xx/src/lan80xx_serdes_config.h
+-- Excluding file: /home/administrator/GitHub/sw-mepa/mepa/microchip/lan80xx/src/sha256/platform_util.h
+-- Excluding file: /home/administrator/GitHub/sw-mepa/mepa/microchip/lan80xx/src/sha256/sha256.c
+-- Excluding file: /home/administrator/GitHub/sw-mepa/mepa/microchip/lan80xx/src/sha256/sha256.h
+-- Excluding file: /home/administrator/GitHub/sw-mepa/mepa/microchip/lan80xx/src/sha256/sha256_config.h
+-- CMAKE_TOOLCHAIN_FILE='/opt/mscc/mscc-brsdk-arm64-2024.12/arm64-armv8_a-linux-gnu/xstax/release/x86_64-linux/share/buildroot/toolchainfile.cmake'
+-- Configuring done (0.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/administrator/GitHub/sw-mepa/build-arm64
+----
+
+NOTE: EDSx board is based on ARM64 platform whereas EDS2 board is based on ARM platform.
+The above script is executed with 'arm64' as input, for EDS2 board the input should be
+given as 'arm' while executing the CMake script.
+
+== Using a Custom BSP or Toolchain with MEPA
+
+By default, MEPA will download the Microchip-released BSP and toolchain for the selected architecture. If you wish to use your own custom BSP or toolchain, you can do so by following these steps:
+
+   * Place your extracted custom BSP or toolchain in the `/opt/mscc` directory.
+   * Update the `build-artifact-version-string` argument in the relevant JSON files with name of your custom BSP or toolchain (`.cmake/deps-bsp.json` for BSP and `.cmake/deps-toolchain.json` for toolchain).
+   * Run `create_cmake_project.rb` script
+
+Following sections will provide a example to do so.
+
+=== Prepare Your Custom BSP or ToolchainCustom
+
+ * BSP: Obtain or build your custom BSP tarball (e.g., `my-bsp.tar.gz`).
+ * Custom Toolchain: Obtain or build your custom toolchain tarball (e.g., `my-toolchain.tar.gz`).
+
+Extract them into `/opt/mscc`
+
+----
+sudo tar -xz -C /opt/mscc -f my-bsp.tar.gz
+sudo tar -xz -C /opt/mscc -f my-toolchain.tar.gz
+----
+
+=== Update the JSON Configuration
+
+Edit the following files to point to your custom BSP and/or toolchain:
+
+ * .cmake/deps-bsp.json
+ * .cmake/deps-toolchain.json
+
+----
+[
+    {
+        "id": "bsp",
+        "type": "build-artifact",
+        "build-artifact-url": "file:///opt/mscc",  // Use file:// for local path
+        "build-artifact-version-string": "my-bsp"
+    }
+]
+
+[
+    {
+        "id": "toolchain",
+        "type": "build-artifact",
+        "build-artifact-url": "file:///opt/mscc",
+        "build-artifact-version-string": "my-toolchain"
+    }
+]
+----
+
+=== Run the CMake Project Creation Script
+
+Now, run the script `./.cmake/create_cmake_project.rb <preset>` as usual.
+
+
+== Selecting the Target and Building the SW
+
+The CMake project allows you to select what targets to build. By default, BUILD_mepa
+(mepa common) is selected. Other targets should be selected as per requirement.
+The steps to build the MEPA Static Libraries is available in 
+link:mepa-doc.html#mepa/docs/getting-started[Getting Started] section.
+
+=== Select the image(s) to build for EDSx Boards
+
+We now have CMake project configured to use the BSP and cross-tool chain to
+build binaries for the ARM target, but no targets has been enabled.
+
+Make sure to `cd` to the newly created build folder.
+
+The CMake will allow you to select what targets to build and image targets.
+By default no image generation is enabled. The various projects includes many targets, and 
+some naming conventions are used to make it easier to navigate.
+
+Generally the `vscXXXX` number is included in all targets to indicate what
+device a given target supports.
+
+In the various CMake projects, the following categories of targets can be
+found:
+
+. Library targets. These are not bootable, it is just libraries supporting a
+  given chip, and must be combined with an actual application, root file system
+  and kernel to provide a functional system.
+.. `vscXXXX` These are shared libraries for a given `vsc` chip ID.
+.. `vscXXXX_static` These are static libraries for a given `vsc` chip ID.
+
+. Bootable demo images. These targets will generate a complete firmware image
+  including kernel, root file system, and the MEPA Demo application. These are
+  the images used in this getting started article.
+.. `IMG_arm64_vscXXXX_edsx` This is the image which is used on the ARM64 based targets for EDSx Boards.
+.. `IMG_armv7_lan966x` This is the image which is used on the ARM based targets for EDS2 Boards
+
+
+As we are interested in a bootable firmware we need either a `fit`/`itb` or `ext4`
+image.
+
+For EDSx board we want the `IMG_arm64_vsc7558_edsx_ext4` target to be enabled.
+To enable this use the following command.
+----
+$cd build-arm64
+----
+
+Run ccmake:
+
+----
+$ccmake ..
+----
+This ccmake.. command will open a GUI listing the available static Libraries 
+and available image options as below:
+
+--------
+BUILD_SHARED_LIBS                OFF
+BUILD_STATIC_LIBS                ON
+BUILD_mepa                       ON
+IMG_arm64_vsc7558_edsx_ext4      ON
+MEPA_aqr                         OFF
+MEPA_dummy_phy                   OFF
+--------
+
+To enable the image generation for target `arm64_vsc7558` enable `IMG_arm64_vsc7558_edsx_ext4`.
+
+
+Press [enter] to edit option Enable or Disable respective target +
+Press [d] to delete an entry CMake Version 3.16.3 +
+
+
+Once the Necessary Tragets are selected follow below steps to generate Makefile +
+
+* Press [c] to configure +
+* Press [g] to generate Makefile +
+
+
+
+Press [h] for help Press [q] to quit without generating +
+Press [t] to toggle advanced mode (Currently Off) +
+
+=== Select the image(s) to build for EDS2 Boards
+
+For EDS2 board  we want the `IMG_armv7_lan966x_ext4` target. To enable this use
+the following command.
+
+----
+cd build-arm
+----
+
+Run ccmake:
+
+----
+ccmake ..
+----
+This ccmake.. command will open a GUI listing the available static Libraries
+and available image options as below:
+
+---------
+BUILD_SHARED_LIBS                ON
+BUILD_STATIC_LIBS                ON
+BUILD_mepa                       ON
+IMG_armv7_lan9662_fit            OFF
+IMG_armv7_lan966x_ext4           OFF
+MEPA_aqr                         OFF
+---------
+
+To enable the image generation for target `armv7_lan966x` enable `IMG_armv7_lan966x_ext4`.
+
+Press [enter] to edit option Enable or Disable respective target
+Press [d] to delete an entry CMake Version 3.16.3
+
+Once the Necessary Tragets are selected follow below steps to generate Makefile
+
+Press [c] to configure
+Press [g] to generate Makefile
+
+
+Press [h] for help Press [q] to quit without generating
+Press [t] to toggle advanced mode (Currently Off)fter configuration is complete Press [g] to generate Makefile with enabled targets.
+
+NOTE: The Binary images `IMG_armv7_lan966x_ext4`, `IMG_arm64_vsc7558_edsx_ext4` binary packages contains static MEPA libraries linked,
+it doesn't uses shared MEPA libraries.
+
+=== Building the SW
+
+Now that the project is configured, we just need to build it. This is the only
+step which needs to be repeated when the sources are changed, no need to select image targets again.
+
+Use the normal `make` command to build (the `-jN` options specify how many cores
+to use).
+
+The below example is for EDSx platform:
+
+----
+$ make -j12
+....
+[ 93%] Linking C executable mesa-demo-vsc7558
+[ 93%] Built target app_vsc7558_edsx
+[100%] Generating arm64_vsc7558_edsx.itb
+[100%] Generating arm64_vsc7558_edsx.ext4.gz, arm64_vsc7558_edsx.ubifs
+mkimage -q -f arm64_vsc7558_esx.its arm64_vsc7558_edsx.itb
+[100%] Built target arm64_vsc7558_edsx_itb
+[100%] Built target arm64_vsc7558_edsx_ext4
+----
+
+After a while, the build will be done, and the resulting binary images will be available in `.build-arm64/mesa/demo`.
+
+Lets copy the binary images to the tftp server folder.
+
+----
+$ cp mesa/demo/arm64_vsc7558_edsx.itb /var/lib/tftpboot/.
+                        or 
+$ cp mesa/demo/arm64_vsc7558_edsx.ext4.gz /var/lib/tftpboot/.
+----
+
+NOTE: For EDS2 platform `armv7_lan966x_ext4` 'fit' and 'ext4' Images will be generated
+and can be found at `.build-arm/mesa/demo/mesa-demo`. This needs to be Copied to tftp server folder.
+
+
+== Loading firmware image over network from UBoot
+
+UBoot Bootloader is being used to load the SW over the network via TFTP and into memory. +
+
+There are two type of images 'fit/itb' or 'ext4' where +
+
+* 'itb' - is a standard U-Boot image format, which is used for NOR only or network boot.
+         It can be used on all boards running U-Boot. +
+
+* 'ext4' - This image type is using eMMC for storage. It is a standard Linux filesystem
+         image format, suitable for this storage type. +
+
+   
+The system can then boot from memory.
+
+Connect a terminal to the reference board, open your serial terminal client
+(minicom, picocom, teraterm, putty) with UART Baud-rate as 115200, power up the board, and break the boot process in
+the UBoot console.
+
+This is an example of booting an EDSx board, and breaking it into UBoot.
+
+----
+U-Boot 2023.04 (Apr 15 2024 - 11:18:03 +0530)sparx5
+
+CPU:   ARM A53
+Model: EDSX eMMC Reference Board
+DRAM:  2 GiB (1667 MHz, DDR3, 32bit, ECC, pcb135_ddr3 2023-07-21-13:44:16 98ff2c264618)
+Core:  30 devices, 17 uclasses, devicetree: fit
+MMC:   sdhci@600800000: 0
+Loading Environment from SPIFlash... SF: Detected sst26vf016b with page size 256 Bytes, erase size 4 KiB, total 2 MiB
+OK
+In:    serial@600100000
+Out:   serial@600100000
+Err:   serial@600100000
+Net:   eth0: switch@0
+Hit any key to stop autoboot:  0
+=>
+----
+
+=== Mandatory U-Boot Variables
+
+When preparing a board for flashing, make sure that:
+
+1. You have the latest U-Boot installed. (And have booted it!).
+2. If User wants to reset the U-Boot environment. Do so by the following steps:
+   * `env default -a`
+   * `env save`
+
+U-boot typically contain pre-coded command sequences in the
+environment, which is why it is crucial to reset this to default
+_after_ upgrading.
+
+Follwing are the Necessary U-boot variables to boot the binary, make sure the U-boot variables are as required.
+Configuration of U-boot variables are necessary only one time for the board, it will not be changed unless it changed by user manually.
+
+==== U-boot variables for EDSx Boards
+For EDSx boards, check the U-boot variable `pcb` by giving `printenv` command in U-boot and make sure
+the `pcb = edsx_emmc`, if not set this U-boot Variable by command `setenv pcb edsx_emmc` and then `saveenv`.
+
+----
+setenv `pcb edsx_emmc`
+saveenv
+----
+
+Following are the Necessary U-boot variables for EDSx boards.
+
+----
+=> printenv
+baudrate=115200
+bootargs_extra=loglevel=4
+bootcmd=run mmc_boot
+bootdelay=3
+console=ttyS0,115200n8
+ethact=switch@0
+ethaddr=2e:48:f9:c6:7f:eb
+fdtcontroladdr=77fb38fa0
+ipaddr=10.99.10.1
+loadaddr=740000000
+mmc_bak=2
+mmc_boot=run mmc_tryboot; env set mmc_cur ${mmc_bak}; run mmc_tryboot
+mmc_cur=1
+mmc_dev=mmc 0
+mmc_dlup=dhcp ${mmc_image}; unzip ${fileaddr} ${mmcaddr}; run mmc_update
+mmc_format=gpt guid ${mmc_dev} mmc_guid; gpt write ${mmc_dev} ${mmc_part}; env save
+mmc_image=new.ext4.gz
+mmc_part=uuid_disk=${mmc_guid};name=Boot0,size=1024MiB,type=linux;name=Boot1,size=1024MiB,type=linux;name=Data,size=1536MiB,type=linux
+mmc_set_blkcnt=setexpr mmc_blkcnt ${filesize} + 0x1ff; setexpr mmc_blkcnt ${mmc_blkcnt} / 0x200
+mmc_swap=env set mmc_cur ${mmc_bak}; env save
+mmc_tryboot=run mmcload; setenv mtdroot root_next=/dev/mmcblk0p${mmc_cur}; run ramboot
+mmc_update=run mmcgetoffset; run mmc_set_blkcnt; mmc write ${mmcaddr} ${mmc_start} ${mmc_blkcnt}
+mmcaddr=760000000
+mmcgetoffset=part start ${mmc_dev} ${mmc_cur} mmc_start
+mmcload=ext4load ${mmc_dev}:${mmc_cur} ${loadaddr} Image.itb
+mtdids=nor0=spi0.0
+mtdparts=mtdparts=spi0.0:1m(UBoot),256k(Env),256k(Env.bk),20m(linux),20m(linux.bk)
+nor_boot=sf probe; env set active linux; run nor_tryboot; env set active linux.bk; run nor_tryboot
+nor_dlup=dhcp ${nor_image}; run nor_update
+nor_image=new.itb
+nor_only=env set mtdparts mtdparts=${nor_parts}; env set bootcmd run nor_boot; env save
+nor_parts=spi0.0:1m(UBoot),256k(Env),256k(Env.bk),20m(linux),20m(linux.bk),32m(rootfs_data)
+nor_tryboot=mtd read ${active} ${loadaddr}; run ramboot
+nor_update=sf probe; sf update ${fileaddr} linux ${filesize}
+pcb=edsx_emmc
+ramboot=run setup; bootm ${loadaddr}#${pcb}
+rootargs=root=/dev/ram0 rw rootfstype=squashfs
+setup=setenv bootargs console=${console} ${mtdparts} ${rootargs} ${mtdroot} fis_act=${active} ${bootargs_extra}
+stderr=serial@600100000
+stdin=serial@600100000
+stdout=serial@600100000
+ubupdate=sf probe; sf update ${fileaddr} 0 ${filesize}
+ver=U-Boot 2023.04 (Apr 15 2024 - 11:18:03 +0530)sparx5
+----
+
+==== U-boot variables for EDS2 Boards
+Use the mmc block 5 for updating the emmc flash. Set "mmc_cur" as 5 and "mmc_bak"
+as 6.
+
+----
+=> setenv mmc_cur 5
+=> setenv mmc_bak 6
+----
+
+Set the environment variable "rootargs_mmc" to initialize the current root directory.
+
+----
+=> setenv rootargs_mmc 'root=/dev/ram0 rw rootwait'
+----
+
+Set the environement variable "mtdroot" to mount the rootfs in  root_next.
+
+----
+=> setenv mtdroot 'root_next=/dev/mmcblk0p5'
+----
+
+Set the environment variable 'mmc_tryboot' to load the mmc_image into the 'loadaddr'
+and make it available as '.itb' image and set the 'root_next' to '/dev/mmcblk0p5'.
+
+----
+=> setenv mmc_tryboot 'run mmc_load;run ramboot;'
+----
+
+Set the environment variable "setup" with appropriate "rootargs_mmc" and "mtdparts".
+
+----
+=> setenv setup 'setenv bootargs console=${console} ${mtdparts} ${rootargs_mmc} ${mtdroot} fis_act=${active} boot_source=${boot_source} ${bootargs_extra}'
+----
+
+Run the environment variable "setup" to update the bootargs.
+
+----
+=> run setup
+----
+
+Verify the bootargs is updated as shown below
+
+----
+=> printenv bootargs
+bootargs=console=ttyS0,115200n8 mtdparts=spi0:1536k(fip),256k(Env),256k(Env.bk) root=/dev/ram0 rw rootwait root_next=/dev/mmcblk0p5 fis_act= boot_source=nor uio_pdrv_genirq.of_id=generic-uio loglevel=1
+----
+
+Set the Environment variable 'ramboot' to run mmc_tryboot and boot the kernel
+on 'loadaddr' with Device tree 'lan9668_ung8385_0_at_lan966x'.
+
+----
+=> setenv ramboot 'bootm ${loadaddr}#lan9668_ung8385_0_at_lan966x'
+----
+
+Once the above environment variables are set make sure to save the environment
+
+----
+=> saveenv
+----
+
+
+=== Configure network
+
+If a DHCP server is being used at the network, then this is simply a matter of
+issuing the `dhcp` command:
+
+----
+# dhcp
+BOOTP broadcast 1
+BOOTP broadcast 2
+BOOTP broadcast 3
+DHCP client bound to address 10.99.10.10 (1003 ms)
+Using switch@1010000 device
+TFTP from server 10.99.10.1; our IP address is 10.99.10.10
+----
+
+If static IP configuration is desirable, then set the `ipaddr`, `netmask` and
+`gatewayip` accordingly:
+
+----
+setenv ipaddr 10.99.10.10
+setenv gatewayip 10.99.10.1
+setenv netmask 255.255.255.0
+----
+
+NOTE: To make the environment settings persistent, use the `saveenv` command.
+
+=== Load SW to Memory
+Final step is to load the SW into memory. To do this the `tftp` command is used.
+Remember to copy the firmware image into the tftp folder, and use the correct IP
+address of the tftp server and firmware filename (this example uses `10.99.10.1`
+as tftp server, and `arm64_vsc7558_edsx.itb` firmware file, replace with IP of your TFTP
+server, and actual file name of the firmware).
+
+==== Steps to Load ITB image to Memory
+Load the itb binary from the tftp server using the following tftpboot command
+
+----
+tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558_edsx.itb
+----
+
+The Expected console output is provided below.
+----
+tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558_edsx.itb
+switch@0 Waiting for PHY auto negotiation to complete........ done
+NPI Port: Up (internal)
+Using switch@0 device
+TFTP from server 192.168.1.2; our IP address is 10.99.10.1
+Filename 'arm64_vsc7558_edsx.itb'.
+Load address: 0x740000000
+Loading: #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         ###########################
+         7.4 MiB/s
+done
+Bytes transferred = 28054304 (1ac1320 hex)
+=>
+----
+
+NOTE: Above mentioned steps for ITB image loading into memory is shown
+with 'arm64_vsc7558_edsx.itb' for EDSx. The same steps can be used to load
+'armv7_lan966x.itb' image for EDS2 board as well.
+
+==== Steps to Load EXT4 image to Memory
+Load the ext4 binary from the tftp server using the following tftpboot command
+
+----
+tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558_edsx.ext4.gz
+----
+
+The Expected console output is provided below.
+----
+tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558_edsx.ext4.gz
+switch@0 Waiting for PHY auto negotiation to complete....... done
+NPI Port: Up (internal)
+Using switch@0 device
+TFTP from server 192.168.1.2; our IP address is 10.99.10.1
+Filename 'arm64_vsc7558_edsx.ext4.gz'.
+Load address: 0x740000000
+Loading: #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         #################################################################
+         ########### ....................................................
+         ....................... ########################################
+         ##########
+done
+Bytes transferred = 28379657 (1b10a09 hex)
+=>
+----
+
+NOTE: Above mentioned steps for ext4 type image loading into memory is shown
+with 'arm64_vsc7558_edsx.ext4.gz' for EDSx board. The same steps can be used to load
+'armv7_lan966x.ext4.gz' image for EDS2 board as well.
+
+===== UBOOT command lines to update MMC flash for EDSx Boards
+
+Run the Following Command to extract the '.gz' type image and load it in mmcaddr.
+
+----
+unzip ${fileaddr} ${mmcaddr}
+----
+
+To flash the extracted image to emmc flash run the command 'run mmc_update'
+
+----
+=> run mmc_update
+
+MMC write: dev # 0, block # 2097186, count 229552 ... 229552 blocks written: OK
+----
+
+===== UBOOT Command lines to update the MMC flash for EDS2 Boards
+
+Run the Following Command to extract the '.gz' type image and load it in mmcaddr.
+
+----
+unzip ${fileaddr} ${mmc_unzip_loadaddr}
+----
+
+To flash the extracted image to emmc flash run the command 'run mmc_boot0_upd'.
+
+----
+=> run mmc_boot0_upd
+
+MMC write: dev # 0, block # 532544, count 61166 ... 61166 blocks written: OK
+----
+
+=== Booting the Firware Image (itb and ext4 image)
+Depending on image type and board, the steps to actually boot the image are
+slightly different.
+
+==== Booting fit/itb images
+
+`fit` images may optional include multiple device tree configurations.
+
+To boot the `fit` image with a given configuration use the below mentioned
+command
+
+----
+run ramboot
+----
+
+The above command will boot the kernel and the console will display the below output.
+
+----
+run ramboot
+## Loading kernel from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel
+     Type:         Kernel Image
+     Compression:  gzip compressed
+     Data Start:   0x7400000d0
+     Data Size:    5361490 Bytes = 5.1 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x700080000
+     Entry Point:  0x700080000
+   Verifying Hash Integrity ... OK
+## Loading ramdisk from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'ramdisk' ramdisk subimage
+     Description:  ramdisk
+     Type:         RAMDisk Image
+     Compression:  uncompressed
+     Data Start:   0x74051d0cc
+     Data Size:    22597632 Bytes = 21.6 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: unavailable
+     Entry Point:  unavailable
+   Verifying Hash Integrity ... OK
+## Loading fdt from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'fdt_edsx_emmc' fdt subimage
+     Description:  Flattened Device Tree blob
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x741ab0880
+     Data Size:    15862 Bytes = 15.5 KiB
+     Architecture: AArch64
+   Verifying Hash Integrity ... OK
+   Booting using the fdt blob at 0x741ab0880
+Working FDT set to 741ab0880
+   Uncompressing Kernel Image
+   Loading Ramdisk to 702a73000, end 704000000 ... OK
+   Loading Device Tree to 0000000702a6c000, end 0000000702a72df5 ... OK
+Working FDT set to 702a6c000
+   Reserved memory region for spin-table: addr=77ff3ee48 size=18
+   Reserved memory region for secure PSCI: addr=77ffb1000 size=3000
+
+Starting kernel ...
+
+Starting syslogd: OK
+Starting klogd: OK
+mount: mounting /dev/mmcblk0p3 on /mnt failed: Invalid argument
+FAILED to mount /dev/mmcblk0p3 at /mnt
+
+Welcome to SMBStaX
+vcoreiii login:
+----
+
+In the output above we see an image containing a `kernel`, `ramdisk`, `fdt`
+(device tree). These 3 component is grouped in a configuration called `fireant`.
+
+==== Booting ext4 image
+Once the image is loaded into the emmc flash, the Kernel can be booted with following command.
+
+----
+run mmc_boot
+----
+The expected console output is provided below.
+
+----
+run mmc_boot
+5698260 bytes read in 128 ms (42.5 MiB/s)
+## Loading kernel from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'kernel' kernel subimage
+     Description:  Linux kernel
+     Type:         Kernel Image
+     Compression:  gzip compressed
+     Data Start:   0x7400000d0
+     Data Size:    5361416 Bytes = 5.1 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x700080000
+     Entry Point:  0x700080000
+   Verifying Hash Integrity ... OK
+## Loading ramdisk from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'ramdisk' ramdisk subimage
+     Description:  ramdisk
+     Type:         RAMDisk Image
+     Compression:  uncompressed
+     Data Start:   0x74051d080
+     Data Size:    241664 Bytes = 236 KiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: unavailable
+     Entry Point:  unavailable
+   Verifying Hash Integrity ... OK
+## Loading fdt from FIT Image at 740000000 ...
+   Using 'edsx_emmc' configuration
+   Trying 'fdt_edsx_emmc' fdt subimage
+     Description:  Flattened Device Tree blob
+     Type:         Flat Device Tree
+     Compression:  uncompressed
+     Data Start:   0x74055e834
+     Data Size:    15862 Bytes = 15.5 KiB
+     Architecture: AArch64
+   Verifying Hash Integrity ... OK
+   Booting using the fdt blob at 0x74055e834
+Working FDT set to 74055e834
+   Uncompressing Kernel Image
+   Loading Ramdisk to 703fc5000, end 704000000 ... OK
+   Loading Device Tree to 0000000703fbe000, end 0000000703fc4df5 ... OK
+Working FDT set to 703fbe000
+   Reserved memory region for spin-table: addr=77ff3ee48 size=18
+   Reserved memory region for secure PSCI: addr=77ffb1000 size=3000
+
+Starting kernel ...
+
+Starting syslogd: OK
+Starting klogd: OK
+mount: mounting /dev/mmcblk0p3 on /mnt failed: Invalid argument
+FAILED to mount /dev/mmcblk0p3 at /mnt
+
+Welcome to SMBStaX
+vcoreiii login:
+#
+----
+
+== Starting MEPA Demo Application
+When the system boots, you will need to login to the Linux terminal. Login as
+the `root` user with no password.
+
+----
+Welcome to SMBStaX
+vcoreiii login: root
+----
+
+We now have a normal Linux command line interface. Where we can start the MEPA
+demo application using the command `mesa-demo`:
+
+----
+$ mesa-demo
+----
+This will run in the background as a daemon in the background, and allow the
+`mesa-cmd` to issue commands.
+
+By default EDSx board will use SPI as management bus to access registers of PHY,
+EDS2 board will use MDIO bus as management bus to access registers of PHY.
+
+NOTE: In EDSx boards we provide a support to switch to MDIO bus, by using the environmental variable
+`mdio_bus` before starting the MESA-DEMO application, If the variable is set to 1 before starting Application, then
+PHY will be accessed through MDIO, else PHY will be accesed through SPI. This variable is supported only for EDSx boards.
+EDS2 boards will always access PHY through MDIO.
+
+To switch from SPI to MDIO bus, use the below command in EDSx Boards:
+
+----
+$ mdio_bus=1 mesa-demo
+----
+
+To see the list of valid commands use the `mesa-cmd` with no argument.
+
+For EDS2 platform we have a linux environment variable 'pcb' and the variable expands
+to 'pcb = pcb8385_x' where `x` determines the PHY combination Connected on
+PHY slots 1 and 2. The "pcb" variable can be found with 'env' command.
+----
+USER=root
+SHLVL=1
+HOME=/root
+PS1=#
+LOGNAME=root
+TERM=vt100
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+SHELL=/bin/sh
+PWD=/root
+pcb=pcb8385_0
+EDITOR=/bin/vi
+----
+
+Below is the tabulation made for the available PHY combinations
+and corresponding 'x' value:
+
+[cols="1,1,1,1,1", options="header"]
+|===
+| PHY_SLOT1     | Host Interface     | PHY_SLOT2      | Host Interface    | Value of 'x'
+|    -          |     -              |    -           |     -             |   0
+| LAN8814       | QSGMII             | LAN8814        | QSGMII            |   1
+| LAN89x1       | SGMII              | LAN8814        | QSGMII            |   2
+| LAN8840       | LAN8840            | LAN8840        | RGMII             |   3
+| LAN89x1       | SGMII              | LAN89x1        | SGMII             |   4
+| VSC8574       | QSGMII             | VSC8574        | QSGMII            |   5
+| LAN89x1       | SGMII              | LAN8574        | QSGMII            |   6
+| LAN8814       | QSGMII             | VSC8574        | QSGMII            |   7
+| LAN8842       | SGMII              |    -           |     -             |   8
+|===
+
+Appropriate value of 'x' needs to be selected as per PHY's connected on SLOT 1 and 2.
+
+By default the value of 'x' will be zero which indicates only the internal ports
+will be configured.
+
+NOTE: The Available PHY Support for EDS2 can be viewed in
+link:mepa-app-doc.html#mesa/demo/docs/supported_hw[EDS2 supported PHY's]
+
+== MESA-DEMO Appl Command Examples
+
+MESA-DEMO Application commands to configure or access PHYs are available here link:mepa-app-doc.html[PHY Appl Commands]
+
+Following are few application commands to configure or access the HOST ports[EDSx/EDS2].
+
+Get help on the port state command.
+
+----
+# mesa-cmd port state help
+ Description:
+ ------------
+ Set or show the port administrative state.
+
+ Syntax:
+ -------
+ Port State [<port_list>] [enable|disable]
+
+ Parameters:
+ -----------
+ <port_list>: Port list, default: All ports
+ enable     : Enable
+ disable    : Disable
+ (default: Show mode)
+----
+
+----
+# mesa-cmd port state
+Port  State     Mode    Flow Control  Rx Pause  Tx Pause  MaxFrame  Link
+----  --------  ------  ------------  --------  --------  --------  --------
+1     Enabled   Auto    Enabled       Enabled   Enabled   1518      1Gfdx
+2     Enabled   Auto    Enabled       Enabled   Enabled   1518      1Gfdx
+3     Enabled   1Gfdx   Disabled      Disabled  Disabled  1518      Down
+4     Enabled   1Gfdx   Disabled      Disabled  Disabled  1518      Down
+5     Enabled   1Gfdx   Disabled      Disabled  Disabled  1518      Down
+6     Enabled   1Gfdx   Disabled      Disabled  Disabled  1518      1Gfdx
+7     Enabled   10Gfdx  Disabled      Disabled  Disabled  1518      Down
+8     Enabled   10Gfdx  Disabled      Disabled  Disabled  1518      Down
+9     Enabled   Auto    Enabled       Enabled   Enabled   1518      1Gfdx
+#
+----
+
+NOTE: Disabling the NPI port is recommended to prevent traffic from leaking to the RJ45 NPI ports, ports can be Enabled/Disable
+using the command `mesa-cmd port state <port_no> [enable | disable]`
+
+
+Get help on the port statistics command:
+
+----
+# mesa-cmd port stati help
+ Description:
+ ------------
+ Show port statistics.
+
+ Syntax:
+ -------
+ Port Statistics [<port_list>] [clear|packets|bytes|errors|discards]
+
+ Parameters:
+ -----------
+ <port_list>: Port list, default: All ports
+ clear      : Clear port statistics
+ packets    : Show packet statistics
+ bytes      : Show byte statistics
+ errors     : Show error statistics
+ discards   : Show discard statistics
+ (default: Show all port statistics)
+----
+
+Show packet counters for port 1-8:
+
+----
+# mesa-cmd port stati 1-8 pac
+Port  Rx Packets          Tx Packets
+----  ------------------  ------------------
+1     50                  0
+2     0                   50
+3     0                   0
+4     0                   0
+5     0                   0
+6     0                   0
+7     0                   0
+8     76                  0
+----
+
+Dump API/AIL state for port 1-4:
+
+----
+# mesa-cmd deb api ail port 1-4
+ Application Interface Layer
+ ===========================
+
+ Port
+ -----
+
+ Mapping:
+
+ Port  Chip Port  Chip  Max BW  MIIM Bus  MIIM Addr  MIIM Chip
+ 0     0          0     1G      0         0          0
+ 1     1          0     1G      0         1          0
+ 2     2          0     1G      -1        0          0
+ 3     3          0     1G      -1        0          0
+
+ Configuration:
+
+ Port  Interface    Serdes     Speed     Aneg  Obey      Generate  Max Length
+ 0     SGMII        SGMII      1Gfdx     No    Enabled   Enabled   1518+0
+ 1     SGMII        SGMII      1Gfdx     No    Enabled   Enabled   1518+0
+ 2     SERDES       1000BaseX  1Gfdx     No    Disabled  Disabled  1518+0
+ 3     SERDES       1000BaseX  1Gfdx     No    Disabled  Disabled  1518+0
+ 
+ Forwarding:
+
+ Port  State  Forwarding  STP State   Auth State  Rx Fwd    Tx Fwd    Aggr Fwd
+ 0     Up     Enabled     Forwarding  Both        Enabled   Enabled   Enabled
+ 1     Up     Enabled     Forwarding  Both        Enabled   Enabled   Enabled
+ 2     Down   Enabled     Forwarding  Both        Disabled  Disabled  Disabled
+ 3     Down   Enabled     Forwarding  Both        Disabled  Disabled  Disabled
+----
+
+Show all trace levels:
+
+----
+# mesa-cmd deb tr
+Module   Group       Level
+-------  ----------  -----
+api_ail  afi         error
+api_ail  clock       error
+api_ail  default     error
+api_ail  emul        error
+api_ail  evc         error
+api_ail  fdma        error
+api_ail  fdma_irq    error
+api_ail  hqos        error
+api_ail  hwprot      error
+api_ail  l2          error
+api_ail  l3          error
+api_ail  macsec      error
+api_ail  mpls        error
+api_ail  mrp         error
+api_ail  oam         error
+api_ail  packet      error
+api_ail  phy         error
+api_ail  port        error
+api_ail  qos         error
+api_ail  reg_check   error
+api_ail  security    error
+api_ail  ts          error
+api_ail  vcap        error
+api_cil  afi         error
+api_cil  clock       error
+api_cil  default     error
+api_cil  emul        error
+api_cil  evc         error
+api_cil  fdma        error
+api_cil  fdma_irq    error
+api_cil  hqos        error
+api_cil  hwprot      error
+api_cil  l2          error
+api_cil  l3          error
+api_cil  macsec      error
+api_cil  mpls        error
+api_cil  mrp         error
+api_cil  oam         error
+api_cil  packet      error
+api_cil  phy         error
+api_cil  port        error
+api_cil  qos         error
+api_cil  reg_check   error
+api_cil  security    error
+api_cil  ts          noise
+api_cil  vcap        error
+cli      default     error
+debug    default     error
+example  default     error
+gpio_lp_appdefault     error
+intr     default     error
+ip       default     error
+json_rpc default     error
+kr       default     error
+loopback default     error
+mac      default     error
+main     default     error
+main     meba        error
+mcu_fw   default     error
+packet   default     error
+phy_diagnosticsdefault     error
+phy_kr_anegdefault         error
+phy_port_configdefault     error
+phy_port_xconnectdefault   error
+phy_synce_configdefault    error
+phy_warmstartdefault       error
+port     default     error
+regio    default     error
+spi      default     error
+symreg   default     error
+test     default     error
+vlan     default     error
+----
+
+Enable debug trace for port API at AIL and show the trace level:
+
+----
+# mesa-cmd deb tr api_cil phy debug
+# mesa-cmd deb tr api_cil phy
+ Module   Group       Level
+ -------  ----------  -----
+ api_cil  phy         debug
+----
+
+Read chip ID in different ways using symbolic register access:
+Command `sym read` and `sym write` are used to Read/Write EDSx Registers.
+
+----
+# mesa-cmd debug sym read help
+ Description:
+ ------------
+ Read one/many switch register(s).
+
+ Syntax:
+ -------
+ Debug Sym Read <word128>
+
+ Parameters:
+ -----------
+<word128>: Register pattern on the form 'target[t]:reggrp[g]:reg[r]', where
+        'target' is the name of the target (e.g. dev).
+        'reggrp' is the name of the register group.
+        'reg'    is the name of the register.
+        t        is a list of target replications if applicable.
+        g        is a list of register group replications if applicable.
+        r        is a list of register replications if applicable.
+        If a given replication (t, g, r) is omitted, all applicable replications will be accessed.
+        Both 'target', 'reggrp' and 'reg' may be omitted, which corresponds to wildcarding that part
+        of the name. Matches are exact, but wildcards ('*', '?') are allowed.
+# mesa-cmd debug sym read devcpu_gcb:chip_regs:chip_id
+Register                     Value      Decimal    31     24 23     16 15      8 7       0
+DEVCPU_GCB:CHIP_REGS:CHIP_ID 0x174150e9  390156521 0001.0111.0100.0001.0101.0000.1110.1001
+1 match found
+# mesa-cmd debug sym read devcpu_gcb::chip_id
+Register                     Value      Decimal    31     24 23     16 15      8 7       0
+DEVCPU_GCB:CHIP_REGS:CHIP_ID 0x174150e9  390156521 0001.0111.0100.0001.0101.0000.1110.1001
+1 match found
+# mesa-cmd debug sym read ::chip_id
+Register                     Value      Decimal    31     24 23     16 15      8 7       0
+DEVCPU_GCB:CHIP_REGS:CHIP_ID 0x174150e9  390156521 0001.0111.0100.0001.0101.0000.1110.1001
+1 match found
+# mesa-cmd debug sym read ::chip*
+Register                     Value      Decimal    31     24 23     16 15      8 7       0
+DEVCPU_GCB:CHIP_REGS:CHIP_ID 0x174150e9  390156521 0001.0111.0100.0001.0101.0000.1110.1001
+1 match found
+
+----
+
+For EDS2, it is possible to use the tool `symreg` to read/write different
+registers. To example to read the chip id the following command can be used:
+
+----
+symreg CHIP_ID
+GCB_CHIP_ID                                                               = 0x19668445
+----
+
+For more details about the tool use `symreg --help`

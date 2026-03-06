@@ -1,0 +1,47 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= Supported Switch and PHYs
+
+== Supported Switch and PHYs
+
+Following are the Switches and PHYs supported for the corresponding
+Switches.
+
+=== EDSx Supported PHYs
+
+[cols="1,1,1", options="header"]
+|===
+| PHY       | SKU                                                                                      | Host Interface
+| Malibu10G | VSC8258                                                                                  | SFI
+| Malibu25G | LAN8044, LAN8043, LAN8042, LAN8022, LAN8023, LAN8268, LAN8267, LAN8264, LAN8263, LAN8262 | SFI
+|===
+
+
+Below diagram illustrates the port number to channel ID mapping in LAN80XX PHY.
+
+[ditaa]
+....
+        +---------------+                     +---------------+
+        |             1 |                     | 3             |
+        |             2 |                     | 2             |
+        | Slot1 Ports 3 | ------------------->| 1 Channel ID  |
+        |             4 |                     | 0             |
+ EDSX	+---------------+                     +---------------+  LAN80XX
+        |             5 |                     | 3             |
+        |             6 |                     | 2             |
+        | Slot2 Ports 7 | ------------------->| 1 Channel ID  |
+        |             8 |                     | 0             |
+        +---------------+                     +---------------+
+
+....
+
+=== EDS2 Supported PHYs
+
+[cols="1,1,1", options="header"]
+|===
+| PHY         | SKU          | Host Interface
+| LAN8814     | 8814/8804    | QSGMII
+| LAN884x     | 8840         | RGMII
+| LAN8842     | 8842/8832    | SGMII
+|===

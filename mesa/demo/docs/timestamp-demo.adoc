@@ -1,0 +1,793 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= Timestamp Demo Application
+
+== Timestamp Demo Application Description
+Precision Time Protocol (PTP), as defined in IEEE 1588, is utilized to synchronize clocks within a network. 
+Accurate timestamps are essential for achieving this synchronization across the network.
+
+Timestamp(TS) Demo Application is used to configure the TS Block of PHYs.
+
+== Directory
+* `./mesa/demo/mepa_apps/phy_ts_demo.h` - Header File for TS Demo Application
+* `./mesa/demo/mepa_apps/phy_ts_demo.c` - Source File for TS Demo Application
+
+== Supported PHYs
+
+    * The PTP Demo application is currenlty supported only for Malibu25G(LAN80XX) PHYs.
+
+== Pre-Requsites
+
+    * Need 1PPS Signal from the HOST to update TOD counters which can be read through `mepa_ts_ltc_get()`
+
+== Procedure to Start/Exit TS Demo Application
+
+To Run TS Demo Application the 'mesa-demo' application needs to be running.
+Refer Section link:#mesa/demo/docs/getting-started[Getting-Started] to know about the procedure 
+to run 'mesa-demo' Application.
+
+Once 'mesa-demo' application is started the TS Demo Application can be started with the command
+'mesa-cmd Ts'.
+
+----
+#mesa-cmd Ts
+----
+
+The above is used to start the TS Demo Application once it is started it will list the available commands in 
+TS Demo Application.
+
+----
+#mesa-cmd exit_ts
+----
+
+The above command 'exit_ts' is used to Exit the TS Demo Application.
+
+== TS Demo Application Commands
+
+=== Commands Available in TS Demo Application
+To List the all available Commands in the TS Demo Application run the below mentioned command.
+----
+#mesa-cmd ?
+----
+----
+#mesa-cmd ?
+  Commands           Arguments                                                                        Description
+==================================================================================================================================
+
+ exit_ts             |                                                                                 | Exit from Time Stamping Application
+ ts_init_conf        |  <port_list> clk_src <clk_src> tx_fifo <tx_fifo> tc_op <tc_op>                  | Initialize TS Block
+                     |  dly_10b <dly_10b> tx_af <tx_af> mch <mch>                                      |
+ tx_class_conf       |  <port_list> eng_id <eng_idx> entype <entype>                                   | Configures Egress Port Classifier
+ tx_clock_conf       |  <port_list> eng_id <eng_idx> clk_mode <clk_mode> dly_type <dly_type>           | Configures Egress Port Clock
+ rx_class_conf       |  <port_list> eng_id <eng_idx> entype <entype>                                   | Configures Ingress Port Classifier
+ rx_clock_conf       |  <port_list> eng_id <eng_idx> clk_mode <clk_mode> dly_type <dly_type>           | Configures Ingress Port Clock
+ ts_enable           |  <port_list>                                                                    | Enables TS Block
+ ts_disable          |  <port_list>                                                                    | Disables TS Block
+ ts_ltc_get          |  <port_no>                                                                      | Get Local Time Counter
+ ts_ltc_set          |  <port_no> time <sh:sl:ns:ps>                                                   | Set Local Time Counter
+ ts_pps_incfg        |  <port_no> clk_sel <clk_sel> sync_mode <sync_mode>                              | Configure LS controller Input pps mode
+                     | ls_ctrl_sel <ls_ctrl_sel>                                                       |
+ ts_pps_outcfg       |  <port_no> clk_sel <clk_sel> sync_mode <sync_mode>                              | Configure LS controller Output pps mode
+                     | pps_wid <pps_wid> pps_in <pps_in> ls_ctrl_sel <ls_ctrl_sel>                     |
+ ts_sertod_incfg     |  <port_no> pin_sel <pin_sel> pol <pol>                                          | Configure LS controller Input Serial ToD
+                     |  sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel> [load|save]                    |
+ ts_sertod_outcfg    |  <port_no> pin_sel <pin_sel> pol <pol>                                          | Configure LS controller output Serial ToD
+                     |  sync_mode <sync_mode> wfh <wfh> wfl <wfl>                                      |
+ ts_delta_adj        |  <port_no> adj <ns:sns> ls_ctrl_sel <ls_ctrl_sel>                               | Configure LTC ToD adjustment in ns, sns
+ ts_epps_conf        |  <port_no> clk_sel <clk_sel> sync_mode <sync_mode>                              | Configure LS Controller Input EPPS mode
+                     |  ls_ctrl_sel <ls_ctrl_sel> det_cfg <det_cfg>                                    |
+ ts_ltc_ls           |  <port_no> pin_action <pin_action>                                              | Select LTC Operation mode
+ ts_lsc_sel          |  <port_no> ls_ctrl_sel <ls_ctrl_sel>                                            | LSC Unit Select
+ ts_fifo_get_empty   |  <port_no>                                                                      | Get and clear FIFO TS Entry
+ ts_delay_set        |  <port_no> timing_mode <timing_mode> delay <delay>                              | Set Time Interval/latency in ns
+ ts_delay_get        |  <port_no> timing_mode <timing_mode>                                            | Get Time Interval/latency in ns
+ ts_port_state       |                                                                                 | Provides TS State of all Ports
+ ts_conf_get         |  <port_no> conf_sel <conf_sel>                                                  | Get TS Configurations
+ ts_port_stati       |  <port_no>                                                                      | Get TS Port Statistics
+ ts_1pps_out_en      |  <port_no> ls_ctrl_sel <ls_ctrl_sel>                                            | Enable 1PPS output signal
+ ts_sig_set          | <port_no> sig <sig_val>                                                         | Enable PTP Signature Fields
+----
+
+=== TS Block Initialization
+Before accessing the TS block, it is mandatory to initialize the TS. This can be done using the following command.
+----
+#mesa-cmd ts_init_conf <port_list> clk_src <clk_src> tx_fifo <tx_fifo> tc_op <tc_op> dly_10b <dly_10b> tx_af <tx_af> mch <mch>
+----
+
+* clk_src <clk_src> - Clock source
+    - 0 - Internal, 1 - Rx Port 0, 2 - Rx Port 1, 3 - Rx Port 2, 4 - Rx Port 3, 5 - External
+
+
+* tx_fifo <tx_fifo> - Tx TS FIFO access clk_mode
+    - 0 - Timestamp can be read from normal CPU interface 
+    - 1 - Timestamps are pushed out on the SPI interface
+
+* tc_op <tc_op> - TC operating mode
+    - 0 - Mode A  
+    - 1 - Mode B - Subtract local time at ingress and add at egress from CF
+    - 2 - Mode C - Subtract local time at ingress and add at egress from CF and use 48 bits in CF
+
+* dly_10b <dly_10b> - Delay req/response
+    - 0 - Disable
+    - 1 - Store 10-byte ingress timestamp for delay request message. Used for auto delay req/response
+
+* tx_af <tx_af> - If true, PHY will insert timestamp in follow-up message instead of generating interrupt to application, not support by LAN80XX PHYs
+
+* mch <mch> 
+    - 0 - Disable, 1 - Enable
+
+----
+# mesa-cmd ts_init_conf 2 clk_src 0 tx_fifo 0 tc_op 0 dly_10b 0 tx_af 0 mch 0
+
+ ...... TS Block Configured on Port : 1......
+----
+
+NOTE: Base port needs to be initialized before using the other ports, LTC PLL Configuration are done only on Base port of the PHY.
+
+=== TS Block Egress Port Configuration
+==== Egress Port Classifier Configuration
+The command below are used to configure Egress port Classifier.
+----
+#mesa-cmd tx_class_conf <port_list> eng_id <eng_idx> entype <entype>
+----
+
+* eng_id <eng_idx> - PTP Engine Select (0 or 1 or 2)
+
+* entype <entype> - Encapsulation type
+    - 0 - None, 1 - Eth PTP, 2 - Eth IP PTP, 3 - Eth IP IP PTP, 4 - Eth Eth PTP, 5 - Eth Eth IP PTP,
+    - 6 - Eth MPLS IP PTP, 7 - Eth MPLS Eth PTP, 8 - Eth MPLS Eth IP PTP
+
+Based on Encapsulation type selected, Ethernet/IP Header classification parameters will be fetched from 
+User
+
+----
+#mesa-cmd tx_class_conf 2 eng_id 0 entype 1
+
+------------------------------------------
+
+ First Layer Ethernet Header Configuration
+
+ ------------------------------------------
+
+ Match PTP Packet MAC types [0 : Any, 1 : 48 Bit, 2: Any Unicast, 3: Any Multicast]: 0
+
+ VLAN Check [0 : parse VLAN if any, 1: verify configured VLAN tag configuration]: 0
+
+ Number of Tags: 0
+
+ ...... TS Tx classifier Configuration on Port : 2......
+----
+
+==== Egress Port Clock Configuration
+The command below are used to configure Egress port Clock.
+
+----
+ #mesa-cmd tx_clock_conf <port_list> eng_id <eng_idx> clk_mode <clk_mode> dly_type <dly_type>
+----
+
+* eng_id <eng_idx> - PTP Engine Select (0 or 1 or 2)
+* clk_mode <clk_mode> - PTP Clock Operational Mode
+    - 0 - None, 1 - BC1STEP, 2 - BC2STEP, 3 - TC1STEP, 4 - TC2STEP
+* dly <dly_type> - PTP delay measurement method
+    - 0 - Peer-to-Peer delay measurement method 
+    - 1 - End-to-End delay measurement method
+
+----
+ # mesa-cmd tx_clock_conf 2 eng_id 0 clk_mode 1 dly_type 1
+ ...... TS Tx Clock Configuration on Port : 1.....
+----
+
+=== TS Block Ingress Port Configuration
+==== Ingress Port Classifier Configuration
+The command below are used to configure Ingress port Classifier.
+----
+#mesa-cmd rx_class_conf <port_list> eng_id <eng_idx> entype <entype>
+----
+
+* eng_id <eng_idx> - PTP Engine Select (0 or 1 or 2)
+* entype <entype> - Encapsulation type
+    - 0 - None, 1 - Eth PTP, 2 - Eth IP PTP, 3 - Eth IP IP PTP, 4 - Eth Eth PTP, 5 - Eth Eth IP PTP,
+    - 6 - Eth MPLS IP PTP, 7 - Eth MPLS Eth PTP, 8 - Eth MPLS Eth IP PTP
+
+Based on Encapsulation type selected, Ethernet/IP Header classification parameters will be fetched from 
+User
+
+----
+ #mesa-cmd rx_class_conf 2 eng_id 0 entype 1
+
+ ------------------------------------------
+
+ First Layer Ethernet Header Configuration
+
+ ------------------------------------------
+
+ Match PTP Packet MAC types [0 : Any, 1 : 48 Bit, 2: Any Unicast, 3: Any Multicast]: 0
+
+ VLAN Check [0 : parse VLAN if any, 1: verify configured VLAN tag configuration]: 0
+
+ Number of Tags: 0
+
+ ...... TS Rx classifier Configuration on Port : 1......
+----
+
+==== Ingress Port Clock Configuration
+The command below are used to configure Ingress port Clock.
+
+----
+ #mesa-cmd rx_clock_conf <port_list> eng_id <eng_idx> clk_mode <clk_mode> dly_type <dly_type>
+----
+
+* eng_id <eng_idx> - PTP Engine Select (0 or 1 or 2)
+* clk_mode <clk_mode> - PTP Clock Operational Mode
+    - 0 - None, 1 - BC1STEP, 2 - BC2STEP, 3 - TC1STEP, 4 - TC2STEP
+* dly <dly_type> - PTP delay measurement method
+    - 0 - Peer-to-Peer delay measurement method 
+    - 1 - End-to-End delay measurement method
+
+----
+ # mesa-cmd rx_clock_conf 1 eng_id 0 clk_mode 1 dly_type 1
+
+ ...... TS Rx Clock Configuration on Port : 0.....
+----
+
+=== TS Block Enable/Disable
+Following command is used to Enable/Disable TS block.
+
+    * mesa-cmd ts_enable <port_list>
+    * mesa-cmd ts_disable <port_list>
+
+----
+# mesa-cmd ts_enable 1,2
+
+ ...... TS Block Enabled on Port : 0......
+
+ ...... TS Block Enabled on Port : 1......
+----
+
+=== TS FIFO Signature configuration for 2-step mode
+
+The following command is used to enable various fields of the PTP FIFO Signatures, which have a size of 28 bytes. This configuration is applicable when operating in 2-step mode.
+
+    * mesa-cmd ts_sig_set <port_no> sig <sig_val>
+
+Following are different Signature options supported
+
+`<sig_val>`: 1 - Seq ID, Message type, Domain Number
+             2 - Seq ID, Message type, Domain Number, Source Port ID
+             3 - Seq ID, Message type, Domain Number, IPv4 Address
+             4 - Seq ID, Message type, Domain Number, Source Port ID, IPv4 Address
+             5 - Seq ID, Message type, Domain Number, DMAC Address
+             6 - Seq ID, Message type, Domain Number, DMAC Address, IPv4 Address
+             7 - Seq ID, Message type, Domain Number, IPv4 Address, IPv6 Address
+
+NOTE: By default `Seq ID` and `Message Type` are enabled after configuring PTP Classifier block
+
+NOTE: For VSC Phy's `Seq ID`, `Domain number`, `Source port id`, `Message Type` are enabled in PTP Classifier block by Default. Also the `sig_val` option `7` is not supported by VSC phy's as IPv6 Support is not available.
+
+=== Disable PTP Engine Flow
+
+The following command will disable the PTP Classifier and Clock configuration for the specified PTP Engine on the port, affecting both the Egress and Ingress directions.
+
+    * mesa-cmd ts_flow_dis <port_no> eng_id <eng_idx>
+
+=== Sample Config
+
+Following sample application log demonstrates the configuration of PTP engine on Port 1 in BC 1-Step for Eth-IP-PTP Encapsulation
+
+----
+#
+# mesa-cmd deb phy id
+Port       part-id(hex)     Rev    Max speed      Host IF
+ ----------------------------------------------------------
+1           32836(0x8044)   0xa1       25G        SFI
+2           32836(0x8044)   0xa1       25G        SFI
+3           32836(0x8044)   0xa1       25G        SFI
+4           32836(0x8044)   0xa1       25G        SFI
+5           33368(0x8258)   0x1        10G        SFI
+6           33368(0x8258)   0x1        10G        SFI
+7           33368(0x8258)   0x1        10G        SFI
+8           33368(0x8258)   0x1        10G        SFI
+9            8221(0x201d)   0x1        1G         SGMII
+#
+#
+# mesa-cmd ts
+/* List of Commands in TS-DEMO */
+#
+#
+#
+# mesa-cmd ts_init_conf  1 clk_src 0 tx_fifo 0 tc_op 0 dly_10b 0 tx_af 0 mch 0
+
+ ...... TS Block Configured on Port : 1......
+#
+#
+# mesa-cmd ts_enable 1
+
+ ...... TS Block Enabled on Port : 1......
+#
+#
+# mesa-cmd tx_class_conf 1 eng_id 0 entype 2
+
+ ------------------------------------------
+
+ First Layer Ethernet Header Configuration
+
+ ------------------------------------------
+
+ Match PTP Packet MAC types [0 : Any, 1 : 48 Bit, 2: Any Unicast, 3: Any Multicast]: 0
+
+ VLAN Check [0 : parse VLAN if any, 1: verify configured VLAN tag configuration]: 0
+
+ Number of Tags: 0
+
+ IP Version [0 : ip4v, 1: ip6v]: 0
+
+ IP Address Match [0 : Disable match, 1: Desti. IP match, 2: Source IP match]: 0
+
+ ...... TS Tx classifier Configuration on Port : 1......
+#
+#
+#
+#
+#
+# mesa-cmd tx_clock_conf 1 eng_id 0 clk_mode 1 dly_type 0
+
+ ...... TS Tx Clock Configuration on Port : 0......
+#
+#
+#
+----
+
+The above configuration will update Origin Timestamp field of the Eth-Ipv4-PTP packet sent in Egress Direction
+
+
+=== TS Block Local Time Counter
+
+The local time counter keeps the local time for the device and the time is monitored and synchronized to
+an external reference by the CPU.
+
+==== LTC Load/Save operation
+
+This operation involves storing or loading the LTC counter values, and the presence of a 1PPS signal is essential for
+the Load/Store process to occur.The user must supply a 1PPS signal from the HOST to one of the PHY's LSC pins.
+The corresponding LSC pin should be configured as an input and set to operate either in one-shot or continuous mode.
+
+The configuration of the LSC pin as an input can be performed using the `ts_pps_incfg` command.
+
+* mesa-cmd ts_pps_incfg <port_no> clk_sel <clk_sel> sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel>
+
+----
+mesa-cmd ts_pps_incfg <port_no> clk_sel <clk_sel> sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel>
+
+Description:
+ -----------
+    Configure LSC pin for LS controller Input.
+
+Syntax:
+ -------
+    ts_pps_incfg <port_no> clk_sel <clk_sel> sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel>
+
+Parameters:
+
+    <port_no>    : Port number or zero
+
+    <clk_sel>    : 0 - PTP_LSC_PIN[0], 1 - PTP_LSC_PIN[1], 2 - PTP_LSC_PIN[2], 3 - PTP_LSC_PIN[3],
+         4 - No Clock(Asyncronous mode), 5 - L/S reference clock, 6 - L/S reference clock div2, 7 - L/S reference clock div4
+         8 - L/R reference clock div5, 9 - L/R reference clock div8
+
+    <sync_mode>  : 0 - Immediate, 1 - One Shot, 2 - Continuous
+
+    <ls_ctrl_sel>: 0 - LS0, 1 - LS1, 2 - LS2, 3 - LS3
+----
+
+The `clk_sel` option allows you to specify when the 1PPS signal pin should be sampled to determine its current state.
+
+If *Asynchronous mode* is selected, the PTP block samples the state of the 1PPS signal on both the rising and falling edges of the LTC_CLK,
+which operates at 318 MHz. This results in the 1PPS pin being sampled approximately every 1.6 nanoseconds.
+
+If a rising edge of the 1PPS signal occurs between these 1.6 ns intervals, it may impact sub-nanosecond accuracy.
+
+To address this, there is an option to synchronize the sampling of the 1PPS signal. Instead of using the LTC_CLK for sampling,
+user can provide an external clock to any of the LSC pins that is synchronized with the 1PPS signal.
+By selecting `clk_sel` to a mode other than Asynchronous, the 1PPS signal will be sampled using the external synchronous clock provided by the user, thereby improving sub-nanosecond accuracy.
+
+
+Once the LSC pin is configured as an input and the 1PPS signal is connected to the corresponding LSC pin,
+the LTC load and store operations can be performed using the following commands:
+
+. `LTC Save`
+    * mesa-cmd ts_ltc_ls_en <port_no> pin_action <pin_action> - with `pin_action` is set to 1 for LTC Save
+	* mesa-cmd ts_ltc_get <port_no> -- to retrieve Current LTC value
+ 
+. `LTC Load`
+    * mesa-cmd ts_ltc_set <port_no> time <sh:sl:ns:ps> -- New LTC value to be loaded
+	* mesa-cmd ts_ltc_ls_en <port_no> pin_action <pin_action> - with `pin_action` is set to 0 for LTC Load
+
+
+The following sample application log demonstrates configuring LSC Pin 0 as a 1PPS input pin and performing continuous LTC save operation on port 1.
+
+----
+#
+# mesa-cmd ts_init_conf  1 clk_src 0 tx_fifo 0 tc_op 0 dly_10b 0 tx_af 0 mch 0
+
+ ...... TS Block Configured on Port : 1......
+#
+#
+#
+# mesa-cmd ts_pps_incfg 1 clk_sel 4 sync_mode 2 ls_ctrl_sel 0
+
+ ...... TS PPS Input Configured for Port : 1......
+#
+#
+# mesa-cmd ts_enable 1
+
+ ...... TS Block Enabled on Port : 1......
+#
+# mesa-cmd ts_ltc_ls_en 1 pin_action 1
+
+ ...... TS LTC Action Save performed on Port : 1......
+#
+# mesa-cmd ts_ltc_get 1
+
+ ...... TS Local Time Counter on Port : 1......
+seconds.high: 0
+seconds.low: 11
+nanoseconds: 12
+picoseconds: 146
+
+#
+# mesa-cmd ts_ltc_get 1
+
+ ...... TS Local Time Counter on Port : 1......
+seconds.high: 0
+seconds.low: 13
+nanoseconds: 11
+picoseconds: 0
+
+#
+----
+
+The following sample application log demonstrates configuring LSC Pin 0 as a 1PPS input pin and perform LTC load operation on port 1.
+
+----
+
+#
+# mesa-cmd ts_init_conf  1 clk_src 0 tx_fifo 0 tc_op 0 dly_10b 0 tx_af 0 mch 0
+
+ ...... TS Block Configured on Port : 1......
+#
+# mesa-cmd ts_pps_incfg 1 clk_sel 4 sync_mode 2 ls_ctrl_sel 0
+
+ ...... TS PPS Input Configured for Port : 1......
+#
+#
+# mesa-cmd ts_enable 1
+
+ ...... TS Block Enabled on Port : 1......
+#
+# 
+# mesa-cmd ts_ltc_set 1 time 0:1000:23:42
+
+ ...... TS LTC Set on Port : 1......
+#
+# mesa-cmd ts_ltc_ls_en 1 pin_action 0
+
+ ...... TS LTC Action Load performed on Port : 1......
+#
+#
+
+----
+
+==== PPS Output
+
+LSC Pins of the PHY can be configured as Output pin to generate either 1PPS signal or to generate a square wave of configurable frequency
+
+    * mesa-cmd ts_pps_outcfg <port_no> clk_sel <clk_sel> out_mode <out_mode_sel> pps_wid <pps_wid> pps_in <pps_in> ls_ctrl_sel <ls_ctrl_sel>
+
+----
+Description:
+    Configure LSC pin for LS controller Output.
+
+Syntax:
+    ts_pps_outcfg <port_no> clk_sel <clk_sel> out_mode <out_mode_sel> pps_wid <pps_wid> pps_in <pps_in> ls_ctrl_sel <ls_ctrl_sel>
+
+Parameters:
+    <port_no>     : Port number or zero
+
+    <clk_sel>     : 0 - PTP_LSC_PIN[0], 1 - PTP_LSC_PIN[1], 2 - PTP_LSC_PIN[2], 3 - PTP_LSC_PIN[3],
+         4 - No Clock(Asyncronous mode), 5 - L/S reference clock, 6 - L/S reference clock div2, 7 - L/S reference clock div4
+         8 - L/R reference clock div5, 9 - L/R reference clock div8
+
+    <out_mode_sel>: 0 - Square Wave,  1 - 1PPS, 2 - NSEC Bit Out
+
+    <pps_wid>     : PPS Pulse High Width
+
+    <pps_in>      : Waveform low width or 1PPS Pulse start boundary in NSEC
+
+    <ls_ctrl_sel> : 0 - LS0, 1 - LS1, 2 - LS2, 3 - LS3
+----
+
+To generate 1PPS Asyncronous Output Pulse, user can also use the following command to generate 1PPS pulse from selected LSC Pin
+
+    * mesa-cmd ts_1pps_out_en <port_no> ls_ctrl_sel <ls_ctrl_sel>
+
+
+==== Serial ToD
+Serial ToD refers to the transmission of Time of Day (ToD) information over a serial interface.
+
+===== Serial ToD Input
+The command below is used to configure Serial ToD as Input.
+----
+ #mesa-cmd ts_sertod_incfg <port_no> pin_sel <pin_sel> pol <pol> sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel> [load|save]
+----
+* pin_sel <pin_sel> - Selects which PTP1588_LSC pin to use as input pps
+    0: PTP1588_LSC[0]
+    1: PTP1588_LSC[1]
+    2: PTP1588_LSC[2]
+    3: PTP1588_LSC_3_P/N - Only Input Supported.
+* pol <pol> - Polarity of the PTP pins.
+    0: Active high
+    1: Active low
+* sync_mode <sync_mode> - Sync Mode
+    0 - Immediate, 1 - One Shot, 2 - Continuous
+* ls_ctrl_sel <ls_ctrl_sel>
+    0 - LS0, 1 - LS1, 2 - LS2, 3 - LS3
+* [load|save] - Load Enable or Save Enable
+----
+ #mesa-cmd ts_sertod_incfg 2 pin_sel 2 pol 0 sync_mode 0 ls_ctrl_sel 1 load
+
+ ...... TS Serial ToD Input Configured for Port : 1......
+----
+
+===== Serial ToD Output
+The command below is used to configure Serial ToD as Output.
+----
+ #mesa-cmd ts_sertod_outcfg <port_no> pin_sel <pin_sel> pol <pol> sync_mode <sync_mode> wfh <wfh> wfl <wfl>
+----
+* pin_sel <pin_sel> - Selects which PTP1588_LSC pin to use as input pps
+    0: PTP1588_LSC[0]
+    1: PTP1588_LSC[1]
+    2: PTP1588_LSC[2]
+    3: PTP1588_LSC_3_P/N - Only Input Supported.
+* pol <pol> - Polarity of the PTP pins.
+    0: Active high
+    1: Active low
+* sync_mode <sync_mode> - Sync Mode
+    0 - Immediate, 1 - One Shot, 2 - Continuous
+* wfh <wfh> - Waveform High Period in ns
+* wfl <wfl> - Waveform Low Period in ns
+----
+ #mesa-cmd ts_sertod_outcfg 2 pin_sel 2 pol 0 sync_mode 0 wfh 2 wfl 1
+
+ ...... TS Serial ToD Output Configured for Port : 1......
+----
+
+==== Delta Adjustment
+Delta adjutemnt is used to fine-tune the ToD in ns/sns granularity and
+this adjustment can be done using following command
+
+----
+ #mesa-cmd ts_delta_adj <port_no> adj <ns:sns> ls_ctrl_sel <ls_ctrl_sel>
+----
+* adj <ns:sns> - Time adjustment in nanoseconds and subnanoseconds
+* ls_ctrl_sel <ls_ctrl_sel>
+    0 - LS0, 1 - LS1, 2 - LS2, 3 - LS3
+
+----
+ #mesa-cmd ts_delta_adj 2 adj 2:5 ls_ctrl_sel 1
+
+ ...... TS LTC Delta Adjust Configured for Port : 1......
+----
+
+==== ePPS Configuration
+The configuration for ePPS (Embedded Pulse Per Second) can be accomplished using the following command.
+----
+#mesa-cmd ts_epps_conf <port_no> clk_sel <clk_sel> sync_mode <sync_mode> ls_ctrl_sel <ls_ctrl_sel> det_cfg <det_cfg>
+----
+* clk_sel <clk_sel> - Selects which PTP1588_LSC pin to use for synchronization
+0-3: PTP1588_LSC_PIN[x]
+4: No clock is used in operation
+5: L/S reference clock
+6: L/S reference clock div2
+7: L/S reference clock div4
+8: L/R reference clock div5
+9: L/R reference clock div8
+* sync_mode <sync_mode> - Sync Mode
+    0 - Immediate, 1 - One Shot, 2 - Continuous
+* ls_ctrl_sel <ls_ctrl_sel>
+    0 - LS0, 1 - LS1, 2 - LS2, 3 - LS3
+* det_cfg <det_cfg> - ePPS  event cycle detection adjustment
+
+----
+# mesa-cmd ts_epps 2 clk_sel 4 sync_mode 0 ls_ctrl_sel 0 det_cfg 10
+
+ ...... TS EPPS Configured for Port : 1......
+----
+
+=== TS Time Interval/latency
+The following command is used to set Time Interval/latency in ns/sns.
+----
+# mesa-cmd ts_delay_set <port_no> timing_mode <timing_mode> delay <delay>
+----
+* timing_mode <timing_mode>
+    0 - Delay Asymmetry, 1 - Path Delay, 2 - Egress Latency, 3 - Ingress Latency
+* delay <delay> 
+    Time Interval in ns/sns
+----
+# mesa-cmd ts_delay_set 2 timing_mode 1 delay 2.5
+
+...... TS Set Path Delay on Port : 1 ......
+----
+The following command is used to get Time Interval/latency.
+----
+# mesa-cmd ts_delay_get <port_no> timing_mode <timing_mode>
+----
+* timing_mode <timing_mode>
+    0 - Delay Asymmetry, 1 - Path Delay, 2 - Egress Latency, 3 - Ingress Latency
+
+----
+# mesa-cmd ts_delay_get 2 timing_mode 1
+
+ ...... TS Path Delay on Port : 1......
+
+ Delay: 2.500000 ns (Equivalent hex value is 0x280)
+----
+
+=== TS FIFO
+
+The command 'ts_fifo_get_empty' is used to obtain timestamp entries for modes such as BC2STEP and TC2STEP for Egress Path.
+
+    * mesa-cmd ts_fifo_get_empty <port_no>
+
+----
+# mesa-cmd ts_fifo_get_empty 1
+
+PHY Fifo read: Packet : 1 -> port_no 1, msg_type: 0, domain 1, seq 8, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 1 -> Dest IPv4 : 224.0.1.120
+PHY Fifo read: Packet : 1 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841381646, sub-Nsec 59
+
+PHY Fifo read: Packet : 2 -> port_no 1, msg_type: 2, domain 1, seq 35, Source portId : 0x0:0:0:0:0:0:0:0:0:1
+PHY Fifo read: Packet : 2 -> DMAC : 0x00:0x00:0x00:0x00:0x00:0x00
+PHY Fifo read: Packet : 2 -> Dest IPv4 : 0.0.0.0
+PHY Fifo read: Packet : 2 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841381749, sub-Nsec 244
+
+PHY Fifo read: Packet : 3 -> port_no 1, msg_type: 3, domain 0, seq 0, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 3 -> Dest IPv4 : 224.0.1.120
+PHY Fifo read: Packet : 3 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841381861, sub-Nsec 69
+
+PHY Fifo read: Packet : 4 -> port_no 1, msg_type: 0, domain 2, seq 4, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 4 -> DMAC : 0x00:0x00:0x00:0x00:0x00:0x00
+PHY Fifo read: Packet : 4 -> Dest IPv4 : 0.0.0.0
+PHY Fifo read: Packet : 4 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841381964, sub-Nsec 254
+
+PHY Fifo read: Packet : 5 -> port_no 1, msg_type: 0, domain 1, seq 8, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 5 -> Dest IPv4 : 224.0.1.120
+PHY Fifo read: Packet : 5 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841382130, sub-Nsec 19
+
+PHY Fifo read: Packet : 6 -> port_no 1, msg_type: 2, domain 1, seq 35, Source portId : 0x0:0:0:0:0:0:0:0:0:1
+PHY Fifo read: Packet : 6 -> DMAC : 0x00:0x00:0x00:0x00:0x00:0x00
+PHY Fifo read: Packet : 6 -> Dest IPv4 : 0.0.0.0
+PHY Fifo read: Packet : 6 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841382233, sub-Nsec 203
+
+PHY Fifo read: Packet : 7 -> port_no 1, msg_type: 3, domain 0, seq 0, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 7 -> Dest IPv4 : 224.0.1.120
+PHY Fifo read: Packet : 7 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841382339, sub-Nsec 255
+
+PHY Fifo read: Packet : 8 -> port_no 1, msg_type: 0, domain 2, seq 4, Source portId : 0x0:0:0:0:0:0:0:0:0:0
+PHY Fifo read: Packet : 8 -> DMAC : 0x00:0x00:0x00:0x00:0x00:0x00
+PHY Fifo read: Packet : 8 -> Dest IPv4 : 0.0.0.0
+PHY Fifo read: Packet : 8 -> tx time:  Sec_Hi:0, Sec_Low:228, Nsec: 841382448, sub-Nsec 228
+
+#
+----
+
+
+=== TS Block Status
+To Check whether the TS is enabled or disabled on the Port the command 'ts_port_state' is used.
+
+    * mesa-cmd ts_port_state
+----
+ # mesa-cmd ts_port_state
+ Port    Status
+ ----------------------
+ 1       Disabled
+ 2       Enabled
+ 3       Disabled
+ 4       Disabled
+ 5         --
+ 6         --
+ 7         --
+ 8         --
+ 9         --
+ 10        --
+ 11        --
+ 12        --
+ 13        --
+ 14        --
+ 15        --
+ 16        --
+ 17        --
+ 18        --
+ 19        --
+ 20        --
+----
+
+=== TS Block Configuration Get
+
+To Check TS block configurations 'ts_conf_get' is used.
+----
+ #mesa-cmd ts_conf_get <port_no> conf_sel <conf_sel>
+----
+    * conf_sel <conf_sel> 
+    - 0 - TS Block Init Configuration
+    - 1 - TS Tx Classifier Configuration
+    - 2 - TS Tx Clock Configuration
+    - 3 - TS Rx Classifier Configuration
+    - 4 - TS Rx Clock Configuration
+    - 5 - TS FIFO Signature Configuration
+----
+# mesa-cmd ts_conf_get 2 conf_sel 0
+
+---------------TS Init Configuration: Port 1-------------------------
+ clk_freq: MEPA_TS_CLOCK_FREQ_15625M
+
+ clk_src: MEPA_TS_CLOCK_SRC_FROM_RX_PORT1
+
+ rx_ts_pos: MEPA_TS_RX_TIMESTAMP_POS_IN_PTP
+
+ rx_ts_len: MEPA_TS_RX_TIMESTAMP_LEN_30BIT
+
+ tx_fifo_mode: MEPA_TS_FIFO_MODE_NORMAL
+
+ tx_ts_len: MEPA_TS_FIFO_TIMESTAMP_LEN_4BYTE
+
+ tx_fifo_spi_conf: 0
+
+ auto_clear_ls: 0
+
+ tc_op_mode: MEPA_TS_TC_OP_MODE_A
+
+ dly_req_recv_10byte_ts: 0
+
+ tx_auto_followup_ts: 187
+
+ mch_pch_conf: { pch_en: 127, save_ts_with_crc_err: 0, mch_en: 0, ts_len_ing: MEPA_MCH_TS_32NS_
+ONS, ts_len_egr: MEPA_MCH_TS_32NS_ONS }
+----
+=== TS Statistics
+
+The following command is used get TS Statistics for selected port.
+
+    * mesa-cmd ts_port_stati <port_no>
+
+----
+# mesa-cmd ts_port_stati 2
+ Timestamp Port Statistics
+ ============================
+ Ingress Preamble Shrink Errors: 0
+ Egress Preamble Shrink Errors: 0
+ Ingress FCS Errors: 0
+ Egress FCS Errors: 0
+ Ingress Frame Modification Count: 0
+ Egress Frame Modification Count: 0
+ Timestamp FIFO Transmit Count: 0
+ Timestamp FIFO Drop Count: 0
+----
+
+=== TS CSR Read/Write
+
+The following commands are used to read and write the TS Block CSR Registers for the given Port respectively.
+
+   * mesa-cmd ts_csr_rd <port_no> mmd <dev-id> csr_addr <csr_addr>
+   * mesa-cmd ts_csr_wr <port_no> mmd <dev-id> csr_addr <csr_addr> csr_value <value>
+
+----
+# mesa-cmd ts_csr_rd 1 mmd 14 csr_addr 0
+Port  MMD   Address  31      24 23       16 15       8   7       0    Value
+----  ----  -------  -----------------------------------------------  -----
+1     14    0x0000   0000. 0000. 0000. 0000. 0000. 0000. 0000. 1111   0xf
+#
+#
+# mesa-cmd ts_csr_wr 1 mmd 14 csr_addr 0 csr_value 15
+----
+

@@ -1,0 +1,51 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+
+= Introduction to MESA-DEMO Application
+
+== Introduction
+The Microchip Ethernet PHY API (MEPA) provides a production quality
+comprehensive C library supporting all the Ethernet PHYs.
+
+The binary executable in the system which is linking with the MESA library 
+and MEPA Library is referred to as the 'mesa-demo' application. An application
+is required to instantiate the API, and once instantiated the application
+exclusively owns the API and the underlying HW.
+
+This MESA-DEMO application show how the MEPA APIs can be instantiated
+and how to configure different PHYs for various functionalities through MEPA APIs,
+using PHY Evaluation Boards. On top of the MEPA APIs, the PHY driver can still have
+chip specific APIs that are unique to that PHY, that are accessed directly by the
+application mesa-demo application is provided as example code to help getting started.
+
+More about MEPA is available in link:mepa-doc.html#mepa/docs/introduction[MEPA-Intro] section.
+
+The executable binary of this mesa-demo application is combined with the BSP and can
+run on the reference systems. More on this in the
+link:#mesa/demo/docs/getting-started[Getting Started] section.
+
+== Directory layout
+  
+* `./mesa/demo/mepa_apps` A demo application for different modules of PHY showing 
+ how the MEPA API can be used to configure PHY through MEPA APIs.
+
+* `./mesa/demo/mepa_scripts` - This Directory will have JSON file inputs for few 
+  MEPA Sample Applications and it also have Python Scripts of few Sample Applications
+  to handle Configurations specific to Particular PHYs.
+
+* `./mesa/demo/examples` - The purpose of these Cook Book examples is to explain how
+  specific use-cases can be supported and how to handle it in MEPA/MESA.
+
+
+== Sample Applications Support
+
+Following are the List of MEPA Sample Applications Available
+ 
+* link:#mesa/demo/docs/port-config[Port Confgiration Application]
+* link:#mesa/demo/docs/kat-demo[Known Answer Test(KAT) MACsec Application]
+* link:#mesa/demo/docs/macsec-demo[MACsec Demo Application]
+* link:#mesa/demo/docs/macsec-key-rollover-demo[MACsec Key Rollover Demo Application]
+* link:#mesa/demo/docs/synce-demo[SyncE Demo Application]
+* link:#mesa/demo/docs/gpio-demo[GPIO Demo Application]
+* link:#mesa/demo/docs/crossconnect-demo[Crossconnect Demo Application]

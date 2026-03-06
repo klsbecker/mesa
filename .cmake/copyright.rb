@@ -65,6 +65,14 @@ end
   next if /mesa.docs.resources.jquery/ =~ f
   next if /mesa.docs.resources.bootstrap/ =~ f
 
+  next if "mesa/demo/docs/resources/pygments.css" == f
+  next if "mesa/demo/docs/resources/asciidoctor-default.css" == f
+  next if /mesa.demo.docs.resources.font/ =~ f
+  next if /mesa.demo.docs.resources.jquery/ =~ f
+  next if /mesa.demo.docs.resources.bootstrap/ =~ f
+  next if /mesa.demo.docs.jquery/ =~ f
+  next if /mesa.demo.docs.font/ =~ f
+
   next if "mepa/docs/resources/asciidoctor-default.css" == f
   next if "mepa/docs/resources/pygments.css" == f
   next if /mepa.docs.resources.font/ =~ f

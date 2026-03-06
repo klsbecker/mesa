@@ -1,0 +1,657 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= GPIO Demo Application
+
+== GPIO Demo Application Description
+PHYs will have multiplexed General Purpose Input Output (GPIO) programmable pins which can individually
+configured through GPIO Registers.
+
+Each GPIO Pin in PHY can perform one of the following functions +
+
+* GPIO Input +
+* GPIO Output +
+* GPIO Alternate Function +
+
+== Directory
+* `./mesa/demo/mepa_apps/phy_gpio_demo.h` - Header File for GPIO Demo Application
+* `./mesa/demo/mepa_apps/phy_gpio_demo.c` - Source File for GPIO Demo Application
+
+== GPIO Application Supported Commands
+GPIO Sample Application has following commands to configure the GPIO Pin and events of the PHY.
+
+    * link:#mesa/demo/docs/gpio-demo@_gpio_mode_configuration[gpio_conf] -- GPIO Pin Mode Configuration
+    * link:#mesa/demo/docs/gpio-demo@_gpio_write[gpio_out_set] -- Configure the Value for GPIO Pin
+    * link:#mesa/demo/docs/gpio-demo@_gpio_read[gpio_in_get] -- Get the Current value of GPIO Pin
+    * link:#mesa/demo/docs/gpio-demo@_gpio_toggle[gpio_toggle] -- Toggle the Current value of GPIO Pin
+    * link:#mesa/demo/docs/gpio-demo@_event_set[event_set] -- Enable/Disable the Events
+    * link:#mesa/demo/docs/gpio-demo@_event_poll[event_poll] -- Enable the polling and get the events triggered
+
+== GPIO Mode Configuration
+GPIO Pin can be configured as *Output* or *Input* or *Alternate Mode* with help of the following Application 
+Command.
+
+    * `mesa-cmd PHY GPIO_CONF <port_no>`
+
+Once the above mentioned `gpio_conf` command is executed with port number as input of the command, application will prompt
+a menu listing the options to configure the GPIO PIn in different modes, user can select the required mode from the list and
+configure the provided GPIO Pin, based on the mode selected by user application requires different inputs which needs to be
+provided by the user.
+
+The following Sections will describe the different inputs required for the application to configure the GPIO Pin based on the
+PHY connected to the port and mode selected by the User.
+
+=== GPIO Configuration for VSC825X PHYs
+VSC825X Phy has 40 GPIO Pins and each pin can be configured as `Output` or `Input` mode or else it can be configured
+as Alternate function.
+
+The GPIO functions of VSC825X is organized into 2 groups *per-channel functions* and *global functions*.
+
+ * Per-channel functions include an I2C master (often used for communicating with a module), host and line link status indications,
+activity LEDs, and WAN interface sublayer (WIS), and ROSI/TOSI interface functions.
+
+ * Global functions include interrupt generation logic, an I2C slave interface, and other miscellaneous I/O configuration and control.
+
+GPIO pins of VSC825X can be set to any function as needed, but this GPIO Sample app will use the recommended GPIO configuration
+from the VSC825x datasheet for Alternate function configuration.
+
+Below table will provide the GPIO Pin and its corresponding Alternate Function which this GPIO Sample Application Supports.
+
+[cols="1,1,1", options="header"]
+|===
+| Channel no.  | GPIO No  | Alternate Function
+|     0        |    0     | CH0_RATESEL0
+|     0        |    1     | CH0_MOD_ABS
+|     0        |    2     | CH0_I2C_MST_SCL
+|     0        |    3     | CH0_I2C_MST_SDA
+|     0        |    4     | CH0_TX_DIS
+|     0        |    5     | CH0_TX_FAULT
+|     0        |    6     | CH0_RX_LOS
+|     0        |    7     | CH0_LINK_UP
+|     1        |    8     | CH1_RATESEL1
+|     1        |    9     | CH1_MOD_ABS
+|     1        |    10    | CH1_I2C_MST_SCL
+|     1        |    11    | CH1_I2C_MST_SDA
+|     1        |    12    | CH1_TX_DIS
+|     1        |    13    | CH1_TX_FAULT
+|     1        |    14    | CH1_RX_LOS
+|     1        |    15    | CH1_LINK_UP
+|     2        |    16    | CH2_RATESEL0
+|     2        |    17    | CH2_MOD_ABS
+|     2        |    18    | CH2_I2C_MST_SCL
+|     2        |    19    | CH2_I2C_MST_SDA
+|     2        |    20    | CH2_TX_DIS
+|     2        |    21    | CH2_TX_FAULT
+|     2        |    22    | CH2_RX_LOS
+|     2        |    23    | CH2_LINK_UP
+|     3        |    24    | CH3_RATESEL0
+|     3        |    25    | CH3_MOD_ABS
+|     3        |    26    | CH3_I2C_MST_SCL
+|     3        |    27    | CH3_I2C_MST_SDA
+|     3        |    28    | CH3_TX_DIS
+|     3        |    29    | CH3_TX_FAULT
+|     3        |    30    | CH3_RX_LOS
+|     3        |    31    | CH3_LINK_UP
+|              |    32    | I2C_SLAVE_SDA
+|              |    33    | I2C_SLAVE_SCL
+|              |    34    | INTR_A
+|              |    35    | INTR_B
+|              |    36    | CH0_ACTIVITY
+|              |    37    | CH1_ACTIVITY
+|              |    38    | CH2_ACTIVITY
+|              |    39    | CH3_ACTIVITY
+|===
+
+Note:: VSC8258 Daughter card(UNG8416 -A) follows the above table for Alternate mode configuration of GPIO Pins.
+
+
+The Command `gpio_conf` will configure the GPIO Pin as any of the following Mode: +
+    
+    * link:#mesa/demo/docs/gpio-demo@_output_mode_configuration[Output Mode] +
+    * link:#mesa/demo/docs/gpio-demo@_input_mode_configuration[Input Mode]  +
+    * link:#mesa/demo/docs/gpio-demo@_alternate_mode_configuration[Alternate Function] +
+
+The Command `gpio_conf` is used with port number as argument of command to configure the GPIO Pin, below is the
+example provided.
+
+----
+#
+#
+#mesa-cmd PHY GPIO_CONF 17
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : <input>
+#
+#
+----
+
+ * Once the *gpio_conf* is given application will provide the list of options, user have to select the option based on
+the requirement.
+
+ * If the GPIO Pin needs to configured in *Output* mode user should enter `<input>` as 1, if the Pin to be configured as
+*Input* mode then the value of `<input>` should be 2 and for *Alternate Function* it should be 3.
+
+
+==== Output Mode Configuration
+If user selects the Mode of the GPIO as *Output* then user needs to provide the GPIO Number and the usage of the GPIO Pin
+as Output, whether any signals needs to be routed to the GPIO Pin or the PIN as Output drive low.
+
+Below example provides the Configuration of GPIO Pin 2 as Output drive low Pin.
+
+----
+#
+#
+#
+mesa-cmd PHY gpio_conf 17
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : 1
+
+         ==Enter GPIO Number : 2
+
+         1 . No Routing only as Output PIN
+         2 . Route signal to Output PIN
+
+         ==Enter usage of GPIO Output Pin : 1
+
+ GPIO Pin 2 configured in Output Mode......
+#
+#
+----
+
+ * If any of the Signals to be routed to the GPIO Output Pin then application will list the possible signals that can be routed
+to GPIO Output Pin selected, user have to select any one option from the list.
+
+Below example will Configure the GPIO Pin 2 as *Output Pin* and route the Line Link Status of Port 17 to GPIO Pin 2.
+
+----
+#
+#
+# mesa-cmd PHY GPIO_CONF 17
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : 1
+
+         ==Enter GPIO Number : 2
+
+         1 . No Routing only as Output PIN
+         2 . Route signal to Output PIN
+
+         ==Enter usage of GPIO Output Pin : 2
+
+         1  . Host Link Status
+         2  . Line Link Status
+         3  . KR 8b10b
+         4  . KR 10b
+         5  . ROSI Pulse
+         6  . ROSI Sdata
+         7  . ROSI Sclk
+         8  . TOSI Pulse
+         9  . TOSI Sclk
+         10 . Line PCS 1G Link
+
+         ==Enter Signal needs to be routed :2
+
+         ==Enter Virtual GPIO Number p_gpio [0 - 7] for each channel: 4
+
+ GPIO Pin 2 configured in Output Mode......
+#
+#
+#
+----
+
+Following are the Inputs needs to be provided by the user to route a signal to GPIO Pin: +
+
+    
+    * `GPIO Mode` -- Mode of GPIO Pin (For Output Mode select 1) +
+    * `GPIO Number` -- Gpio Number, VSC825X supports 40 GPIO Pins +
+    * `GPIO usage` -- No Routing/Routing of PHY Signal +
+    * `Virtual GPIO Number` -- Virtual GPIO Number of Channel (0 to 7) +
+
+NOTE: When configured as an OUTPUT, a set of 8 multiplexers in each channel of the PHY select the per-channel
+output function that is routed to each of the 8 per-channel virtual GPIO Outputs.
+
+
+==== Input Mode Configuration
+Any of the 40 GPIO Pins can be configured as the Input Mode and the current state of the GPIO Pin can be read 
+with help of command `gpio_in_get`.
+
+Below example will configure the GPIO Pin 2 in Input Mode using the command `gpio_conf`.
+
+----
+#
+#
+# mesa-cmd PHY GPIO_CONF 17
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : 2
+
+         ==Enter GPIO Number : 2
+
+ GPIO Pin 2 configured in Input Mode......
+#
+#
+#
+----
+
+Once the Pin is configured as GPIO Input, it can receive Input from HOST the current value of the GPIO Pin
+can be read using the command `gpio_in_get`.
+
+
+==== Alternate Mode Configuration
+
+VSC825X supports a list of alternate functions for GPIO Pins and any of the alternate functions can be routed to any of the GPIO Pins,
+but this GPIO application will follow the recommended GPIO Alternate function listed in the above table.
+
+
+Once the Alternate Mode is selected through command *gpio_conf*, application will list all the available Alternate functions that
+PHY supports, and user have to select any one alternate function, application will check the channel number of the PHY and based
+on channel id and user selected alternate function, application will select the GPIO Number for which the alternate function
+to be configured,once configured application will return for GPIO pin it is configured.
+
+Below example will Configure the Port 17 for `Tx Disable` Alternate Function
+
+----
+#
+# mesa-cmd PHY GPIO_CONF 17
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : 3
+
+         1  . Rate Select
+         2  . Module Absent
+         3  . I2C Master Clock
+         4  . I2C Master Data
+         5  . Tx Disable
+         6  . Tx Fault
+         7  . Rx LOS
+         8  . Line Link Up
+         9  . LED Activity
+         10 . Aggregate Interrupt
+
+         ==Enter The Alternate Mode to be Configured : 5
+
+ GPIO Pin 28 configured in Alternate Mode......
+#
+#
+----
+
+The Port 17 is Channel 3 of VSC825X so GPIO 28 is assigned for *Tx Disable* Alternate function, now user can write 1 to this GPIO Pin
+using command `gpio_out_set` which will Disable the Serdes to Transmit.
+
+Below are the short discription of each Alternate Functions:
+
+    * *Rate Select* -- Rate Select in SFP is used to  control the receiver bandwidth for compatibility with
+multiple data rates. In VSC8258 daughter Card it is forced pull up which means it will always work in full bandwidth.
+
+    * *Module Absent* -- This is used to detect whether SFP Module is Connected to Line side or not.
+
+    * *I2C Master Clock* -- I2C Clock to read the EEPROM of SFP.
+
+    * *I2C Master Data*  -- I2C Data line to read EEPROM of SFP.
+
+    * *Tx Disable* -- Disables the SFP Transmit Path
+
+    * *Tx Fault* -- Indicate the Fault in SFP
+
+    * *Rx LOS* -- Indicates the LOS of Signal in SFP
+
+    * *Line Link up* -- Indicates the Line Side Link Status
+
+    * *LED Activity* -- Enables the LED of the Channel, blinks while transmitting data through the channel
+
+    * *Aggregate Interrupt* -- Interrupts from various Blocks of PHY.
+
+
+NOTE: The Aggregate Interrupts Configuration is not supported now in application due to API Configuration issue, it is reported as 
+know issue.
+
+=== GPIO Configuration for LAN80XX PHY
+LAN80XX PHY has 40 GPIO Pins and each pin can be configured as `Output` or `Input` mode or else it can be configured
+as `Alternate` function.
+
+GPIO pins of LAN80XX can be set to any function as needed, but this GPIO Sample app will use the recommended GPIO configuration
+from the LAN80XX datasheet (Table 2-4) for Alternate function configuration.
+
+The Command `gpio_conf` will configure the GPIO Pin as any of the following Mode: +
+
+    * link:#mesa/demo/docs/gpio-demo@_output_mode_configuration[Output Mode] +
+    * link:#mesa/demo/docs/gpio-demo@_input_mode_configuration[Input Mode]  +
+    * link:#mesa/demo/docs/gpio-demo@_alternate_mode_configuration[Alternate Function] +
+
+The Command `gpio_conf` is used with port number as argument of command to configure the GPIO Pin, below is the
+example provided.
+
+----
+#
+#
+#mesa-cmd PHY GPIO_CONF 1
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+
+         ==Enter the Mode of GPIO Pin : <input>
+#
+#
+----
+
+ * Once the *gpio_conf* is given application will provide the list of options, user have to select the option based on
+the requirement.
+
+ * If the GPIO Pin needs to configured in *Output* mode user should enter `<Output>` as 1, if the Pin to be configured as
+*Input* mode then the value of `<input>` should be 2 and for *Alternate Function* it should be 3.
+
+
+==== Output Mode Configuration
+If user selects the Mode of the GPIO as *Output* then user needs to provide the GPIO Number, push-pull or open
+drain mode.
+
+Below example provides the Configuration of GPIO Pin 4 as Output.
+
+----
+# mesa-cmd PHY GPIO_CONF 4
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+         Enter the Mode of GPIO Pin : 1
+
+         Enter GPIO Number to be configured as Output mode: 4
+
+         Enter the GPIO in 1 - Push pull mode or 0 - Open drain mode : 1
+
+GPIO Configured succesfully
+#
+----
+
+==== Input Mode Configuration
+If user selects the Mode of the GPIO as *Input* then user needs to provide the GPIO Number, push-pull or open
+drain mode and GPIO pins state change interrupt.
+
+Below example provides the Configuration of GPIO Pin 10 as Input and trigger interrupt if any state change
+occurs to GPIO_INTR1
+
+----
+# mesa-cmd PHY GPIO_CONF 4
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+         Enter the Mode of GPIO Pin : 2
+
+         Enter GPIO Number to be configured as Input mode: 10
+
+         Enter the GPIO in 1 - Push pull mode or 0 - Open drain mode : 1
+
+         Enter the GPIO interrupt [0 -  GPIO_INTR_NONE or 1 - GPIO_INTR0 or 2 - GPIO_INTR1 : 2
+GPIO Configured succesfully
+#
+----
+
+==== Alternate Mode Configuration
+If user selects the Mode of the GPIO as *Alternate* then user needs to provide the GPIO Number,push-pull or open
+drain mode.
+
+Below example provides the Configuration of GPIO Pin 34 as alternate function.
+
+----
+# mesa-cmd PHY GPIO_CONF 4
+
+         1 . Output Mode
+         2 . Input Mode
+         3 . Alternate Mode
+         Enter the Mode of GPIO Pin : 3
+
+         Enter GPIO Number to be configured as Alternate mode: 34
+
+         Enter the GPIO in 1 - Push pull mode or 0 - Open drain mode : 1
+
+GPIO Configured succesfully
+#
+----
+=== GPIO Read
+The Current value of the GPIO Pin can be read directly through the corresponding GPIO Data Register which will be done
+through the command `gpio_in_get`.
+
+Below Command is used to read the current GPIO Value +
+    
+    * `mesa-cmd PHY GPIO_IN_GET <port_no> <gpio_no>`
+
+The Below example Reads the current value of GPIO Pin 3
+
+----
+#
+# mesa-cmd PHY GPIO_IN_GET 17 3
+
+ Value of GPIO 3 is : 1
+#
+----
+
+=== GPIO Write 
+The value of GPIO Pin which is configured as Output can be directly configured through the GPIO Data Register which will
+be done throught the command `gpio_out_set`.
+
+The syntax for command to write GPIO +
+    
+    * `mesa-cmd PHY GPIO_OUT_SET <port_no> <gpio_num> [enable|disable]`
+
+Below example writes 1 to GPIO pin 4
+
+----
+#
+# mesa-cmd PHY GPIO_OUT_SET 17 4 enable
+#
+----
+
+=== GPIO Toggle
+The value of a GPIO pin configured as an output can be toggled directly by configuring it through the GPIO Data Register using the `gpio_toggle` command.
+
+The syntax for command to toggle GPIO +
+
+    * `mesa-cmd PHY GPIO_TOGGLE <port_no> <gpio_num>`
+
+Below example toggles GPIO pin 4
+
+----
+#
+# mesa-cmd PHY GPIO_TOGGLE 1 4
+#
+----
+
+=== Event Set
+All events can be enabled or disabled, and interrupts can be routed to either aggregate interrupt A or B using the event_set command for the specified port.
+
+The syntax for command to enable event +
+
+    * `mesa-cmd PHY Event_set <port_no> <event_list> [enable|disable] [intr_a|intr_b]`
+
+To List the all available arguments in the event_set run the below mentioned command.
+
+----
+mesa-cmd PHY Event_set 4 ?
+Description:
+Event set configuration.
+
+Syntax:
+event_set <port_no> <event_list> [enable|disable] [intr_a|intr_b]
+
+Parameters:
+: Port number or zero
+: Set the events and extended events list
+Below mentioned are the list of events:
+        "127 - L3_FIFO_ERROR_INTR"
+        "126 - L2_FIFO_ERROR_INTR"
+        "125 - L1_FIFO_ERROR_INTR"
+        "124 - L0_FIFO_ERROR_INTR"
+        "123 - H3_FIFO_ERROR_INTR"
+        "122 - H2_FIFO_ERROR_INTR"
+        "121 - H1_FIFO_ERROR_INTR"
+        "120 - H0_FIFO_ERROR_INTR"
+        "119 - L3_COND_ALT_UNF_DET_INTR"
+        "118 - L2_COND_ALT_UNF_DET_INTR"
+        "117 - L1_COND_ALT_UNF_DET_INTR"
+        "116 - L0_COND_ALT_UNF_DET_INTR"
+        "115 - H3_COND_ALT_UNF_DET_INTR"
+        "114 - H2_COND_ALT_UNF_DET_INTR"
+        "113 - H1_COND_ALT_UNF_DET_INTR"
+        "112 - H0_COND_ALT_UNF_DET_INTR"
+        "111 - L3_COND_ALT_DET_INTR"
+        "110 - L2_COND_ALT_DET_INTR"
+        "109 - L1_COND_ALT_DET_INTR"
+        "108 - L0_COND_ALT_DET_INTR"
+        "107 - H3_COND_ALT_DET_INTR"
+        "106 - H2_COND_ALT_DET_INTR"
+        "105 - H1_COND_ALT_DET_INTR"
+        "104 - H0_COND_ALT_DET_INTR"
+        "103 - L3_SWITCH_INTR"
+        "102 - L2_SWITCH_INTR"
+        "101 - L1_SWITCH_INTR"
+        "100 - L0_SWITCH_INTR"
+        "99 - H3_SWITCH_INTR"
+        "98 - H2_SWITCH_INTR"
+        "97 - H1_SWITCH_INTR"
+        "96 - H0_SWITCH_INTR"
+        "95 - WPS0_FAILOVER_INTR"
+        "94 - WPS1_FAILOVER_INTR"
+        "93 - WPS0_CONN_FAULT_INTR"
+        "92 - WPS1_CONN_FAULT_INTR"
+        "91 - WPS0_FC_ACK_TIMER_INTR"
+        "90 - WPS1_FC_ACK_TIMER_INTR"
+        "89 - LINE_PMA_RXEI_FILTERED_INTR"
+        "88 - LINE_PMA_RESET_DONE_INTR"
+        "87 - HOST_PMA_RXEI_FILTERED_INTR"
+        "86 - HOST_PMA_RESET_DONE_INTR"
+        "85 - LINE_MAC_MM_PRMPT_UNEXP_TX_PFRM_INTR"
+        "84 - LINE_MAC_MM_PRMPT_UNEXP_RX_PFRM_INTR"
+        "83 - LINE_MAC_MM_PRMPT_ACTIVE_INTR"
+        "82 - HOST_MAC_MM_PRMPT_UNEXP_TX_PFRM_INTR"
+        "81 - HOST_MAC_MM_PRMPT_UNEXP_RX_PFRM_INTR"
+        "80 - HOST_MAC_MM_PRMPT_ACTIVE_INTR"
+        "79 - LINE_PMAC_RX_PREAMBLE_SHRINK"
+        "78 - LINE_PMAC_RX_PREAMBLE_MISMATCH"
+        "77 - LINE_PMAC_RX_PREAMBLE_ERR"
+        "76 - LINE_PMAC_RX_NON_STD_PREAMBLE_INTR"
+        "75 - LINE_PMAC_RX_MPLS_MC_INTR"
+        "74 - LINE_PMAC_RX_MPLS_UC_INTR"
+        "73 - LINE_PMAC_TX_UNDERFLOW_INTR"
+        "72 - LINE_PMAC_TX_ABORT_INTR"
+        "71 - HOST_PMAC_RX_PREAMBLE_SHRINK"
+        "70 - HOST_PMAC_RX_PREAMBLE_MISMATCH"
+        "69 - HOST_PMAC_RX_PREAMBLE_ERR"
+        "68 - HOST_PMAC_RX_NON_STD_PREAMBLE_INTR"
+        "67 - HOST_PMAC_RX_MPLS_MC_INTR"
+        "66 - HOST_PMAC_RX_MPLS_UC_INTR"
+        "65 - HOST_PMAC_TX_UNDERFLOW_INTR"
+        "64 - HOST_PMAC_TX_ABORT_INTR"
+        "63 - GPIO_INTR_1"
+        "62 - GPIO_INTR_0"
+        "61 - LINE_MAC_LOCAL_ERR_STATE_INTR"
+        "60 - LINE_MAC_REMOTE_ERR_STATE_INTR"
+        "59 - LINE_MAC_IDLE_STATE_INTR"
+        "58 - LINE_MAC_DIS_STATE_INTR"
+        "57 - HOST_MAC_LOCAL_ERR_STATE_INTR"
+        "56 - HOST_MAC_REMOTE_ERR_STATE_INTR"
+        "55 - HOST_MAC_IDLE_STATE_INTR"
+        "54 - HOST_MAC_DIS_STATE_INTR"
+        "53 - LINE_MAC_RX_IPG_SHRINK_INTR"
+        "52 - LINE_MAC_RX_PREAMBLE_SHRINK_INTR"
+        "51 - LINE_MAC_RX_PREAMBLE_MISMATCH_INTR"
+        "50 - LINE_MAC_RX_PREAM_ERR_INTR"
+        "49 - LINE_MAC_RX_NON_STD_PREAMBLE_INTR"
+        "48 - LINE_MAC_RX_MPLS_MC_INTR"
+        "47 - LINE_MAC_RX_MPLS_UC_INTR"
+        "46 - LINE_MAC_RX_TAG_INTR"
+        "45 - LINE_MAC_TX_UNDERFLOW_INTR"
+        "44 - LINE_MAC_TX_ABORT_INTR"
+        "43 - HOST_MAC_RX_IPG_SHRINK_INTR"
+        "42 - HOST_MAC_RX_PREAMBLE_SHRINK_INTR"
+        "41 - HOST_MAC_RX_PREAMBLE_MISMATCH_INTR"
+        "40 - HOST_MAC_RX_PREAM_ERR_INTR"
+        "39 - HOST_MAC_RX_NON_STD_PREAMBLE_INTR"
+        "38 - HOST_MAC_RX_MPLS_MC_INTR"
+        "37 - HOST_MAC_RX_MPLS_UC_INTR"
+        "36 - HOST_MAC_RX_TAG_INTR"
+        "35 - HOST_MAC_TX_UNDERFLOW_INTR"
+        "34 - HOST_MAC_TX_ABORT_INTR"
+        "33 - EGR_FC_BUFFER_FAULT_READ"
+        "32 - EGR_FC_BUFFER_DED_INTR"
+        "31 - EGR_FC_BUFFER_SEC_INTR"
+        "30 - INGR_FC_BUFFER_FAULT_READ_INTR"
+        "29 - INGR_FC_BUFFER_DED_INTR"
+        "28 - INGR_FC_BUFFER_SEC_INTR"
+        "27 - EGR_FC_BUFFER_INIT_DONE_INTR"
+        "26 - INGR_FC_BUFFER_INIT_DONE_INTR"
+        "25 - EGR_ECC_INTERRUPT_STATUS_INTR"
+        "24 - INGR_ECC_INTERRUPT_STATUS_INTR"
+        "23 - RX_UNDERFLOW_DROP_INTR"
+        "22 - RX_OVERFLOW_DROP_INTR"
+        "21 - TX_DATA_QUEUE_UNDERFLOW_DROP_INTR"
+        "20 - TX_DATA_QUEUE_OVERFLOW_DROP_INTR"
+        "19 - TX_CTRL_QUEUE_UNDERFLOW_DROP_INTR"
+        "18 - TX_CTRL_QUEUE_OVERFLOW_DROP_INTR"
+        "17 - RX_UNCORRECTED_FRM_DROP_INTR"
+        "16 - TX_UNCORRECTED_FRM_DROP_INTR"
+        "15 - XON_PAUSE_GEN_INTR"
+        "14 - XOFF_PAUSE_GEN_INTR"
+        "13 - L2H_RA_FIFO_OVERFLOW_INTR"
+        "12 - L2H_RA_FIFO_UNDERFLOW_INTR"
+        "11 - H2L_RA_FIFO_OVERFLOW_INTR"
+        "10 - H2L_RA_FIFO_UNDERFLOW_INTR"
+        "9 - HOST_PCS25G_HI_BER_INTR"
+        "8 - HOST_PCS25G_BLOCK_LOCK_INTR"
+        "7 - HOST_PCS25G_ALIGN_DONE_INTR"
+        "6 - LINE_PCS25G_HI_BER_INTR"
+        "5 - LINE_PCS25G_BLOCK_LOCK_INTR"
+        "4 - LINE_PCS25G_ALIGN_DONE_INTR"
+        "3 - HOST_PCS1G_OUT_OF_SYNC_INTR"
+        "2 - HOST_PCS1G_LINK_DOWN_INTR"
+        "1 - LINE_PCS1G_OUT_OF_SYNC_INTR"
+        "0 - LINE_PCS1G_LINK_DOWN_INTR",
+
+enable : Enable
+disable : Disable
+(default: Show mode)
+intr_a : Enable aggregate interrupt A
+intr_b : Enable aggregate interrupt B
+----
+
+Below example configures event 4,5,88 to aggregate interrupt A
+
+----
+#
+# mesa-cmd PHY Event_set 4 4,55,88 enable intr_a
+Event configured successfully
+#
+----
+
+=== Event Poll
+Enable the polling and retrieve the triggered events using `event_poll` command.
+
+The syntax for command event_poll +
+   * `mesa-cmd PHY Event_poll <port_no> [enable|disable]`
+
+Below example to enable polling on port 1
+
+----
+#
+# mesa-cmd PHY Event_poll 1 enable
+#
+----
+
+Note:: 1G Host PCS Link down interrupt not get cleared is an known issue.

@@ -1,0 +1,72 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= Konwn Answer Test
+
+== Known Answer Test (KAT) Description
+Media Access Control Security(MACsec) is IEEE 802.1AE network security standard which
+provides point-to-point security on Ethernet links using GCM-AES algorithm.
+
+KAT (Known Answer Test) is the application which validates the MACsec crypto Engine of PHY.
+The Application will configure MACsec Block for Encryption and Decryption with
+default MACsec Block Configurations with default MACsec Key and generate the Ethenet frame 
+from the Packet genertor block inside PHY and made it to pass through MACsec Block and looping
+back the packet after Line Side PCS block.
+
+MACsec block processed (Encrypted/Decrypted) packet is captured in the MACsec FIFO and compared
+with the Known Packect(Expected packet) in the Application and application will provide the result
+whether the MACsec Engine Test Passed or Failed as a result, if the captured packet and expected 
+Encrypted/Decrypted packet is same then KAT Test is Passed othewise test is Failed.
+
+This KAT Demo Application will perform MACsec Crypto Test on all the Ports of HOST (EDSx) where 
+MACsec Capable PHYs are connected, if the Host Port has PHY which is not MACsec Capable then KAT
+Test will not be performed on that Port.
+
+== Directory
+ * `./mesa/demo/mepa_apps/phy_kat_demo.c` - Source Code for KAT Demo Sample Application.
+
+== Procedure to run KAT Demo Application
+
+To Run KAT Demo Application the 'mesa-demo' application needs to be running.
+Reffer Section link:#mesa/demo/docs/getting-started[Getting-Started] to
+know about the procedure to run 'mesa-demo' Application.
+
+Once 'mesa-demo' application is started then we can run the KAT Demo Application
+with help of following Command.
+    * mesa-cmd PHY KAT demo [xpn|non-xpn]
+
+The command 'kat demo' accepts either 'xpn' or 'non-xpn' as the input which 
+differentiaties the cipher suit selected by MACsec Engine, where xpn will select
+'AES-GCM-XPN-256' cipher suit and non-xpn selects 'AES-GCM-256' cipher suit to
+perform MACsec Encryption and Decryption.
+
+Note:: MACsec Block Supports 128-bit Cipher suit and 256-bit Cipher Suit, but KAT 
+demo covers only XPN-256 bit and NON-XPN 256 bit Cipher suit. MACsec Operational
+Demo Application covers both 128-bit and 256-bit Key reffer link:#mesa/demo/docs/macsec-demo[MACsec-Demo] section. 
+
+Below is the example of KAT demo application running on EDSx Switch with Malibu10G
+PHY Connected to EDSx Switch.
+
+----
+# mesa-cmd PHY KAT demo xpn
+
+ Number of MACsec capable ports detected : 4
+
+PTP sync message 60 Byte Packet is generated on port no : 12
+PTP sync message 60 Byte Packet is generated on port no : 13
+PTP sync message 60 Byte Packet is generated on port no : 14
+PTP sync message 60 Byte Packet is generated on port no : 15
+
+ !!!!!!!!!!!!!!!!!!! XPN Encryption test passed on all MACsec Capable ports !!!!!!!!!!!!
+PTP sync message 60 Byte Packet is generated on port no : 12
+PTP sync message 60 Byte Packet is generated on port no : 13
+PTP sync message 60 Byte Packet is generated on port no : 14
+PTP sync message 60 Byte Packet is generated on port no : 15
+
+!!!!!!!!!!!!!!!!!!! XPN Decryption test passed on all MACsec Capable ports !!!!!!!!!!!!
+----
+
+In above example KAT Demo Application detects 4 MACsec capable Ports in EDSX switch and perform
+MACsec Encryption and Decryption Test on those ports and provide result whether 
+MACsec Crypto Test Passed or Failed.
+

@@ -1,0 +1,1270 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= MACsec Demo Application
+
+== MACsec Demo Application Description
+Media Access Control Security(MACsec) is IEEE 802.1AE network security standard which
+provides point-to-point security on Ethernet links using GCM-AES algorithm. MACsec provides
+authentication by ensuring that only authorized nodes are allowded to communication over
+Enthenet Network.
+
+MACsec Demo Application is used to configure the MACsec Block of PHYs for Encryption/Decryption
+through MEPA APIs irrespective of the type of MACsec Capable PHY connected to the HOST.
+
+Following are list of features supported in MACsec-Demo Application.
+
+* Supports GCM-AES-256/GCM-AES-128 NON-XPN and GCM-AES-256/GCM-AES-128 XPN cipher suits
+
+* Configuration of Tag Control Information (TCI) in Sectag
+* Multiple Secure Entity(SecY) Can be created on Physical Port depending connected PHY Supports
+* Static Secure Association Keys to Encrypt/Decrypt ethernet packets, Key values can be changed by Users
+* Supports Ethernet, DMAC and SMAC Pattern Matching Rules
+* VLAN Tag Bypass support upto 2 VLANs
+* MACsec and MAC Block Statistics
+* MACsec Events (Rollover and Sequence Threshold) can be configured.
+* Application will poll for the MACsec Events in Background for every second.
+* MACsec FIFO Frame Capture Support
+* Supports Control traffic (802.1x) traffic bypass as Unencrypted through Uncontrolled Port
+
+== Directory
+* `./mesa/demo/mepa_apps/phy_macsec_demo.h` - Header File for MACsec Demo Application
+* `./mesa/demo/mepa_apps/phy_macsec_demo.c` - Source File for MACsec Demo Application
+* `./mesa/demo/mepa_scripts/macsec_key.json` - JSON file for MACsec Key, Application will take Key from this File
+
+== Prerequisites
+MACsec Demo Application to run on EDSx Platform User needs to flash `ext4` image on 
+eMMC flash, the application will not work with `.itb` image because it doesn't have the Linux File System.
+To Configure the MACsec Key we have JSON file in Linux File System.
+
+== Supported PHYs
+
+    * The MACsec Demo application is supported for all MEPA supported PHYs
+
+== Procedure to Start/Exit MACsec Demo Application
+
+To Run MACsec Demo Application the 'mesa-demo' application needs to be running.
+Reffer Section link:#mesa/demo/docs/getting-started[Getting-Started] to know about the procedure 
+to run 'mesa-demo' Application.
+
+Once 'mesa-demo' application is started the MACsec Demo Application can be started with the command
+'mesa-cmd PHY Macsec'.
+
+----
+#mesa-cmd PHY Macsec
+----
+
+The above is used to start the MACsec Demo Application once it is started it will list the available commands in 
+MACsec Demo Application.
+
+----
+#mesa-cmd exit_macsec
+----
+
+The above command 'exit_macsec' is used to Exit the MACsec Demo Application.
+
+== MACsec Demo Application Commands
+
+=== Commands Available in MACsec Demo Application
+To List the all available Commands in the MACsec Demo Application run the below mentioned command.
+----
+#mesa-cmd ?
+----
+----
+#mesa-cmd ?
+  Commands           Arguments                                                                        Description
+ =================================================================================================================================
+
+ exit_macsec         |                                                                                 | Exit from MACsec Application
+ macsec port_state   |                                                                                 | Provides MACsec Capability and MACsec State of all Ports
+ macsec enable       |  <port_list> [bypass_none|bypass_disable]                                       | Enables MACsec Block
+ macsec disable      | <port_list> [bypass_none|bypass_enable]                                         | Disables MACsec Block
+ secy_create_upd     | [create|update] <port_no> port-id <port_id> mac-addr <mac_address>              | Create/Update Secure Entity
+ secy_del            | <port_no> port-id <port_id>                                                     | Deletes available Secure Entity
+ match_conf          | <port_no> ethtype <ether_type> src_mac <mac_address> dst_mac <mac_address>      | Pattern Matching Params
+                     | vlanid <vlan> vid-inner <vlan>                                                  |
+ pattern_conf        | <port_no> port-id <port_id> [egress|ingress] [cont_port|uncont_port|drop]       |
+ tx_sc_create        | <port_no> port-id <port_id>                                                     | Transmit Secure Channel Create
+ rx_sc_create        | <port_no> port-id <port_id> sc-id <id>                                          | Receive Secure Channel Create
+ tx_sc_del           | <port_no> port-id <port_id>                                                     | transmit Secure Channel Delete
+ rx_sc_del           | <port_no> port-id <port_id> sc-id <id>                                          | Receive Secure Channel Delete
+ tx_sa_create        | <port_no> port-id <port_id> an <an_no> next-pn <pn> conf [true|false]           | Transmit Secure Association Create
+ rx_sa_create        | <port_no> port-id <port_id> sc-id <id> an <an_no> lowest-pn <pn>                | Receive Secure Association Create
+ tx_sa_del           | <port_no> port-id <port_id> an <an_no>                                          | Transmit Secure Association Delete
+ rx_sa_del           | <port_no> port-id <port_id> sc-id <id>                                          | Receive Secure Association Delete
+ rx_sa_pn_upd        | <port_no> port-id <port_id> sc-id <id> an <an_no> lowest-pn <pn>                | Receive SA Lowest PN Update
+ statistics secy     | <port_no> port-id <port_id> [get|clear]                                         | SecY Staticstics Get or Clear
+ statistics tx_sc    | <port_no> port-id <port_id> [get|clear]                                         | Tx Secure Channel Statistics Get or Clear
+ statistics tx_sa    | <port_no> port-id <port_id> an <an_no> [get|clear]                              | Tx Secure Association Statistics Get or Clear
+ statistics rx_sc    | <port_no> port-id <port_id> sc-id <id> [get|clear]                              | Rx Secure Channel Statistics Get or Clear
+ statistics rx_sa    | <port_no> port-id <port_id> sc-id <id> an <an_no> [get|clear]                   | Rx SA Statistics Get or Clear
+ statistics mac      | [hmac|lmac] <port_no> [get|clear]                                               | HMAC/LMAC Statistics Get or Clear
+ vlan_bypass         | <port_no> port-id <port_id> [zero|one|two|three|four]                           | Vlan Tag Bypass Configuration
+ frame capture       | <port_list> [egress|ingress]                                                    | MACsec FIFO Frame Capture Configuration
+ frame get           | <port_list>                                                                     | MACsec FIFO Captured Frame Get
+ macsec event set    | <port_list> [rollover|seq_threshold] [evt_enable|evt_disable]                   | MACsec Event Enable or Disable
+ macsec event get    |                                                                                 | MACsec Event Status of all Ports
+ macsec seq_threshold| [get|set] <port_list> [<threshold_val>]                                         | MACsec Sequence Thresold Val Set or Get
+ ctrl_frame set      | <port_no> ethtype <ether_type> dst_mac <mac_address>                            | 802.1X Control Traffic Bypass Confg Set
+ ctrl_frame get      | <port_no>                                                                       | 802.1X Control Traffic Bypass Confg Get
+ ctrl_frame del      | <port_no> <rule_list>                                                           | 802.1X Control Traffic Bypass Confg Del
+----
+
+=== Port MACsec Capablity and MACsec Block Status
+To Check whether the PHY connected on the Port is MACsec Capable or not, if it is MACsec Capable then the 
+Current Status of the MACsec Block the command 'macsec port_state' is used.
+
+----
+#mesa-cmd macsec port_state
+----
+The Command will Display the Status of MACsec Block as shown below
+
+----
+# mesa-cmd macsec port_state
+
+
+ Port    MACsec Capable    Status
+ -----------------------------------
+ 1       NotCapable          --
+ 2       NotCapable          --
+ 3       NotCapable          --
+ 4       NotCapable          --
+ 5       NotCapable          --
+ 6       NotCapable          --
+ 7       NotCapable          --
+ 8       NotCapable          --
+ 9       NotCapable          --
+ 10      NotCapable          --
+ 11      NotCapable          --
+ 12      NotCapable          --
+ 13      Capable           Enabled
+ 14      Capable           Disabled
+ 15      Capable           Disabled
+ 16      Capable           Disabled
+ 17      NotCapable          --
+ 18      NotCapable          --
+ 19      NotCapable          --
+ 20      NotCapable          --
+----
+
+=== MACsec Block Enable/Disable
+If the PHY Connected on the Port is MACsec Capable the following command is used to enable/disable or 
+bypass the MACsec Block.
+
+  * mesa-cmd macsec enable <port_list> [bypass_none|bypass_disable] - `Enable MACsec Block`
+  * mesa-cmd macsec disable <port_list> [bypass_none|bypass_disable] - `Disable/Bypass MACsec Block`
+
+The argument `bypass_none` is used to Enable/Disable both MAC and MACsec Block whereas `bypass_enable` will
+put MACsec Block in Bypass and `bypass_disable` will disable the MACsec Block from Bypass.
+
+Note :: macsec enable command needs to be called atleast once for the Port either to enable MACsec Block
+or to put MACsec Block in Bypass otherwise application with throw error.
+
+=== Secury Entity(SecY) Create/Update configuration
+Secy create command is used to create secy instance which is associated with virtual port.
+A SecY contains one transmit Secure Channel (SC) and zero or more receive SCs. Each SecY on the port is
+identified by unique `port_id` value.
+
+  * mesa-cmd secy_create_upd  create <port_no> port_id <port_id> mac-addr <00-00-00-00-00-00> - `Create SecY`
+  * mesa-cmd secy_create_upd  update <port_no> port_id <port_id> mac-addr <00-00-00-00-00-00> - `Update SecY`
+
+Each MACsec Processed packet will have Sectag attached to the packet,this application supports configuring
+those Sectag Paramters this command `secy_create_upd` will ask sectag related inputs from User one by one.
+
+NOTE: In Case of 8-Byte Sectag(Explicit SCI), the `mac-addr` argument of command `secy_create_upd` should be same
+to that of Source MAC Address of the packet forwarding in this virtual Port, if not packet decryption will fail
+
+
+----
+# mesa-cmd secy_create_upd create 13 port-id 4 mac-addr 00-00-00-00-00-01
+
+ SECTAG PARAMETERS CONFIGURATION ........................
+
+
+ Protect Frames [1 : true, 0 : false] : 1
+
+ Select Frame Validation [0 : Disable, 1 : Strict , 2 : Check] : 1
+
+ Select Cipher Suit [0 : GCM-AES-128,  1 : GCM-AES-256,  2 : GCM-AES-XPN-128,  3 : GCM-AES-XPN-256] : 0
+
+ Sectag length [0 : 16-byte Sectag,  1 : 8-Byte Sectag] : 1
+
+ End Station(ES) Bit in Sectag (0 or 1) : 0
+
+ Single Copy Broadcast (SCB) in Sectag (0 or 1) : 0
+
+
+ ...... SecY Created on Port : 12 with port_id : 4......
+----
+
+The above example will provide the list of Sectag Configurable paramters that MACsec Demo Application 
+Supports.
+
+=== Pattern Matching Rule Configuration
+The MACsec engine uses a set of pattern matching rules to compare incoming packets.The pattern matching parameters,
+such as the incoming packet's ether type, destination MAC address, source MAC address and we can match outer 2 VLAN Ids.
+
+The Pattern matching parameters can be provide with help of following command.
+
+    * mesa-cmd match_conf <port_no> ethtype <ethertype> src_mac <XX-XX-XX-XX-XX-XX> dst_mac <XX-XX-XX-XX-XX-XX> vlanid <vlanid> vid-inner <inner_vlanid>
+
+To Configure the Direction ,action and enable the paramters which need to be matched the following command needs
+to be called as mandatory to configure the Egress/ingress and pattern matching configuration.
+
+    * mesa-cmd pattern_conf <port_no> port_id <port_id> [egress | ingress] [cont_port| uncont_port]
+
+Following is the Example to configure the Pattern Matching for MACsec Block.
+
+----
+# mesa-cmd match_conf 13 ethtype 2048 src_mac 00-01-02-03-04-04 dst_mac 00-02-03-04-05-06 vlanid 0 vid-inner 0
+ ...... Match Parameters configured......
+#
+#
+#
+# mesa-cmd pattern_conf 13 port-id 4 egress cont_port
+
+ 0 = Disable Pattern Matching
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = SMAC Pattern MAtching
+ 4 = DMAC and Ethertype Match
+ 5 = SMAC and Ethertype Match
+ 6 = DMAC and SMAC Matching
+ 7 = DMAC, Ethertype and SMAC Matching
+ 8 = Outer VLAN ID Match
+ 9 = Inner VLAN ID Match
+
+ Parameter that needs to be Matched : 2
+
+
+ ...... Pattern Matching rule is Configured ......
+#
+----
+
+The pattern Matching rules available in the application is available in above example, user can select what ever the
+rule that needs to be matched with the packet and value provided in the command `match_conf` for that SecY.
+
+=== Transmit Secure Channel Create/Delete
+The command below is used to create or delete the Transmit Secure Channel. Each SecY will have one
+Transmit Secure channel.
+
+    * mesa-cmd tx_sc_create <port_no> port_id <port_id> - `Create Tx Secure channel`
+    * mesa-cmd tx_sc_del <port_no> port_id <port_id> - `Delete Tx Secure Channel`
+
+=== Transmit Secure Association Create/Delete
+The Command is used to create the Transmit Secure Association. Each SC can have maximum of four active SAs and the 
+Secure Association in each secure channel is identified by unique Association Number (AN) which can be from 0 to 3.
+
+    * mesa-cmd tx_sa_create <port_no> port_id <port_id> an <an> next_pn <pn> conf [true | false] - `Create Tx SA`
+
+The Arugument `an` is association number, `next_pn` indicates the Packet Number field value for the First Encrypted
+Packet of this Secure Association which will be incremented by one automatically for each packet this SA is Processing.
+
+The Argument `conf` is used to enable the confidentiality protection of MACsec Engine.
+    * true -- Encrypt the Packet
+    * false -- Only Integrity Protected no encryption
+
+This Command will Configure the `Secure Association key(SAK)` for each Secure Association. By Default this Command will
+open a file `macsec_key.json` available in path `./mesa/demo/mepa_scripts/` and read the value of SAK and configure.
+
+If user wants to change the Key values then he can open 'macsec_key.json' file and edit the Key values and Create new 
+Secure Association. User can also new JSON file with SAK values in same formate as such as 'macsec_key.json' and provide
+the file name as the input to command tx_sa_create which will be one of the input of this command.
+
+Note :: The Firmware image `itb` doesnot have linux file system so for the MACsec Demo Application we need to flash `ext4`
+image.
+
+To delete any Secure association use command tx_sa_del which is mentioned below.
+    * mesa-cmd tx_sa_del <port_no> port_id <port_id> an <an>
+
+The below example shows the execution of command to create Transmit Secure Association with default file macsec_key.json.
+
+----
+# mesa-cmd tx_sa_create 13 port-id 4 an 1 next-pn 1 conf true
+
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : d
+
+ ...... Transmit Secure Association an = 1 Created for Channel id :4 ......
+----
+
+In below example new Tx SA is created with new JSON file created in same formate to that of macsec_key.json
+----
+# mesa-cmd tx_sa_create 13 port-id 4 an 1 next-pn 1 conf true
+
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : new_macsec_key.json
+
+ ...... Transmit Secure Association an = 1 Created for Channel id :4 ......
+----
+
+=== Receive Secure Channel Create
+This command is used to create the Receive Secure channel (Rx SC). Each SecY will supports multiple Receive Secure Channels
+and the number of Rx SC depends on the type of PHY Connected on the Physical Port. Each Receive Secure channel is identified
+by the Secure Channel Identifier (SCI) which comprises of 48-bit MAC address of device transmitting which will be provided in 
+secy create command and 16-bit channel identifier(`sc_id`).
+
+    * mesa-cmd rx_sc_create <port_no> port_id <port_id> sc_id <id> 
+
+To Delete the Receive Secure Channel use the below Command 
+
+    * mesa-cmd rx_sc_del <port_no> port_id <port_id> sc_id <id>
+
+=== Receive Secure Association Create/Delete
+The Secure Association for the Receive Secure channel is created with this command. A maximum of four active Secure Associations 
+can be created with each Receive Secure Channel, and each Secure Association in RxSC is uniquely recognized by Association Number (AN).
+
+Similar to Tx SA Create Receive Secure Association Create will open a JSON file provided as input to get the SAK values.
+
+    * mesa-cmd rx_sa_create <port_no> port_id <port_id> sc_id <id> an <an> lowest_pn <pn> - `Create Rx SA`
+    * mesa-cmd rx_sa_del <port_no> port_id <port_id> sc_id <id> an <an> - `Delete Rx SA`
+
+The argument `lowest_pn` is the value of Packet Number the MACsec Block is Expecting to Decrypt next.
+
+----
+# mesa-cmd rx_sc_create 19 port-id 4 sc-id 1
+
+ ...... Receive Secure Channel Created on port 18 for SecY with Port id :4......
+#
+#
+#
+#
+# mesa-cmd rx_sa_create 19 port-id 4 sc-id 1 an 0 lowest-pn 1
+
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : d
+
+ ...... Receive Secure Association an = 0 Created for Channel id :1 ......
+#
+#
+----
+
+=== Get MACsec Statistics
+The following are the commands which is used to get the Statistics of MACsec Engine. MACsec Supports various Statistics 
+Counters such as SecY counters, Secure Channel Counters and Secure Association Counters so can get the statistics of 
+packets that each SecY of MACsec Block Processed.
+
+    * mesa-cmd statistics secy <port_no> port_id <port_id> get                     - `SecY Statistics`
+    * mesa-cmd statistics tx_sc <port_no> port_id <port_id> get                    - `Tx SC Statistics`
+    * mesa-cmd statistics tx_sa <port_no> port_id <port_id> an <an> get            - `Tx SA Statistics`
+    * mesa-cmd statistics rx_sc <port_no> port_id <port_id> sc_id <id> get         - `Rx SC Statistics`
+    * mesa-cmd statistics rx_sa <port_no> port_id <port_id> sc_id <id> an <an> get - `Rx SA Statistics`
+
+The following example provided the SecY,SC and SA Statistics
+
+----
+#// SecY Statistics Get
+#
+# mesa-cmd statistics secy 13 port-id 4 get
+
+
+ Secy Statistics
+ ============================
+ in_pkts_untagged               : 0               in_pkts_no_tag                 : 0
+ in_pkts_bad_tag                : 0               in_pkts_unknown_sci            : 0
+ in_pkts_no_sci                 : 0               in_pkts_overrun                : 0
+ in_octets_validated            : 0               in_octets_decrypted            : 0
+ out_pkts_untagged              : 0               out_pkts_too_long              : 0
+ out_octets_protected           : 0               out_octets_encrypted           : 960
+#
+#
+# mesa-cmd statistics tx_sc 13 port-id 4 get
+
+ Transmit Secure Channel Statistics
+ ===============================================
+ out_pkts_protected             : 0               out_pkts_encrypted             : 20
+ out_octets_protected           : 0               out_octets_encrypted           : 960
+#
+#
+#
+# mesa-cmd statistics tx_sa 13 port-id 4 an 1 get
+
+
+ Transmit Secure Association Statistics
+ ==================================================
+ out_pkts_protected             : 0
+ out_pkts_encrypted             : 20
+
+#
+# mesa-cmd statistics rx_sc 13 port-id 4 sc-id 2 get
+
+ Receive Secure Channel Statistics
+ =================================================
+ in_pkts_unchecked              : 0               in_pkts_delayed                : 0
+ in_pkts_late                   : 0               in_pkts_ok                     : 0
+ in_pkts_invalid                : 0               in_pkts_not_valid              : 0
+ in_pkts_not_using_sa           : 0               in_pkts_unused_sa              : 0
+ in_octets_validated            : 0               in_octets_decrypted            : 0
+----
+
+=== Clear MACsec Statistics
+The MACsec Statistics Counters can be Cleared with help of following Commands
+
+
+    * mesa-cmd statistics secy <port_no> port_id <port_id> clear                     - `Clear SecY Statistics`
+    * mesa-cmd statistics tx_sc <port_no> port_id <port_id> clear                    - `Clear Tx SC Statistics`
+    * mesa-cmd statistics tx_sa <port_no> port_id <port_id> an <an> clear            - `Clear Tx SA Statistics`
+    * mesa-cmd statistics rx_sc <port_no> port_id <port_id> sc_id <id> clear         - `Clear Rx SC Statistics`
+    * mesa-cmd statistics rx_sa <port_no> port_id <port_id> sc_id <id> an <an> clear - `Clear Rx SA Statistics`
+	
+=== Get or Clear MAC Block Counters
+The following commands are used to get the Transmited and Received Packet Count of Host MAC and Line MAC and 
+it also provides the packet error counters.
+
+    * mesa-cmd statistics mac hmac <port_no> get    - `Host MAC Statistics Get`
+    * mesa-cmd statistics mac lmac <port_no> get    - `Line MAC Statistics Get`
+    * mesa-cmd statistics mac hmac <port_no> clear  - `Host MAC Statistics Clear`
+    * mesa-cmd statistics mac lmac <port_no> clear  - `Line MAC Statistics Clear`
+
+The following example will provide getting Host MAC and Line MAC Statistics
+----
+#
+# mesa-cmd statistics mac hmac 13 get
+
+
+ HOST MAC Statistics
+ ============================
+ if_rx_octets                   : 1280            if_rx_in_bytes                 : 1600
+ if_rx_pause_pkts               : 0               if_rx_ucast_pkts               : 20
+ if_rx_multicast_pkts           : 0               if_rx_broadcast_pkts           : 0
+ if_rx_discards                 : 0               if_rx_errors                   : 0
+ if_rx_StatsPkts                : 20              if_rx_CRCAlignErrors           : 0
+ if_rx_UndersizePkts            : 0               if_rx_OversizePkts             : 0
+ if_rx_Fragments                : 0               if_rx_Jabbers                  : 0
+ if_rx_Pkts64Octets             : 20              if_rx_Pkts65to127Octets        : 0
+ if_rx_Pkts128to255Octets       : 0               if_rx_Pkts256to511Octets       : 0
+ if_rx_Pkts512to1023Octets      : 0               if_rx_Pkts1024to1518Octets     : 0
+ if_rx_Pkts1519toMaxOctets      : 0
+
+
+ if_tx_octets                   : 0               if_tx_errors                   : 0
+ if_tx_pause_pkts               : 0               if_tx_ucast_pkts               : 0
+ if_tx_multicast_pkts           : 0               if_tx_broadcast_pkts           : 0
+ if_tx_StatsPkts                : 0               if_tx_DropEvents               : 0
+ if_tx_Pkts64Octets             : 0               if_tx_Pkts65to127Octets        : 0
+ if_tx_Pkts128to255Octets       : 0               if_tx_Pkts256to511Octets       : 0
+ if_tx_Pkts512to1023Octets      : 0               if_tx_Pkts1024to1518Octets     : 0
+ if_tx_Pkts1519toMaxOctets      : 0               if_tx_Collisions               : 0
+#
+#
+#
+# mesa-cmd statistics mac lmac 13 get
+
+
+ LINE MAC Statistics
+ ============================
+ if_rx_octets                   : 0               if_rx_in_bytes                 : 0
+ if_rx_pause_pkts               : 0               if_rx_ucast_pkts               : 0
+ if_rx_multicast_pkts           : 0               if_rx_broadcast_pkts           : 0
+ if_rx_discards                 : 0               if_rx_errors                   : 0
+ if_rx_StatsPkts                : 0               if_rx_CRCAlignErrors           : 0
+ if_rx_UndersizePkts            : 0               if_rx_OversizePkts             : 0
+ if_rx_Fragments                : 0               if_rx_Jabbers                  : 0
+ if_rx_Pkts64Octets             : 0               if_rx_Pkts65to127Octets        : 0
+ if_rx_Pkts128to255Octets       : 0               if_rx_Pkts256to511Octets       : 0
+ if_rx_Pkts512to1023Octets      : 0               if_rx_Pkts1024to1518Octets     : 0
+ if_rx_Pkts1519toMaxOctets      : 0
+
+
+ if_tx_octets                   : 2200            if_tx_errors                   : 0
+ if_tx_pause_pkts               : 0               if_tx_ucast_pkts               : 30
+ if_tx_multicast_pkts           : 0               if_tx_broadcast_pkts           : 0
+ if_tx_StatsPkts                : 20              if_tx_DropEvents               : 0
+ if_tx_Pkts64Octets             : 0               if_tx_Pkts65to127Octets        : 20
+ if_tx_Pkts128to255Octets       : 0               if_tx_Pkts256to511Octets       : 0
+ if_tx_Pkts512to1023Octets      : 0               if_tx_Pkts1024to1518Octets     : 0
+ if_tx_Pkts1519toMaxOctets      : 0               if_tx_Collisions               : 0
+#
+#
+----
+
+=== Receive SA Lowest Packet Number Update
+The Receive Secure Association will expect the Packet Number field in Transform Record Register, where this field
+will increament by one after each packet is processed by MACsec Block.
+
+The following command will configure the next Expected Packet Number by the MACsec Block in Transform Record Register.
+
+    * mesa-cmd rx_sa_pn_upd <port_no> port-id <port_id> sc-id <id> an <an_no> lowest-pn <pn>
+	
+	
+=== MACsec FIFO Frame Capture
+MACsec Block has FIFO in both Egress and Ingress direction to capture the packet processed by the MACsec Block.
+The Packet sent should be less then 504 bytes for the MACsec FIFO to capture the packet, if the packet size exceeds
+504 bytes the packet will not be captured in MACsec FIFO.
+
+The following MACsec Command will Enable the MACsec FIFO and configure the direction in which it needs to capture,
+which has a argument '[egress|ingress]' to select the direction of Packet capture.
+
+    * mesa-cmd frame capture <port_list> [egress|ingress]
+	
+Once the FIFO Packet Capture is enabled send the packet to MACsec Block and use the following command to get the
+captured frame in FIFO.
+
+    * mesa-cmd frame get <port_list>
+	
+Note :: The MACsec FIFO will Capture the First Packet after the FIFO is enable.
+
+----
+# mesa-cmd frame capture 13 egress
+
+ ...... MACsec FIFO Enabled on port 12 send packets to capture ......
+# 
+# 
+# 
+# mesa-cmd frame get 13
+
+ Frame Captured on Port 12
+ ===============================================
+
+ Length of Frame Captured : 92
+
+0x0  | 00 00 00 00 00 08 00 00  00 00 00 02 88 e5 7d 00 
+0x10 | 00 00 00 01 00 00 00 00  00 01 00 04 45 64 76 92 
+0x20 | 27 0b 0c d5 dc 0c 61 09  0e ce bf f9 78 21 e6 c2 
+0x30 | de 10 f0 25 97 e0 62 72  75 de d4 fd e0 93 12 5f 
+0x40 | 6a 14 27 9c 5f f6 33 02  cf 1d 0c ae 89 34 06 82 
+0x50 | a5 e7 e1 ac 9d a8 87 01  66 29 f7 e7 
+
+# 
+----
+
+
+=== MACsec Event Configuration
+MACsec Supports two event `Rollover` and `sequence threshold event`.
+
+ * `Rollover event` - Event is generated if the Tx SA Packet number rollover from Max value to zero
+ * `Sequence threshold event` - Event is genrated when the Packet Number of Tx SA reaches the threshold value configured
+ 
+The following command is used to enable the MACsec Event.
+
+    * mesa-cmd macsec event set <port_list> [rollover|seq_threshold] [evt_enable|evt_disable]
+
+=== MACsec Event Status Get
+The Command will provide the MACsec Event Enable Status and Event Status of all Ports on EDSx.
+If the Event is hit then it will provide Status as `Triggered` or else as `Not Triggered`
+
+The following example will provide how to enable MACsec event and get the status of Event
+
+----
+# mesa-cmd macsec event get
+
+ Port No   Rollover event     Threshold event   Rollover Status    Threshold Status
+ --------------------------------------------------------------------------------------
+ 1         Disabled           Disabled             --                --
+ 2         Disabled           Disabled             --                --
+ 3         Disabled           Disabled             --                --
+ 4         Disabled           Disabled             --                --
+ 5         Disabled           Disabled             --                --
+ 6         Disabled           Disabled             --                --
+ 7         Disabled           Disabled             --                --
+ 8         Disabled           Disabled             --                --
+ 9         Disabled           Disabled             --                --
+ 10        Disabled           Disabled             --                --
+ 11        Disabled           Disabled             --                --
+ 12        Disabled           Disabled             --                --
+ 13        Disabled           Disabled             --                --
+ 14        Disabled           Disabled             --                --
+ 15        Disabled           Disabled             --                --
+ 16        Disabled           Disabled             --                --
+ 17        Disabled           Disabled             --                --
+ 18        Disabled           Disabled             --                --
+ 19        Disabled           Disabled             --                --
+ 20        Disabled           Disabled             --                --
+
+#
+# //Enable Rollover Event
+# mesa-cmd macsec event set 13,14 rollover evt_enable
+#
+#
+# mesa-cmd macsec event get
+
+ Port No   Rollover event     Threshold event   Rollover Status    Threshold Status
+ --------------------------------------------------------------------------------------
+ 1         Disabled           Disabled             --                --
+ 2         Disabled           Disabled             --                --
+ 3         Disabled           Disabled             --                --
+ 4         Disabled           Disabled             --                --
+ 5         Disabled           Disabled             --                --
+ 6         Disabled           Disabled             --                --
+ 7         Disabled           Disabled             --                --
+ 8         Disabled           Disabled             --                --
+ 9         Disabled           Disabled             --                --
+ 10        Disabled           Disabled             --                --
+ 11        Disabled           Disabled             --                --
+ 12        Disabled           Disabled             --                --
+ 13        Enabled            Disabled          Not Triggered        --
+ 14        Enabled            Disabled          Not Triggered        --
+ 15        Disabled           Disabled             --                --
+ 16        Disabled           Disabled             --                --
+ 17        Disabled           Disabled             --                --
+ 18        Disabled           Disabled             --                --
+ 19        Disabled           Disabled             --                --
+ 20        Disabled           Disabled             --                --
+
+#
+#
+# // Enable Sequence threshold event
+# mesa-cmd macsec event set 13,14 seq_threshold evt_enable
+#
+#
+#
+# mesa-cmd macsec event get
+
+ Port No   Rollover event     Threshold event   Rollover Status    Threshold Status
+ --------------------------------------------------------------------------------------
+ 1         Disabled           Disabled             --                --
+ 2         Disabled           Disabled             --                --
+ 3         Disabled           Disabled             --                --
+ 4         Disabled           Disabled             --                --
+ 5         Disabled           Disabled             --                --
+ 6         Disabled           Disabled             --                --
+ 7         Disabled           Disabled             --                --
+ 8         Disabled           Disabled             --                --
+ 9         Disabled           Disabled             --                --
+ 10        Disabled           Disabled             --                --
+ 11        Disabled           Disabled             --                --
+ 12        Disabled           Disabled             --                --
+ 13        Enabled            Enabled           Not Triggered    Not Triggered
+ 14        Enabled            Enabled           Not Triggered    Not Triggered
+ 15        Disabled           Disabled             --                --
+ 16        Disabled           Disabled             --                --
+ 17        Disabled           Disabled             --                --
+ 18        Disabled           Disabled             --                --
+ 19        Disabled           Disabled             --                --
+ 20        Disabled           Disabled             --                --
+#
+#
+----
+
+When the Packet Number Rollover Happens then `Rollover Status` will change to Triggered or else
+when Packet Number reaches the configured Threshold Value the `Threshold Status` will change to 
+Triggered.
+
+=== MACsec Configuration Get
+The command `conf_get` is used to get the Current configuration of SecY, SC and SA based on the 
+input provided by the user.
+
+    * mesa-cmd conf_get [secy|tx_sc|tx_sa|rx_sc|rx_sa] <port_no> port-id <port_id> sc-id <id> an <an_no>
+
+Following are the commands to get the different configurations.
+
+    * mesa-cmd conf_get secy <port_no> port-id <port_id> sc-id <id> an <an_no> - `SecY Conf Get`
+    * mesa-cmd conf_get tx_sc <port_no> port-id <port_id> sc-id <id> an <an_no> - `Tx SC Conf Get`
+    * mesa-cmd conf_get tx_sa <port_no> port-id <port_id> sc-id <id> an <an_no> - `Tx SA Conf Get`
+    * mesa-cmd conf_get rx_sc <port_no> port-id <port_id> sc-id <id> an <an_no> - `Rx SC Conf Get`
+    * mesa-cmd conf_get rx_sa <port_no> port-id <port_id> sc-id <id> an <an_no> - `Rx SA Conf get`
+
+Note :: In SecY Conf_get the arguments `sc-id` and `an` are not required user can provide zero as the input
+for these arguments, similarly for SC conf_get the argument `an` is not required can be given as zero.
+
+Following example will provide the current configuration of SecY, SC and SA.
+
+----
+#
+#
+# mesa-cmd conf_get secy 13 port-id 4 sc-id 0 an 0
+
+
+SecY Configuration for port no 12 with port id 4
+=============================================================
+Frame Validation          : Strict
+Replay protect            : Disabled
+Replay Window             : 0
+Protect frames            : Enabled
+always_include_sci        : Enabled
+use_es                    : Disabled
+use_scb                   : Enabled
+confidentiality_offset    : 0
+Cipher suit               : NON-XPN AES- 256
+Mac Add                   : 0x0-0x1-0x2-0x3-0x4-0x5
+#
+#
+#
+#
+#
+# mesa-cmd conf_get tx_sc 13 port-id 4 sc-id 0 an 0
+Tx Secure Channel Configuration for port no 12 with port id 4
+=======================================================================
+Protect frames            : Enabled
+always_include_sci        : Enabled
+use_es                    : Disabled
+use_scb                   : Enabled
+confidentiality_offset    : 0
+#
+#
+#
+#
+#
+# mesa-cmd conf_get tx_sa 13 port-id 4 sc-id 0 an 1
+Tx Secure Association Configuration for port no 12 with port id 4
+=============================================================================
+Next Pn                   : 1
+confidentiality           : Enabled
+Active                    : Yes
+Key                       : 10, 13, 7, 10, 2, 11, 13, 0, 3, 14, 10, 12, 8, 3, 5, 10, 6, 15, 6, 2, 0, 15, 13, 12, 11, 5, 0, 6, 11, 3, 4, 5
+Hash Key                  : 115, 162, 61, 128, 18, 29, 226, 213, 168, 80, 37, 63, 207, 67, 18, 14
+Salt                      : 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 110, 1
+#
+#
+#
+#
+#
+# mesa-cmd conf_get rx_sc 13 port-id 4 sc-id 5 an 0
+Rx Secure Channel Configuration for port no 12 with port id 4 and channel id 5
+=================================================================================================
+Frame Validation          : Strict
+Replay protect            : Disabled
+Replay Window             : 0
+confidentiality_offset    : 0
+#
+#
+#
+#
+#
+#
+#
+# mesa-cmd conf_get rx_sa 13 port-id 4 sc-id 5 an 2
+Rx Secure Channel Configuration for port no 12 with port id 4 and channel id 5 and an = 2
+====================================================================================================================
+Lowest Pn                 : 3
+Active                    : Yes
+Key                       : 10, 13, 7, 10, 2, 11, 13, 0, 3, 14, 10, 12, 8, 3, 5, 10, 6, 15, 6, 2, 0, 15, 13, 12, 11, 5, 0, 6, 11, 3, 4, 5
+Hash Key                  : 115, 162, 61, 128, 18, 29, 226, 213, 168, 80, 37, 63, 207, 67, 18, 14
+Salt                      : 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 110, 1
+#
+#
+----
+
+=== 802.1X Control Frame Bypass Match Configuration
+The command `ctrl_frame_match_set` is used to configure the MACsec engine to bypass the 802.1x Control traffic
+without encrypting and without checking the integrity, it will pass the packet through uncontrolled port.
+
+    * mesa-cmd ctrl_frame set <port_no> ethtype <ether_type> dst_mac <mac_address>
+
+MACsec Engine Supports either Matching of DMAC or Ethertype or Both which will be one of the input of this Command.
+
+----
+# mesa-cmd ctrl_frame set 13 ethtype 2048 dst_mac 00-01-00-00-00-00
+
+
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = DMAC and Ethertype Match
+
+ Parameter that needs to be Matched : 2
+
+ ...... Control Frame Match Configured on port : 12  ......
+#
+#
+----
+
+=== 802.1X Control Frame Bypass Configuration Get
+The command `ctrl_frame_match_get` is used to get the Control frame match configurations on the MACsec enabled port.
+It will list all the control traffic configuration on the port (List all rule id configuration).
+
+    * mesa-cmd ctrl_frame get <port_no>
+
+The Command will display the all the Control Frame Configuration on that Port which will give the rule id and which
+parameter matching is enabled. This rule-id is used to delete any control frame configuration.
+
+----
+#
+#
+# mesa-cmd ctrl_frame set 13 ethtype 2048 dst_mac 00-01-00-00-00-00
+
+
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = DMAC and Ethertype Match
+
+ Parameter that needs to be Matched : 2
+
+ ...... Control Frame Match Configured on port : 12  ......
+#
+#
+#
+#
+# mesa-cmd ctrl_frame get 13
+
+
+ Rules configured for 802.1X Control Traffic Bypass on Port 12
+ ==================================================================================================
+
+ Rule id   Ethertype      DMAC Address        Match
+ ---------------------------------------------------------------------------------
+  2         2048           00-01-00-00-00-00   Ethtype
+#
+#
+#
+#
+#
+# mesa-cmd ctrl_frame set 13 ethtype 2054 dst_mac 00-01-00-00-00-00
+
+
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = DMAC and Ethertype Match
+
+ Parameter that needs to be Matched : 2
+
+ ...... Control Frame Match Configured on port : 12  ......
+#
+#
+# mesa-cmd ctrl_frame set 13 ethtype 2054 dst_mac 00-01-00-00-00-03
+
+
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = DMAC and Ethertype Match
+
+ Parameter that needs to be Matched : 3
+
+ ...... Control Frame Match Configured on port : 12  ......
+#
+#
+# mesa-cmd ctrl_frame get 13
+
+
+ Rules configured for 802.1X Control Traffic Bypass on Port 12
+==================================================================================================
+
+ Rule id   Ethertype      DMAC Address        Match
+---------------------------------------------------------------------------------
+
+ 0         2054           00-01-00-00-03-06   DMAC and Ethtype
+ 2         2048           00-01-00-00-00-00   Ethtype
+ 3         2054           00-01-00-00-00-06   Ethtype
+#
+#
+----
+
+=== 802.1X Control Frame Bypass Configuration Delete
+The Command `ctrl_frame_match_del` is used to delete the specified pattern matching rule on the MACsec Enabled port.
+
+    * mesa-cmd ctrl_frame del <port_no> <rule_list>
+
+Following Example will Del the Control Frame Bypass Configuration
+
+----
+#
+#
+# mesa-cmd ctrl_frame get 13
+
+
+ Rules configured for 802.1X Control Traffic Bypass on Port 12
+ ==================================================================================================
+
+ Rule id   Ethertype      DMAC Address        Match
+ ---------------------------------------------------------------------------------
+ 0         2054           00-01-00-00-03-06   DMAC and Ethtype
+ 2         2048           00-01-00-00-00-00   Ethtype
+ 3         2054           00-01-00-00-00-06   Ethtype
+
+#
+#
+#
+# mesa-cmd ctrl_frame del 13 0,3
+#
+#
+#
+# mesa-cmd ctrl_frame get 13
+
+
+ Rules configured for 802.1X Control Traffic Bypass on Port 12
+ ==================================================================================================
+
+ Rule id   Ethertype      DMAC Address        Match
+ ---------------------------------------------------------------------------------
+ 2         2048           00-01-00-00-00-00   Ethtype
+#
+#
+#
+----
+
+=== MACsec Port Instance Get
+This Command provides the information such as number of SecY created on the Physical Port and its
+SecY Port identifier, number of Secure channels created, and the number of Secure associations created
+for Secure Channels as a table.
+
+    * mesa-cmd inst_get <port_no>
+
+Note :: The Max Number of SecYs that can be created on per Physical Port depends on type of PHY Connected,
+Malibu10G supports max of 32 SecY whereas Viper supports max of 8 SecY on per Physical Port.
+
+----
+#
+# mesa-cmd inst_get 13
+
+
+ MACsec Instance Statisitics on port no 12
+ =============================================================
+ Number of SecYs                : 1
+ SecY Port ids                  : 4,
+
+ SecY id   No of Txsc   No of TxSA   TxSA Id            No of Rx SC    Rx SC Ids(No of SA in SC)
+ =================================================================================================
+  4          0            0            --                  0           ---------
+#
+#
+#
+#
+#
+# mesa-cmd tx_sc_create 13 port-id 4
+
+ ...... Transmit Secure Channel Created on port 12 for SecY with is :4......
+#
+#
+# mesa-cmd inst_get 13
+
+ MACsec Instance Statisitics on port no 12
+ =============================================================
+ Number of SecYs                : 1
+ SecY Port ids                  : 4,
+
+ SecY id   No of Txsc   No of TxSA   TxSA Id            No of Rx SC    Rx SC Ids(No of SA in SC)
+ =================================================================================================
+  4          1            0            --                  0           ---------
+
+#
+#
+# mesa-cmd tx_sa_create 13 port-id 4 an 1 next-pn 1 conf true
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : d
+
+ ...... Transmit Secure Association an = 1 Created for Channel id :4 ......
+#
+#
+# mesa-cmd inst_get 13
+
+
+ MACsec Instance Statisitics on port no 12
+ =============================================================
+ Number of SecYs                : 1
+ SecY Port ids                  : 4,
+
+ SecY id   No of Txsc   No of TxSA   TxSA Id            No of Rx SC    Rx SC Ids(No of SA in SC)
+ =================================================================================================
+  4          1            1             1,                 0           ---------
+#
+#
+#
+----
+
+=== Bypass VLAN TAG
+MACsec Engine Supports bypassing the VLAN Tags without encrypting (VLAN tag in Clear text).
+In Case of Viper PHY and Malibu10G it can bypass up to 2 VLAN Tags in case of Malibu25G it can bypass up
+to 4 VLAN Tags.
+
+    * mesa-cmd vlan_bypass <port_no>  port-id <port_id> [zero|one|two|three|four]
+
+Note:: To Bypass VLAN Tag from Encrypting this command needs to be called after creating SecY and before Creating
+Tx Secure Association otherwise this VLAN Bypass will not reflect.
+
+== MACsec Encryption Configuration Example
+There are few steps to be followed to configure PHY for MACsec Encryption.The Below mentioned MACsec Commands are 
+mandatory commands and these commands need to be called in same order mentioned below to configure PHY for MACsec
+Encryption.
+
+`Step 1` : macsec enable  -- Enables MACsec Block +
+`Step 2` : secy_create_upd -- Create Secure Entity (SecY) +
+`Step 3` : match_conf -- Provide Pattern Matching Parameters +
+`Step 4` : pattern_conf -- Configures Direction and Pattern Matching Rule for SecY +
+`Step 5` : tx_sc_create -- Create Transmit Secure Channel for SecY +
+`Step 6` : tx_sa_create -- Create Transmit Secure Association for Tx SC +
+
+Following example is for Encrypting only IPv4 Ethernet Packet with Ethertype Pattern Matching rule configured (0x800)
+
+----
+#
+#
+# mesa-cmd macsec port_state
+
+
+ Port    MACsec Capable    Status
+ -----------------------------------
+ 1       NotCapable          --
+ 2       NotCapable          --
+ 3       NotCapable          --
+ 4       NotCapable          --
+ 5       NotCapable          --
+ 6       NotCapable          --
+ 7       NotCapable          --
+ 8       NotCapable          --
+ 9       NotCapable          --
+ 10      NotCapable          --
+ 11      NotCapable          --
+ 12      NotCapable          --
+ 13      Capable           Disabled
+ 14      Capable           Disabled
+ 15      Capable           Disabled
+ 16      Capable           Disabled
+ 17      NotCapable          --
+ 18      NotCapable          --
+ 19      NotCapable          --
+ 20      NotCapable          --
+#
+#
+#
+#
+# mesa-cmd macsec enable 13 bypass_none
+
+ ...... MACsec Block Enabled on Port : 12......
+#
+#
+#
+#
+# mesa-cmd macsec port_state
+
+
+ Port    MACsec Capable    Status
+ -----------------------------------
+ 1       NotCapable          --
+ 2       NotCapable          --
+ 3       NotCapable          --
+ 4       NotCapable          --
+ 5       NotCapable          --
+ 6       NotCapable          --
+ 7       NotCapable          --
+ 8       NotCapable          --
+ 9       NotCapable          --
+ 10      NotCapable          --
+ 11      NotCapable          --
+ 12      NotCapable          --
+ 13      Capable           Enabled
+ 14      Capable           Disabled
+ 15      Capable           Disabled
+ 16      Capable           Disabled
+ 17      NotCapable          --
+ 18      NotCapable          --
+ 19      NotCapable          --
+ 20      NotCapable          --
+#
+#
+#
+#
+#
+# mesa-cmd secy_create_upd create 13 port-id 4 mac-addr 00-01-02-03-04-05
+
+ SECTAG PARAMETERS CONFIGURATION ........................
+
+
+ Protect Frames [1 : true, 0 : false] : 1
+
+ Select Frame Validation [0 : Disable, 1 : Strict , 2 : Check] : 1
+
+ Select Cipher Suit [0 : GCM-AES-128,  1 : GCM-AES-256,  2 : GCM-AES-XPN-128,  3 : GCM-AES-XPN-256] : 1
+
+ Sectag length [0 : 16-byte Sectag,  1 : 8-Byte Sectag] : 0
+
+ End Station(ES) Bit in Sectag (0 or 1) : 0
+
+ Single Copy Broadcast (SCB) in Sectag (0 or 1) : 0
+
+
+ ...... SecY Created on Port : 12 with port_id : 4......
+#
+#
+#
+#
+# mesa-cmd match_conf 13 ethtype 2048 src_mac 00-00-00-00-00-00 dst_mac 00-00-00
+-00-00-00 vlanid 0 vid-inner 0
+
+ ...... Match Parameters configured......
+#
+#
+#
+# mesa-cmd pattern_conf 13 port-id 4 egress cont_port
+
+ 0 = Disable Pattern Matching
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = SMAC Pattern MAtching
+ 4 = DMAC and Ethertype Match
+ 5 = SMAC and Ethertype Match
+ 6 = DMAC and SMAC Matching
+ 7 = DMAC, Ethertype and SMAC Matching
+ 8 = Outer VLAN ID Match
+ 9 = Inner VLAN ID Match
+
+ Parameter that needs to be Matched : 2
+
+
+
+ ...... Pattern Matching rule is Configured ......
+#
+#
+#
+#
+#
+# mesa-cmd tx_sc_create 13 port-id 4
+
+...... Transmit Secure Channel Created on port 12 for SecY with is :4......
+#
+#
+# mesa-cmd tx_sa_create 13 port-id 4 an 1 next-pn 1 conf true
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : d
+
+ ...... Transmit Secure Association an = 1 Created for Channel id :4 ......
+#
+#
+#
+#
+----
+
+== MACsec Decryption Configuration Example
+The Below mentioned MACsec Commands are mandatory commands and these commands need to be called in same order
+mentioned below to configure PHY for MACsec Decryption.
+
+`Step 1` : macsec enable  -- Enables MACsec Block +
+`Step 2` : secy_create_upd -- Create Secure Entity (SecY) +
+`Step 3` : match_conf -- Provide Pattern Matching Parameters +
+`Step 4` : pattern_conf -- Configures Direction and Pattern Matching Rule for SecY +
+`Step 5` : rx_sc_create -- Create Receive Secure Channel for SecY +
+`Step 6` : rx_sa_create -- Create Receive Secure Association for Tx SC +
+
+Following example is for Decrypting only MACsec Packet with Ethertype Pattern Matching rule configured (0x88E5)
+
+----
+#
+#
+# mesa-cmd macsec port_state
+
+
+ Port    MACsec Capable    Status
+ -----------------------------------
+ 1       NotCapable          --
+ 2       NotCapable          --
+ 3       NotCapable          --
+ 4       NotCapable          --
+ 5       NotCapable          --
+ 6       NotCapable          --
+ 7       NotCapable          --
+ 8       NotCapable          --
+ 9       NotCapable          --
+ 10      NotCapable          --
+ 11      NotCapable          --
+ 12      NotCapable          --
+ 13      Capable           Disabled
+ 14      Capable           Disabled
+ 15      Capable           Disabled
+ 16      Capable           Disabled
+ 17      NotCapable          --
+ 18      NotCapable          --
+ 19      NotCapable          --
+ 20      NotCapable          --
+#
+#
+#
+#
+# mesa-cmd macsec enable 13 bypass_none
+
+ ...... MACsec Block Enabled on Port : 12......
+#
+#
+#
+#
+# mesa-cmd macsec port_state
+
+ Port    MACsec Capable    Status
+ -----------------------------------
+ 1       NotCapable          --
+ 2       NotCapable          --
+ 3       NotCapable          --
+ 4       NotCapable          --
+ 5       NotCapable          --
+ 6       NotCapable          --
+ 7       NotCapable          --
+ 8       NotCapable          --
+ 9       NotCapable          --
+ 10      NotCapable          --
+ 11      NotCapable          --
+ 12      NotCapable          --
+ 13      Capable           Enabled
+ 14      Capable           Disabled
+ 15      Capable           Disabled
+ 16      Capable           Disabled
+ 17      NotCapable          --
+ 18      NotCapable          --
+ 19      NotCapable          --
+ 20      NotCapable          --
+#
+#
+#
+#
+#
+# mesa-cmd secy_create_upd create 13 port-id 4 mac-addr 00-01-02-03-04-05
+
+ SECTAG PARAMETERS CONFIGURATION ........................
+
+
+ Protect Frames [1 : true, 0 : false] : 1
+
+ Select Frame Validation [0 : Disable, 1 : Strict , 2 : Check] : 1
+
+ Select Cipher Suit [0 : GCM-AES-128,  1 : GCM-AES-256,  2 : GCM-AES-XPN-128,  3 : GCM-AES-XPN-256] : 1
+
+ Sectag length [0 : 16-byte Sectag,  1 : 8-Byte Sectag] : 0
+
+ End Station(ES) Bit in Sectag (0 or 1) : 0
+
+ Single Copy Broadcast (SCB) in Sectag (0 or 1) : 0
+
+ ...... SecY Created on Port : 12 with port_id : 4......
+#
+#
+#
+#
+# mesa-cmd match_conf 13 ethtype 35045 src_mac 00-00-00-00-00-00 dst_mac 00-00-00
+-00-00-00 vlanid 0 vid-inner 0
+
+ ...... Match Parameters configured......
+#
+#
+#
+# mesa-cmd pattern_conf 13 port-id 4 egress cont_port
+
+ 0 = Disable Pattern Matching
+ 1 = DMAC Pattern Matching
+ 2 = Ethertype Patter Matching
+ 3 = SMAC Pattern MAtching
+ 4 = DMAC and Ethertype Match
+ 5 = SMAC and Ethertype Match
+ 6 = DMAC and SMAC Matching
+ 7 = DMAC, Ethertype and SMAC Matching
+ 8 = Outer VLAN ID Match
+ 9 = Inner VLAN ID Match
+
+ Parameter that needs to be Matched : 2
+
+
+
+ ...... Pattern Matching rule is Configured ......
+#
+#
+#
+#
+#
+#
+# mesa-cmd rx_sc_create 13 port-id 4 sc-id 5
+
+ ...... Receive Secure Channel Created on port 12 for SecY with Port id :4......
+#
+#
+#
+# mesa-cmd rx_sa_create 13 port-id 4 sc-id 5 an 2 lowest-pn 1
+
+        d - Default File for MACsec SAK "macsec_key.json"
+        Enter MACsec SAK File Name default(press d) or enter file name : d
+
+ ...... Receive Secure Association an = 2 Created for Channel id :5 ......
+#
+#
+#
+#
+---- 

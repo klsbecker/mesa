@@ -1,0 +1,338 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+
+= Port Config Application
+
+== Introduction.
+
+To facilitate data traffic through the PHY, it is necessary to implement configurations on both the line
+and host sides of the PHY interface.
+
+[ditaa]
+....
+                            +---------------+
+   Host Side/ Mac Side      |               |       Line Side/ Media Side
+                            |               |  	    
+   (Towards MAC side)       |      PHY      |       (Towards LinkPartner side)
+                            |               |                                       
+                            |               |
+                            +---------------+
+ 
+....
+
+The host aspect of the PHY supports a variety of interfaces, including but not 
+limited to QSGMII, SGMII, RGMII, QXGMII, SXGMII, XGMII, XAUI, and SFI, as well as line-side interfaces 
+that accommodate copper and fiber media, inclusive of automotive standards.
+
+For the integration of Host/MAC interfaces, the available interface within the MEPA framework is 
+designated as `mesa_port_interface_t`, while the interface for Line/MEDIA connections is referred 
+to as `mesa_phy_media_interface_t`.
+
+The MAC/Host side of the PHY must be connected to a compatible MAC that supports the corresponding interface.
+For example, a MAC with QSGMII interface capabilities can be linked to a compatible PHY. Given that a PHY may
+offer support for various interfaces, it is imperative to select and configure the correct electrical interface to
+ensure effective communication between the PHY, the MAC, and the link partner.
+
+Once the electrical interface is correctly configured, it is necessary to set up auto or manual negotiation 
+parameters, as outlined in clauses 28 and 37, to enable the PHY to establish a connection with the link partner 
+or MAC. The negotiation process is contingent upon the capabilities of the link partner or MAC, which will 
+determine the link status, speed, and duplex mode. Upon successful negotiation, the PHY is prepared to 
+communicate with its counterpart.
+
+PHY can be held in COMA MODE by setting active high on GPIO pins (EDSX-GPIO33, EDS2-GPIO63(slot1),64(slot2)) and can be released
+by asserting pin low.
+
+Steps involved in the port-config aplication are:
+
+	1. Creating the Dev `mepa_drv_create` 
+	2. Attaching the Dev `cli_cmd_dev_attach`
+	3. Configuring the Dev `cli_cmd_phy_conf` or `cli_parm_speed_select`
+	4. Deleting the Dev    `mepa_drv_del`
+
+
+The Port-Config application facilitates the utilization of MEPA, providing a foundational understanding 
+of PHY configuration. This application allows for the implementation of the above mentioned configurations. 
+Below is a detailed guide on how to use the Port-Config application effectively.
+
+
+== Creating the Dev.
+
+ mesa-cmd PHY Dev create <port_no>
+
+Dev is a software instance of a port in the PHY, if the PHY is Quad channel PHY there will be
+4 instances.
+
+This command will identify the phy which is connected in the port number and create a MEPA DEV 
+instance for the PHY.
+
+The creation of MEPA instances must be initiated by the application. A MEPA instance is established
+through the invocation of the `mepa_create()` function. Upon successful execution, this function returns 
+a pointer to `mepa_device_t`. The `mepa_device_t` serves as a representation of an individual PHY and is 
+essential for the operation of all subsequent MEPA API calls pertaining to that specific PHY.
+
+The necessary params needed for creating this Dev is 
+
+	1. `mepa_callout`
+	2. `mepa_callout_ctx`
+	3. `mepa_board_conf_t`
+
+=== callout & callout_ctx
+
+In order for MEPA to be able to configure/query a given PHY, it needs to access
+the registers inside the PHY. To access PHY registers, some kind of
+bus-controller is needed (example MIIM), and if it is a shared bus, some
+addresses are needed. To keep MEPA board and OS agnostic, a set of call-back
+functions facilitating register access must be provided when creating a MEPA
+instance (see `struct mepa_callout`). A given board may have multiple buses,
+multiple PHYs, which lead to board specific needs for addressing a given PHYs.
+To avoid board dependencies in MEPA, all the callback functions therefore have a
+`struct mepa_callout_cxt`, defined and provided by the application itself, and
+only used by the application when the callback functions are used. Both the
+`mepa_callout_t` and `mepa_callout_ctx` object pointers are considered shared
+pointers, meaning that the memory pointing to must remain valid during the
+entire life time of the `mepa_device_t` instance.
+
+refer `mepa_drv_create`
+ 
+=== mepa_board_conf_t
+
+In board_config we pass port_no in board_conf.numeric_handle
+
+NOTE: if the PHY is vsc PHY the board_conf.vtss_instance_use, board_conf.vtss_instance_ptr 
+and board_conf.vtss_instance_create is important, if the vtss_instance_create = 1 , 
+MEPA will create a new vtss_instance and give it back in vtss_instance_ptr, if you want to use 
+the same vtss_instance_ptr for all the  VSC PHY ports set vtss_instance_use = 1;
+if vtss_instance_create = 0, MEPA will attach the all the phy's in the default vtss_instance.
+
+
+== Attaching the Dev
+
+	mesa-cmd PHY Dev attach <port_no> [qsgmii|sfi|sgmii]
+
+This command will attach the phy to the mac with the correct interface. 
+eg: The port_no in EDSX correspond to a serdes port for 25G slot1 the application port number is 
+13,14,15 and 16 (25G, 10G, 5G SGMII, 2.5G SGMII, 1G SGMII, USXGMII)
+
+
+== Configuring the dev
+
+	mesa-cmd PHY Dev conf <port_no> -f <file_name>
+
+The configuration is passed to the respective port from the file_name, the file consists of 
+mepa_conf_t structure in the json format. the json string should start with the json object
+"port_config"
+
+        mesa-cmd PHY speed <port_list> [10hdx|10fdx|100hdx|100fdx|1000fdx|10g|25g] [cl37-aneg] [r-fec] [rs-fec] [fec-host|fec-line|fec-h-l]
+
+User can either use `dev conf` command or `phy speed` command to configure the Dev of the Port,
+This `phy speed` command will configure the Fixed Speed to the port by hardcoding few parameters of
+the structure `mepa_conf_t`
+
+When user wants to enable either BASE-R FEC or RS-FEC, then it is manadatory to select the direction in which FEC to be enabled,
+Host side or Line Side or both sides.
+
+ 
+== Deleting the Dev
+
+	mesa-cmd PHY Dev del <port_no>
+
+The Dev instance can be deleted with the above command, when the dev deletion is done 
+The dev will be freed and the application deletes the PHY from the respective port no.\
+
+NOTE: The base port instance of the PHY should be deleted last, as it is linked to other port instances, first port of
+each PHY is base port of the PHY.
+
+For sample json-file refer to :link:#mesa/demo/mepa_scripts/port_config_json[JSON config]
+
+== Enabling COMA mode
+
+	mesa-cmd PHY Coma_mode enable
+
+This command will set the direction of GPIO pin as output and enable COMA mode on the 
+PHY by asserting GPIO Pin (GPIO-33 (EDSX), GPIO-64(EDS2)) high.
+
+== Disabling COMA mode
+
+	mesa-cmd PHY Coma_mode disable
+
+This command will set the direction of GPIO pin as output and disable COMA mode on the 
+PHY by asserting GPIO Pin (GPIO-33 (EDSX), GPIO-64(EDS2)) low.
+
+== Downshift Application command
+
+The Downshift allows an interface to link at a lower advertised speed when unable to
+establish a stable link at the maximum speed.
+
+The below are the list of command lines that are used to configure the Downshift.
+
+NOTE: LAN8804 and LAN8814 are the 2 SKU's that has Downshift support.
+
+=== Enabling Downshift
+
+	mesa-cmd PHY Downshift <port_list> <dsh_time> enable
+
+This command will configure the Downshift for the list of PHY ports with the given 'dsh_time'.
+
+NOTE: The 'dsh_time' can be given as input from the Range of 0 to 6 secs
+
+=== Disabling Downshift
+
+	mesa-cmd PHY Downshift <port_list> <dsh_time> disable
+
+This command will disable the Downshift for the list of PHY ports.
+
+== PHY Port Operating Mode
+
+        mesa-cmd PHY mode <port_no> [pcs_retimer|mac_retimer]
+
+This Command is used to configure the Operating Mode of the PHY Port.LAN80xx PHY Supports
+two operating Modes(PCS Retimer and MAC Retimer).
+
+NOTE: This command `phy mode` is supported only for LAN80xx PHYs
+
+== Flow Control Configuration in PHY
+
+        mesa-cmd PHY Flow control <port_list> [enable|disable]
+
+Above command is used to Enable or Disable Flow Control in PHY Port.
+
+NOTE: The command `phy flow control` is supported only for LAN80XX PHYs
+
+== Frame Preemption Configuration in PHY
+
+	mesa-cmd PHY FPP_SET <port_no> [enable|disable]
+
+        mesa-cmd PHY FPP_GET <port_no>
+
+Command `fpp_set` is used to Enable or Disable Frame Preemption in PHY Port. +
+The command `fpp_get` to know the current configuration status of Frame Preemption on PHY Port.
+
+== KR ANEG Configuration in PHY
+
+	mepa - cmd phy kr aneg < port - list > [adv - 1g] [adv - 10g] [adv - 25g] [adv - 25g - krs] [rfec - 10g] [rfec - 25g] [rsfec] [np] [np - rfec] [np - rsfec] [fw - res] [train] [disable]
+
+Above command is used to Enable or Disable KR ANEG in phy ports.
+
+NOTE: User should connect Link partners on both HOST side and LINE side and then run `phy kr aneg` command so negotiate, if any of the
+link patner is not avaialble, then ANEG will fail.
+
+=== Enable / start KR ANEG
+	To start ANEG, the command shall be given with the required advertisement abilities.
+Example :
+
+	mepa - cmd phy kr aneg 1 adv - 10g
+
+=== Disable / stop KR ANEG
+	To stop ANEG, the command shall be given with 'disable'.
+Example :
+
+	mepa - cmd phy kr aneg disable
+
+NOTE: If 'disable' is along with advertisement abilities, then KR ANEG will be stopped.
+
+=== parameter details
+	All the supported advertisement abilites are given as parameter to this command. here are the brief detials about each parameter
+		'adv-1g'		-	advertise 1g
+		'adv-10g'		-	advertise 10g
+		'adv-25g'		-	advertise 25g base kr
+		'adv-25g-krs'	        -	advertise 25g krs
+		'rfec-10g'		-	10g base R - FEC
+		'rfec-25g'		-	25g base R - FEC
+		'rsfec'			-	RS - FEC
+		'np'			-	Extended Next page with 25G
+		'np-rfec'		-	Extended Next page with R - FEC
+		'np-rsfec'		-	Extended Next page with RS - FEC
+		'fw-res'		-	Enable Firmware resolve
+		'train'			-	Enable KR Training
+		'disable'		-	Disable / stop kr aneg
+
+NOTE: Next page 'np' feature to work / handle for HCD calculation, the 'fw-res' must be enabled.
+
+=== ANEG/KR Logging
+ANEG/KR logging captures the detailed information about the auto-negotiation and link training process on KR Ethernet links. 
+
+To get KR Logging User needs to flash `.ext4` image on eMMC flash, the application will not work with `.itb` image because it doesn't 
+have the Linux File System. To save KR status log we use .log file format in Linux File System.
+
+
+==== Enable ANEG/KR Logging
+To enable logging, the below command can be used.
+
+	mesa-cmd PHY KR_LOG enable <port_list> [host] [line]
+
+Example: 
+----
+mesa-cmd PHY kr_log enable 3 host line
+----
+
+NOTE: KR logging is supported maximum of 4 Ports (line, host)
+
+==== Get KR Logging status
+To get ANEG/KR status log below command can be used.
+
+	mesa-cmd PHY KR_LOG status <port_list> [host] [line] [aneg|eq|ber|irq|all|clr]
+
+Example 1: To get ANEG log
+----
+mesa-cmd PHY KR_LOG status 3 line aneg
+----
+
+NOTE: Executing this command will generate Port_KR_Log_Memory_Dump (.log) and Port_KR_Status_ANEG (.log) files 
+inside /mepa_scripts folder for selected ports
+
+Example 2: To get KR Equalizers status Log
+----
+mesa-cmd PHY KR_LOG status 3 line eq
+----
+
+NOTE: Executing this command will generate Port_KR_Log_Memory_Dump (.log) and Port_KR_Status_EQ (.log) files 
+inside /mepa_scripts folder for selected ports
+
+Example 3: To get KR BER status Log
+----
+mesa-cmd PHY KR_LOG status 3 line ber
+----
+
+NOTE: Executing this command will generate Port_KR_Log_Memory_Dump (.log) and Port_KR_Status_BER (.log) files 
+inside /mepa_scripts folder for selected ports
+
+Example 4: To get KR IRQ status Log
+----
+mesa-cmd PHY KR_LOG status 3 line irq
+----
+
+NOTE: Executing this command will generate Port_KR_Log_Memory_Dump (.log) and Port_KR_Status_IRQ (.log) files 
+inside /mepa_scripts folder for selected ports
+
+Example 5: To get over all ANEG/KR summary status
+----
+mesa-cmd PHY KR_LOG status 3 line all
+----
+
+NOTE: Executing this command will generate Port_KR_Log_Memory_Dump (.log), Port_KR_Status_Summary (.log) and 
+Port_KR_Status_All (.log) files inside /mepa_scripts folder for selected ports
+
+==== Clear KR Log RAM memory
+To Reset KR Logging RAM Memory, below command can be used.
+
+	mesa-cmd PHY KR_LOG status <port_list> [host] [line] clr
+
+Example:
+----
+mesa-cmd PHY KR_LOG status 3 host line clr
+----
+
+==== Disable KR Logging
+To disable logging, the below command can be used.
+
+	mesa-cmd PHY KR_LOG disable <port_list> [host] [line]
+
+Example:
+---- 
+	mesa-cmd PHY KR_LOG disable 3,4 host line
+----
+
+
+
+

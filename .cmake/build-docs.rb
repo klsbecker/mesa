@@ -55,3 +55,8 @@ run "cp ./mesa-doc.html ws/." if File.exist? "./ws"
 run "cd mepa/docs/scripts; ./dg.rb -r #{rev} -s #{git_sha}"
 run "cp ./mepa/mepa-doc.html images/." if File.exist? "./images"
 run "cp ./mepa/mepa-doc.html #{$ws}/." if File.exist? "#{$ws}"
+
+#MEPA-APP-Doc
+run "cd mesa/demo/docs/scripts; ./dg.rb -r #{rev} -s #{git_sha}"
+run "cp ./mesa/demo/mepa-app-doc.html images/." if File.exist? "./images"
+run "cp ./mesa/demo/mepa-app-doc.html #{$ws}/." if File.exist? "#{$ws}"

@@ -1,0 +1,143 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= Loopback demo Application
+
+== Loopback Description
+Loopback in Physical Layer (PHY) devices is a diagnostic feature used to test and verify the functionality
+ of network hardware. It involves routing the transmitted signal back to the receiver within the same device,
+ allowing for the testing of the transmission and reception paths without the need for external connections
+
+Loopback testing is crucial for diagnosing and troubleshooting network issues, verifying hardware functionality,
+and ensuring the integrity of data transmission.
+
+== Directory
+* `./mesa/demo/mepa_apps/phy_loopback.c` - Source Code for Loopback Demo Sample Application.
+* `./mesa/demo/mepa_scripts/loopback_config.json` - JSON file for Loopback config, Application will take configuration from this File
+
+== Prerequisites
+To Test Loopback Demo Application User have to use `arm64_vsc7558TSN.ext4` image to EDSx Platform.
+
+== Procedure to run Loopback Demo Application
+
+To Run Loopback Demo Application the 'mesa-demo' application needs to be running.
+Refer Section link:#mesa/demo/docs/getting-started[Getting-Started] to
+know about the procedure to run 'mesa-demo' Application.
+
+Once 'mesa-demo' application is started then we can run the Loopback Demo Application
+with help of following Command.
+
+    mesa-cmd PHY Loopback <port_no> -f <file_name>
+
+The configuration is transmitted to the designated port from the JSON file specified by filename.
+This file contains the structures `mepa_loopback_t` and `vtss_phy_10g_loopback_t` in JSON format.
+The JSON string must begin with the JSON object "1gconfig" for 1G PHY's, "10g_config" for VSC8258 PHY
+and "25g_config" for 25G PHY.
+
+User must enable any one of the loopback configuration for the respective PHY.
+
+To List the all available arguments in the Loopback Demo Application run the below mentioned command.
+
+----
+# mesa-cmd PHY Loopback ?
+
+Description:
+------------
+Configure loopback for particular port number.
+
+Syntax:
+-------
+loopback <port_no> [-f] [filename]
+
+Parameters:
+-----------
+<port_no>: Port number or zero
+file             :  file option
+
+filename       :  filename)
+
+----
+
+== Host/Line side Loopbacks
+
+ * Host side loopbacks (H1/H2/H4 etc) can be verified by transmitting packets from Line side
+of the PHY to Link partner using packet tx command.
+
+[ditaa]
+....
+      +---------------+                                           +---------------+
+      |               | Line side                                 |               |
+      |               |                  Tx packets               |               |
+      |      PHY      | ----------------------------------------->|  Link partner |
+      |               |                                           |               |
+      |               |                                           |               |
+      +---------------+                                           +---------------+
+....
+
+
+ * Lineside loopback (L1/L2/L3 etc) can be verified by transmitting packets from Link partner side to the DUT PHY
+using packet tx command.
+
+[ditaa]
+....
+      +---------------+                                           +---------------+
+      |               | Line side                                 |               |
+      |               |                  Tx packets               |               |
+      |      PHY      |<------------------------------------------|  Link partner |
+      |               |                                           |               |
+      |               |                                           |               |
+      +---------------+                                           +---------------+
+....
+
+ * Whether the transmitted packets got received back can be verified by using port statistics command.
+
+Below is the example of loopback demo application running on EDSx Switch with VSC8258 PHY.
+
+----
+# mesa-cmd port stati 13 clear
+#
+# mesa-cmd packet tx 13 100 100
+Sending 100 frames of 100 bytes on port 13
+#
+#
+#
+# mesa-cmd port stati 13
+Port 21 Statistics:
+
+Rx Packets:                        100   Tx Packets:                        100
+Rx Octets:                       10000   Tx Octets:                       10000
+Rx Unicast:                          0   Tx Unicast:                          0
+Rx Multicast:                        0   Tx Multicast:                        0
+Rx Broadcast:                        0   Tx Broadcast:                      100
+Rx Pause:                            0   Tx Pause:                            0
+
+Rx 64:                               0   Tx 64:                               0
+Rx 65-127:                         100   Tx 65-127:                         100
+Rx 128-255:                          0   Tx 128-255:                          0
+Rx 256-511:                          0   Tx 256-511:                          0
+Rx 512-1023:                         0   Tx 512-1023:                         0
+Rx 1024-1518:                        0   Tx 1024-1518:                        0
+Rx 1519-    :                        0   Tx 1519-    :                        0
+
+Rx Packets_0:                      100   Tx Packets_0:                      100
+Rx Packets_1:                        0   Tx Packets_1:                        0
+Rx Packets_2:                        0   Tx Packets_2:                        0
+Rx Packets_3:                        0   Tx Packets_3:                        0
+Rx Packets_4:                        0   Tx Packets_4:                        0
+Rx Packets_5:                        0   Tx Packets_5:                        0
+Rx Packets_6:                        0   Tx Packets_6:                        0
+Rx Packets_7:                        0   Tx Packets_7:                        0
+
+Rx Drops:                            0   Tx Drops:                            0
+Rx CRC/Alignment:                    0   Tx Late Collisions:                  0
+Rx Symbol:                           0   Tx Excessive Coll.:                  0
+Rx Undersize:                        0   Tx Carrier Sense:                    0
+Rx Oversize:                         0
+Rx Fragments:                        0
+Rx Jabbers:                          0
+Rx Filtered:                         0
+
+----
+
+Note:: Refer section 3.10 - Figure 92 in VSC8258 DOS for detailed illustation for Host and Line side
+Loopbacks
