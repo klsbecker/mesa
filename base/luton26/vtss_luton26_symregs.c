@@ -1386,10 +1386,5 @@ vtss_rc vtss_symreg_data_get(const vtss_inst_t         inst,
     return VTSS_RC_OK;
 }
 
-#else /* VTSS_OPT_SYMREG */
-vtss_rc vtss_symreg_data_get(const vtss_inst_t         inst,
-                             vtss_symreg_data_t *const data) {
-    return VTSS_RC_ERROR;
-}
 #endif /* VTSS_OPT_SYMREG */
 #endif /* VTSS_ARCH_LUTON26 */
