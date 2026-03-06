@@ -433,7 +433,7 @@ static vtss_rc fa_packet_mode_update(vtss_state_t *vtss_state)
 #define XTR_VALID_BYTES(x) (4U - (((x) >> 24U) & 3U))
 #endif
 
-vtss_rc fa_rx_frame_discard_grp(vtss_state_t *vtss_state, vtss_packet_rx_grp_t xtr_grp)
+static vtss_rc fa_rx_frame_discard_grp(vtss_state_t *vtss_state, const vtss_packet_rx_grp_t xtr_grp)
 {
     BOOL done = FALSE;
     u32  val;
