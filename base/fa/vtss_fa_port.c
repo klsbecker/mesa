@@ -2966,6 +2966,7 @@ static vtss_rc fa_sd_power_save(vtss_state_t        *vtss_state,
 
     if (pd_serdes) {
         VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &indx, &type));
+#if !defined(VTSS_ARCH_LAIKA)
         if (type == FA_SERDES_TYPE_25G) {
 #if defined(VTSS_FEATURE_SD_25G)
             sd_tgt = VTSS_TO_SD25G_LANE(indx);
@@ -2984,14 +2985,13 @@ static vtss_rc fa_sd_power_save(vtss_state_t        *vtss_state,
             } else {
                 sd_tgt = VTSS_TO_SD10G_LANE(indx);
             }
-#if !defined(VTSS_ARCH_LAIKA)
             REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_06(sd_tgt),
                     VTSS_F_SD10G_LANE_TARGET_LANE_06_CFG_PD_DRIVER(power_down),
                     VTSS_M_SD10G_LANE_TARGET_LANE_06_CFG_PD_DRIVER);
-#else
-            (void)sd_tgt;
-#endif
         }
+#else
+        (void)sd_tgt;
+#endif
     }
 
     if (power_down) { // Covers shadow and primary ports
@@ -3996,6 +3996,7 @@ vtss_rc vtss_cil_port_status_get(struct vtss_state_s      *vtss_state,
     case VTSS_PORT_INTERFACE_SFI:
         (void)sd_tgt;
         VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
+#if !defined(VTSS_ARCH_LAIKA)
         if (sd_type == FA_SERDES_TYPE_25G) {
 #if defined(VTSS_FEATURE_SD_25G)
             sd_tgt = VTSS_TO_SD25G_LANE(sd_indx);
@@ -4009,13 +4010,12 @@ vtss_rc vtss_cil_port_status_get(struct vtss_state_s      *vtss_state,
             } else {
                 sd_tgt = VTSS_TO_SD10G_LANE(sd_indx);
             }
-#if !defined(VTSS_ARCH_LAIKA)
             /* Check the analog loss of signal detect of the 10G-Serdes */
             REG_RD(VTSS_SD10G_LANE_TARGET_LANE_DF(sd_tgt), &val2);
             analog_sd =
                 (VTSS_X_SD10G_LANE_TARGET_LANE_DF_PMA2PCS_RXEI_FILTERED(val2) == 0U); // 0 = link
-#endif
         }
+#endif
 
         /* MAC10G Tx Monitor Sticky bit Register */
         REG_RD(VTSS_DEV10G_MAC_TX_MONITOR_STICKY(tgt), &value);

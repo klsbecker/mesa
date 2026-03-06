@@ -979,6 +979,7 @@ vtss_rc vtss_cil_ts_status_change(struct vtss_state_s *vtss_state, vtss_port_no_
         return VTSS_RC_ERROR;
     }
     if (sd_type != FA_SERDES_TYPE_UNKNOWN) {
+#if !defined(VTSS_ARCH_LAIKA)
         /* Interface has a SERDES */
         sd_lane_tgt = VTSS_TO_SD_LANE(sd_indx);
 
@@ -994,7 +995,6 @@ vtss_rc vtss_cil_ts_status_change(struct vtss_state_s *vtss_state, vtss_port_no_
             sd_tx_delay_var = VTSS_X_SD25G_CFG_TARGET_SD_DELAY_VAR_TX_DELAY_VAR(value);
 #endif
         } else {
-#if !defined(VTSS_ARCH_LAIKA)
             REG_RD(VTSS_SD_LANE_TARGET_SD_DELAY_VAR(sd_lane_tgt), &value);
             sd_rx_delay_var = VTSS_X_SD_LANE_TARGET_SD_DELAY_VAR_RX_DELAY_VAR(value);
             sd_tx_delay_var = VTSS_X_SD_LANE_TARGET_SD_DELAY_VAR_TX_DELAY_VAR(value);
@@ -1008,9 +1008,11 @@ vtss_rc vtss_cil_ts_status_change(struct vtss_state_s *vtss_state, vtss_port_no_
                     delay_var_factor[2].tx = 49600U;
                 }
             }
-#endif
         }
         VTSS_D("sd_rx_delay_var %u  sd_tx_delay_var %u", sd_rx_delay_var, sd_tx_delay_var);
+#else
+        (void)sd_lane_tgt;
+#endif /* !defined(VTSS_ARCH_LAIKA) */
     }
 
     switch (interface) {

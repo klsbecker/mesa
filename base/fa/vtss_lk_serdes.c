@@ -17,11 +17,7 @@ u32 vtss_fa_port2sd_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no) { ret
 
 u32 vtss_fa_sd_lane_indx(vtss_state_t *vtss_state, vtss_port_no_t port_no) { return 0; }
 
-u32 vtss_to_sd6g_lane(vtss_state_t *vtss_state, u32 indx) { return 0; }
 
-u32 vtss_to_sd10g_lane(vtss_state_t *vtss_state, u32 indx) { return 0; }
-
-u32 vtss_to_sd_lane(vtss_state_t *vtss_state, u32 indx) { return 0; }
 
 vtss_rc vtss_fa_sd_cfg(vtss_state_t *vtss_state, vtss_port_no_t port_no, vtss_serdes_mode_t mode)
 {
