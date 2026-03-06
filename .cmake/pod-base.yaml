@@ -6,7 +6,7 @@ metadata:
 spec:
   containers:
   - name: pod-mesa-base
-    image: artifacts-aws.devops.microchip.com:7996/ung/mesa/mesa-build-env@<none>
+    image: artifacts-aws.devops.microchip.com:7996/ung/mesa/mesa-build-env@sha256:cf1b6e3890b97d8ff80833fbc6137f321308764c18abb6806d63594fdc664d4c
     imagePullPolicy: IfNotPresent
     command:
     - cat
