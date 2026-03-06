@@ -65,7 +65,7 @@
 #define RT_CHIP_PORTS                 32U
 #define RT_SERDES_10G_START           0
 #define RT_SERDES_25G_START           0
-#define RT_SERDES_CNT                 10
+#define RT_SERDES_CNT                 16
 #define RT_CMU_CNT                    6
 #define RT_BUFFER_MEMORY              4194304
 #define RT_BUFFER_REFERENCE           22795
