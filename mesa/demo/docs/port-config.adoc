@@ -145,20 +145,6 @@ each PHY is base port of the PHY.
 
 For sample json-file refer to :link:#mesa/demo/mepa_scripts/port_config_json[JSON config]
 
-== Enabling COMA mode
-
-	mesa-cmd PHY Coma_mode enable
-
-This command will set the direction of GPIO pin as output and enable COMA mode on the 
-PHY by asserting GPIO Pin (GPIO-33 (EDSX), GPIO-64(EDS2)) high.
-
-== Disabling COMA mode
-
-	mesa-cmd PHY Coma_mode disable
-
-This command will set the direction of GPIO pin as output and disable COMA mode on the 
-PHY by asserting GPIO Pin (GPIO-33 (EDSX), GPIO-64(EDS2)) low.
-
 == Downshift Application command
 
 The Downshift allows an interface to link at a lower advertised speed when unable to

@@ -21,11 +21,6 @@ static mepa_port_no_t           port_cnt;
 static mscc_appl_trace_module_t trace_module = {.name = "phy_port_config"};
 
 #define MALIBU_SPECIFIC_CHECK (0x8250)
-#ifdef MEPA_DEMO_EDS2
-#define COMA_MODE_GPIO_NUM 64
-#else
-#define COMA_MODE_GPIO_NUM 33
-#endif
 
 enum { TRACE_GROUP_DEFAULT, TRACE_GROUP_CNT };
 
@@ -262,18 +257,6 @@ static void cli_cmd_dev_del(cli_req_t *req)
     if (mepa_drv_del(req->port_no) != MESA_RC_OK) {
         req->rc = -1;
         T_E("Error in mepa drv delete\n");
-    } else {
-        req->rc = 0;
-    }
-}
-
-static void cli_cmd_coma_mode(cli_req_t *req)
-{
-
-    (void)mesa_gpio_direction_set(NULL, 0, COMA_MODE_GPIO_NUM, TRUE);
-    if (mesa_gpio_write(NULL, 0, COMA_MODE_GPIO_NUM, req->enable) != MESA_RC_OK) {
-        req->rc = -1;
-        T_E("Error in coma mode enable/disable\n");
     } else {
         req->rc = 0;
     }
@@ -594,7 +577,6 @@ static cli_cmd_t cli_cmd_table[] = {
        the speed and duplex configuration support is provided in the port module */
     {"PHY Dev Attach [<port_no>] [qsgmii|sfi|sgmii]", "del dev for the particular port number",
      cli_cmd_dev_attach},
-    {"PHY Coma_mode [enable|disable]", "Enable/Disable coma mode for the PHY", cli_cmd_coma_mode},
     {"PHY FPP_set <port_no> [enable|disable]", "Enable/Disable Frame Preemption on PHY",
      cli_cmd_fpp_set},
     {"PHY FPP_get <port_no>", "Get the Frame Preemption Status on PHY", cli_cmd_fpp_get},
