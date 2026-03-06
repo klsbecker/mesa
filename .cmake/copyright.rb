@@ -78,7 +78,7 @@ end
   next if ".cmake/pod-build.yaml" == f
   next if ".cmake/pod-misra-lmstax.yaml" == f
 
-  next if [".vsd", ".svg", ".png", ".graphml", ".xls", ".txt", ".json", ".cer"].include? ext
+  next if [".vsd", ".svg", ".png", ".graphml", ".xls", ".txt", ".json", ".cer", ".crt"].include? ext
   next if [".gitattributes", ".gitignore", "Gemfile.lock", "catch.hpp", "TODO"].include? base
 
   begin
