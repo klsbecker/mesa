@@ -562,6 +562,7 @@ def check_rate(cfg)
         end
     end
 
+    $ts.pc.run("rm -f /tmp/dump.pcap")
     t_i("Start tcpdump logging on egress port: #{$ts.pc.p[eg]}")
     pid_tcp = $ts.pc.bg("tcpdump", "tcpdump -i #{$ts.pc.p[eg]} -j adapter_unsynced -s22 -w /tmp/dump.pcap")
 
