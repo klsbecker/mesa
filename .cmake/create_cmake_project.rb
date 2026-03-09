@@ -302,6 +302,7 @@ cmd = [cmake]
 cmd << "-DCMAKE_TOOLCHAIN_FILE=#{base}/#{c[:toolchainfile]}"
 cmd << "-DBUILD_ALL=on" if $opt[:all]
 cmd << "-G Ninja" if $opt[:ninja]
+cmd << "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 cmd << c[:cmake_flags] if c[:cmake_flags]
 cmd << src
 
@@ -316,6 +317,8 @@ if $opt[:build]
     cpu_cnt, e, s = run("cat /proc/cpuinfo | grep processor | wc -l")
     sys "make -j#{cpu_cnt.strip}"
   end
+
+  run "cp compile_commands.json #{$top}/compile_commands.json"
 
   if $opt[:pack] and c[:package_list]
     cd $top
