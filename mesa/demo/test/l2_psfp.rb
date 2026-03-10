@@ -240,7 +240,7 @@ test "frame-gate" do
     $ts.dut.call("mesa_ingress_cnt_clear", $istat, 0)
     cmd = "sudo ef -c #{$ts.pc.p[$idx_rx]},1,adapter_unsynced,,#{tx_cnt} "
     cmd += "name f1 eth data pattern cnt #{len - 18} tx #{$ts.pc.p[$idx_tx]} rep #{tx_cnt} name f1"
-    $ts.pc.run(cmd)
+    $ts.pc.run_with_stderr_as_info(cmd)
     pkts = $ts.pc.get_pcap "#{$ts.links[1][:pc]}.pcap"
     if (pkts.size == 0)
         t_e("No packets logged");

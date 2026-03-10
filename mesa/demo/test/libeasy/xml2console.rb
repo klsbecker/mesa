@@ -169,13 +169,29 @@ class Sample < ::Ox::Sax
         when :run_stderr, :try_stderr, :try_ignore_stderr, :try_err_stderr, :run_err_stderr
             pr "#{e[:data]}", "ERR".red
 
-        when :run_end, :try_end, :try_ignore_end, :try_err_end, :run_err_end
+        when :try_ignore_stderr
+            pr "#{e[:data]}", "ERR".green
+
+        when :run_end, :try_end, :mup_end
             msg = "Exit #{a[:exitstatus].to_i}, took #{a[:ts_rel]} secs"
             if a[:exitstatus].to_i == 0
                 pr msg, "RES".green.bold
             else
                 pr msg, "RES".bg_red
             end
+
+        when :run_err_end, :try_err_end
+            msg = "Exit #{a[:exitstatus].to_i}, took #{a[:ts_rel]} secs"
+            if a[:exitstatus].to_i != 0
+                pr msg, "RES".green.bold  # non-zero is expected
+            else
+                pr msg, "RES".bg_red      # exit 0 is unexpected for run_err
+                junit_failure()
+            end
+
+        when :try_ignore_end
+            msg = "Exit #{a[:exitstatus].to_i}, took #{a[:ts_rel]} secs"
+            pr msg, "RES".green.bold
 
         when :console
             pr "#{e[:data]}", "CON".cyan

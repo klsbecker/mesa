@@ -683,11 +683,16 @@ class TestPCRemote
         execute cmd, "try_ignore"
     end
 
+    # Same as 'run' but stderr is treated as informational (not a test failure).
+    def run_with_stderr_as_info cmd
+        execute cmd, "run", error_is_info: true
+    end
+
     def bash_function cmd
         @io.write "#{cmd}\n"
     end
 
-    def execute cmd, method
+    def execute cmd, method, error_is_info: false
         #t_i "IO-Write: er -l ./.er.lock -- #{cmd}"
         @io.write "er -l ./.er.lock -- #{cmd}\n"
         #t_i "IO-Write: done"
@@ -716,7 +721,7 @@ class TestPCRemote
                     xml_tag "#{method}_stdout", data, attrs
                     res_out += data
                 when :err
-                    xml_tag "#{method}_stderr", l[:data], attrs
+                    xml_tag "#{method}_stderr", l[:data], error_is_info ? attrs.merge({"error_is_info" => true}) : attrs
                     res_err += l[:data]
                 when :in
                     xml_tag "#{method}_stdin", l[:data], attrs
