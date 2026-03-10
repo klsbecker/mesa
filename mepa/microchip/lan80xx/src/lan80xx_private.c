@@ -625,6 +625,9 @@ mepa_rc lan80xx_xconnect_hostfailover_Protection(mepa_device_t  *dev, mepa_port_
     data->is_mac_change = conf->is_mac_change;
     data->mode = conf->mode;
 
+    /* Store host_protection_ena in base_dev so all channels can access it */
+    base_data->host_protection_ena = conf->enable;
+
     LAN80XX_CSR_WRM(base_port, switch_sel ? LAN80XX_CROSS_CONNECT_WPS0_FILTER_COUNTA_LSB : LAN80XX_CROSS_CONNECT_WPS1_FILTER_COUNTA_LSB, LAN80XX_F_CROSS_CONNECT_WPS0_FILTER_COUNTA_LSB_COUNTA_LSB(conf->assert_filter_val & 0xFFFF), LAN80XX_M_CROSS_CONNECT_WPS0_FILTER_COUNTA_LSB_COUNTA_LSB);
 
     LAN80XX_CSR_WRM(base_port, switch_sel ? LAN80XX_CROSS_CONNECT_WPS0_FILTER_COUNTA_MSB : LAN80XX_CROSS_CONNECT_WPS1_FILTER_COUNTA_MSB, LAN80XX_F_CROSS_CONNECT_WPS0_FILTER_COUNTA_MSB_COUNTA_MSB((conf->assert_filter_val >> 16) & 0xFF), LAN80XX_M_CROSS_CONNECT_WPS0_FILTER_COUNTA_MSB_COUNTA_MSB);
@@ -1279,45 +1282,8 @@ mepa_rc lan80xx_phy_mac_conf_set(const mepa_device_t  *dev, mepa_port_no_t port_
                     LAN80XX_F_HOST_MAC_HOST_MAC_PAUSE_TX_FRAME_CONTROL_2_MAC_TX_PAUSE_INTERVAL(0xf),
                     LAN80XX_M_HOST_MAC_HOST_MAC_PAUSE_TX_FRAME_CONTROL_2_MAC_TX_PAUSE_INTERVAL);
 
-
-    if (data->terminate_lfs_in_phy) {
-         LAN80XX_CSR_COLD_WRM(port_no, LAN80XX_LINE_SLICE_SLICE_CONFIG, LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE, LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE);
-
-        /* Terminate LFS in PHY Line MAC */
-        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_LFS_CFG,
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS,
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_LFS_CFG,
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS,
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG, 0,
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG, 0,
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
-
-    } else {
-        LAN80XX_CSR_COLD_WRM(port_no, LAN80XX_LINE_SLICE_SLICE_CONFIG, 0, LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE);
-
-        /* Pass LFS signal */
-        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_LFS_CFG, 0,
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_LFS_CFG, 0,
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA | LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG, (LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA | LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA),
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
-                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
-
-        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG, (LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA | LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA),
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
-                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
-    }
+    /* Configure LFS */
+    MEPA_RC(lan80xx_phy_lfs_set_priv(dev, port_no, data->terminate_lfs_in_phy));
 
     LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG,
                     (data->host_mac_tx_pad) ? LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_ENABLE_TX_PADDING : 0,
@@ -1361,6 +1327,87 @@ mepa_rc lan80xx_phy_mac_conf_set(const mepa_device_t  *dev, mepa_port_no_t port_
                     LAN80XX_M_HOST_MAC_HOST_MAC_MAC_ENA_CFG_RX_ENA));
 
     MEPA_RC(lan80xx_pmac_config(dev, port_no, data->frame_preempt_ena));
+
+    return MEPA_RC_OK;
+}
+
+mepa_rc lan80xx_phy_lfs_set_priv(const mepa_device_t *dev,
+                                 const mepa_port_no_t port_no,
+                                 mepa_bool_t terminate_in_phy)
+{
+    phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
+
+    if (terminate_in_phy) {
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_SLICE_CONFIG,
+                        LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE,
+                        LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE);
+
+        /* Terminate LFS in PHY Line MAC */
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_LFS_CFG,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
+
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_LFS_CFG,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
+
+        /* Disable LF/RF relay - terminate in PHY */
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG, 0,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
+
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG, 0,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
+    } else {
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_SLICE_CONFIG, 0,
+                        LAN80XX_M_LINE_SLICE_SLICE_CONFIG_LF_RF_LINE_MAC_MODE);
+
+        /* Pass LFS signal to HOST MAC */
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_LFS_CFG, 0,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
+
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_LFS_CFG, 0,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_LFS_MODE_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LFS_CFG_SPURIOUS_Q_DIS);
+
+        /* Enable LF/RF relay - pass to HOST MAC */
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA,
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_LINE_MAC_LINE_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
+
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA,
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_LF_RELAY_ENA |
+                        LAN80XX_M_HOST_MAC_HOST_MAC_MAC_PKTINF_CFG_RF_RELAY_ENA);
+    }
+
+    /* Update internal state */
+    data->terminate_lfs_in_phy = terminate_in_phy;
+    T_I(MEPA_TRACE_GRP_GEN, "LFS %s in PHY on port : %d", terminate_in_phy ? "terminated" : "passed to HOST MAC", port_no);
+
+    return MEPA_RC_OK;
+}
+
+mepa_rc lan80xx_phy_lfs_get_priv(const mepa_device_t *dev,
+                                 const mepa_port_no_t port_no,
+                                 mepa_bool_t *terminate_in_phy)
+{
+    phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
+
+    if (terminate_in_phy == NULL) {
+        return MEPA_RC_ERROR;
+    }
+
+    *terminate_in_phy = data->terminate_lfs_in_phy;
 
     return MEPA_RC_OK;
 }
@@ -3058,12 +3105,20 @@ static mepa_rc lan80xx_pcs_pma_status_get_priv(const mepa_device_t    *dev,
                                                phy25g_status_t        *const status)
 {
     phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
+    mepa_device_t *base_dev;
+    phy25g_phy_state_t *base_data;
+    LAN80XX_BASE_DEV(data, base_dev, base_data)
     u32 value = 0, state = 0;
     memset(status, 0, sizeof(phy25g_status_t));
     phy25g_oper_speed_mode_t phy_speed;
     mepa_bool_t line_lp_enabled = 0;
     u8 xmit_mode = 0;
     u8 line_xmit_mode = 0, host_xmit_mode = 0;
+
+    /* When Host Protection is enabled, check if this channel's LINE side is the standby one.
+     * The standby LINE side may not be connected, so skip LINE check for that channel only.
+     * The active LINE side channel should still check both HOST and LINE. */
+    mepa_bool_t skip_line_check = FALSE;
 
     /* When H3P or H3M Loopback is Enabled Line side Rx Link Goes down, eliminating LINE Side link
      * check in poll when H3M or H3P loopback is enabled, so traffic can be forwared from HOST */
@@ -3160,10 +3215,40 @@ static mepa_rc lan80xx_pcs_pma_status_get_priv(const mepa_device_t    *dev,
         MEPA_RC(lan80xx_aneg_status(dev, port_no));
         data->port_state.speed = data->line_aneg_status.neg_speed;
     }
+
+    /* First check software flag (fast path when Host Protection is disabled) */
+    if (base_data->host_protection_ena) {
+        uint32_t wps_cfg;
+        uint8_t default_active_sel;
+        uint8_t ch_id = data->channel_id;
+
+        /* Read WPS_DEFAULT_ACTIVE_SEL to determine which channel is default standby */
+        if (ch_id < 2) {
+            LAN80XX_CSR_RD(dev, port_no, LAN80XX_CROSS_CONNECT_WPS0_CFG, &wps_cfg);
+            default_active_sel = LAN80XX_X_CROSS_CONNECT_WPS0_CFG_WPS_DEFAULT_ACTIVE_SEL(wps_cfg);
+        } else {
+            LAN80XX_CSR_RD(dev, port_no, LAN80XX_CROSS_CONNECT_WPS1_CFG, &wps_cfg);
+            default_active_sel = LAN80XX_X_CROSS_CONNECT_WPS1_CFG_WPS_DEFAULT_ACTIVE_SEL(wps_cfg);
+        }
+
+        /* Determine if this channel's LINE side is the default standby (may not be connected):
+         * WPS0: SEL=0 → H0 active, H1 standby; SEL=1 → H1 active, H0 standby
+         * WPS1: SEL=0 → H2 active, H3 standby; SEL=1 → H3 active, H2 standby
+         * Even channels (0,2): LINE standby if SEL=1
+         * Odd channels (1,3): LINE standby if SEL=0
+        */
+        if ((ch_id % 2) == 0) {
+            skip_line_check = (default_active_sel == 1);
+        } else {
+            skip_line_check = (default_active_sel == 0);
+        }
+    }
+
     phy_speed = data->port_state.speed;
     switch (phy_speed) {
     case SPEED_1G :
-        if (line_lp_enabled) {
+        if (line_lp_enabled || skip_line_check) {
+            /* When loopback or LINE side is standby, only check HOST side */
             status->phy_status = (status->host_pcs1g.link_status) ? TRUE : FALSE;
         } else {
             status->phy_status = (status->pma.rx_link && status->line_pcs1g.link_status && status->host_pcs1g.link_status &&
@@ -3172,7 +3257,8 @@ static mepa_rc lan80xx_pcs_pma_status_get_priv(const mepa_device_t    *dev,
         break;
     case SPEED_10G:
     case SPEED_25G:
-        if (line_lp_enabled) {
+        if (line_lp_enabled || skip_line_check) {
+            /* When loopback or LINE side is standby, only check HOST side */
             status->phy_status = (status->host_pcs25g.rx_link) ? TRUE : FALSE;
         } else {
             status->phy_status = (status->pma.rx_link && status->line_pcs25g.rx_link && status->host_pcs25g.rx_link) ? TRUE : FALSE;
@@ -4517,10 +4603,17 @@ mepa_rc lan80xx_loopback_set_priv(mepa_device_t         *dev,
                     LAN80XX_M_HOST_SLICE_L2_LPBK_L2_LPBK);
     data->port_state.loopback_conf.l2_lp = loopback->far_end_ena;
 
-    /* H2 Loopback */
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_H2_LPBK, loopback->near_end_ena ? LAN80XX_M_LINE_SLICE_H2_LPBK_H2_LPBK : 0,
-                    LAN80XX_M_LINE_SLICE_H2_LPBK_H2_LPBK);
-    data->port_state.loopback_conf.h2_lp = loopback->near_end_ena;
+
+    /* Workarround
+     * Near-End Loopback is supposed to work without any Media Side connections, but in LAN8044 Near-End Loopback which is H2 Loopback works only when the
+     * Line side Media is connected, Data traffic works only with Media side link partner is connected, due to following reason from design team
+     * "H2 is after Line PCS,Line PCS uses clock from CDR and CDR is active when link partner is connected"
+     * So in LAN80XX H3P loopback is assigned as Near-end loopback which will work without any Media Side connections
+    */
+    /* H3P Loopback */
+    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_H3P_LPBK, loopback->near_end_ena ? LAN80XX_M_LINE_SLICE_H3P_LPBK_H3P_LPBK : 0,
+                    LAN80XX_M_LINE_SLICE_H3P_LPBK_H3P_LPBK);
+    data->port_state.loopback_conf.h3p_lp = loopback->near_end_ena;
 
 
     LAN80XX_CSR_WR(dev, port_no, LAN80XX_HOST_LINE_REG(LAN80XX, 1, PMA_8BIT_CMU_FF), 0x00); /* Select LANE */
@@ -4682,6 +4775,11 @@ mepa_rc lan80xx_phy_loopback_conf_set_priv(mepa_device_t            *dev,
                          loopback->h7_lp_ena ? LAN80XX_M_HOST_SLICE_DATAPATH_CONTROL_IGR_XGMII_PG_SEL2 : 0,
                          LAN80XX_M_HOST_SLICE_DATAPATH_CONTROL_IGR_XGMII_PG_SEL2);
     data->port_state.loopback_conf.h7_lp = loopback->h7_lp_ena;
+
+    /* H2 Loopback */
+    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_H2_LPBK, loopback->h2_lp_ena ? LAN80XX_M_LINE_SLICE_H2_LPBK_H2_LPBK : 0,
+                    LAN80XX_M_LINE_SLICE_H2_LPBK_H2_LPBK);
+    data->port_state.loopback_conf.h2_lp = loopback->h2_lp_ena;
 
     return MEPA_RC_OK;
 }
