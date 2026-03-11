@@ -115,14 +115,41 @@ pipeline {
         }
         stage('Build in parallel') {
             parallel {
-                stage("arm64") {
+                stage("arm64 + coverity") {
                     agent { kubernetes { yamlFile '.cmake/pod-build.yaml' } }
-                    steps {
-                        container('pod-mesa-build') {
-                            unstash name: "src"
-                            sh "tar -xf ws.tar && rm ws.tar"
-                            sh "./.cmake/create_cmake_project.rb -vfnp arm64 arm64"
-                            stash name: "bin-arm64", includes: "arm64.tar"
+                    stages {
+                        stage("arm64") {
+                            steps {
+                                container('pod-mesa-build') {
+                                    unstash name: "src"
+                                    sh "tar -xf ws.tar && rm ws.tar"
+                                    sh "./.cmake/create_cmake_project.rb -vfnp arm64 arm64"
+                                    stash name: "bin-arm64", includes: "arm64.tar"
+                                }
+                            }
+                        }
+
+                        stage("coverity") {
+                            steps {
+                                container('pod-mesa-build') {
+                                    script {
+                                        // Run the script and get the exit status
+                                        // Running coverity only for arm64 compiler, as we are running coverity for MEPA lib which gets covered for all MEPA libraries
+                                        def result = sh(script: "./.cmake/mepa_coverity.rb -t arm64 static_analysis_reports", returnStatus: true)
+
+                                        if (result == 0) {
+                                            echo "Coverity script completed successfully."
+                                            currentBuild.result = 'SUCCESS'
+                                        } else if (result == 1) {
+                                            echo "Coverity script found issues. Marking build as UNSTABLE."
+                                            currentBuild.result = 'UNSTABLE'
+                                        } else {
+                                            error "Coverity script failed with unexpected exit code: ${result}"
+                                        }
+                                        stash name: "ana-report", includes: "static_analysis_reports/**"
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -273,6 +300,7 @@ pipeline {
                         unstash name: "bin-mipsel"
                         unstash name: "bin-arm64"
                         unstash name: "bin-arm"
+                        unstash name: "ana-report"
                         sh ".cmake/aggr-artifacts.rb"
                     }
                 }
