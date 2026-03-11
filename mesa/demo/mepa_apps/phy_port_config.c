@@ -487,65 +487,6 @@ static void cli_cmd_phy_flow_control(cli_req_t *req)
     return;
 }
 
-static void cli_cmd_downshift_conf(cli_req_t *req)
-{
-    mepa_rc                 rc;
-    demo_phy_info_t         phy_family;
-    mesa_port_no_t          uport, port_no;
-    port_cli_req_t         *mreq = req->module_req;
-    uint8_t                 rep_cnt = 1; // hard coding the polling rate as 1
-    lan8814_phy_downshift_t downshift_conf;
-    memset(&downshift_conf, 0, sizeof(lan8814_phy_downshift_t));
-
-    for (port_no = 0; port_no < mesa_port_cnt(NULL); port_no++) {
-        uport = iport2uport(port_no);
-        if (req->port_list[uport] == 0) {
-            continue;
-        }
-        if (meba_phy_inst->phy_devices[port_no] == NULL) {
-            cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
-            continue;
-        }
-
-        if ((rc = phy_family_detect(meba_phy_inst, port_no, &phy_family)) != MEPA_RC_OK) {
-            T_E("Error in Detecting PHY Family on Port %d\n", req->port_no);
-            continue;
-        }
-
-        if (phy_family.family != PHY_FAMILY_LAN8814) {
-            T_E(" PHY on Port:%d does not support Downshift Feature", port_no);
-            continue;
-        }
-        if (mreq->dsh_time != 4 && mreq->dsh_time != 6 && (req->enable)) {
-            T_E(" Invalid Downshift time %d please configure either 4 or 6", mreq->dsh_time);
-            return;
-        }
-        downshift_conf.dsh_enable = req->enable;
-        downshift_conf.dsh_thr_cnt =
-            (mreq->dsh_time == 6) ? MEPA_PHY_DOWNSHIFT_CNT_6 : MEPA_PHY_DOWNSHIFT_CNT_4;
-
-        // call repcnt set
-        if ((rc = lan8814_rep_count_set(meba_phy_inst->phy_devices[port_no], rep_cnt)) !=
-            MEPA_RC_OK) {
-            T_E("polling rate set failed for port:%d, default polling rate:1/sec", port_no);
-        }
-
-        // Call downshift conf set
-        if ((rc = lan8814_downshift_conf_set(meba_phy_inst->phy_devices[port_no],
-                                             &downshift_conf)) != MEPA_RC_OK) {
-            T_E("Dowshift configuration Failed for port:%d", port_no);
-            continue;
-        }
-        if (downshift_conf.dsh_enable) {
-            cli_printf("\n Downshift configured for port:%d with downshift time:%d\n", port_no,
-                       downshift_conf.dsh_thr_cnt);
-        } else {
-            cli_printf("\n Disabled Downshift on Port:%d\n", port_no);
-        }
-    }
-    return;
-}
-
 static void cli_cmd_oper_mode_set(cli_req_t *req)
 {
     mepa_rc         rc;
@@ -584,9 +525,6 @@ static cli_cmd_t cli_cmd_table[] = {
      "PHY Speed <port_list> [10hdx|10fdx|100hdx|100fdx|1000fdx|10g|25g] [cl37-aneg] [r-fec] [rs-fec] [fec-host|fec-line|fec-h-l]",
      "Configure Forced Fixed Speed of PHY", cli_cmd_force_speed,
      },
-    {
-     "PHY Downshift <port_list> <dsh_time> [enable|disable]", "Enable/Disable Downshift on PHY",
-     cli_cmd_downshift_conf, },
     {"PHY Mode <port_no> <pcs_retimer|mac_retimer>", "Configure Operating Mode of PHY",
      cli_cmd_oper_mode_set},
     {
