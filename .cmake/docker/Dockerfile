@@ -46,6 +46,7 @@ RUN apt-get update \
     clangd \
     cmake \
     cmake-curses-gui \
+    default-jre-headless \
     gnupg \
     libclang-dev \
     libjson-c-dev \
@@ -67,7 +68,12 @@ RUN gem install nokogiri -v '1.15.3' --source 'https://rubygems.org/' \
  && gem install json_schemer -v '2.3.0' --source 'https://rubygems.org/' \
  && gem install hexdump packetfu ox
 
-ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/easytest/easytest/utils/:/easytest/easytest/test-setup-server/
+RUN curl -L -o /tmp/allure.tgz https://github.com/allure-framework/allure2/releases/download/2.37.0/allure-2.37.0.tgz \
+ && tar -xzf /tmp/allure.tgz -C /opt \
+ && mv /opt/allure-2.37.0 /opt/allure \
+ && rm /tmp/allure.tgz
+
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/easytest/easytest/utils/:/easytest/easytest/test-setup-server/:/opt/allure/bin
 RUN mkdir /easytest \
  && cd /easytest \
  && git clone https://bitbucket.microchip.com/scm/unge/sw-tools-easytest.git easytest
