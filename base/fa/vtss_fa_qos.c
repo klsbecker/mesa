@@ -4948,7 +4948,7 @@ static vtss_rc fa_debug_qos(vtss_state_t                  *vtss_state,
     (void)ingr_mapping_act;
     (void)egr_mapping_act;
 
-    if ((show_act == TRUE)) {
+    if (show_act == TRUE) {
         pr("QOS Debug Group action:\n");
         pr("    0:      Show possible actions\n");
         pr("    1:      Print Basic configuration\n");
