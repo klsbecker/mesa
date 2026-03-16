@@ -1925,6 +1925,10 @@ static vtss_rc jr2_l2_init(vtss_state_t *vtss_state)
     JR2_WRM(VTSS_ANA_L2_COMMON_LRN_CFG, VTSS_F_ANA_L2_COMMON_LRN_CFG_VSTAX_BASIC_LRN_MODE_ENA(1),
             VTSS_M_ANA_L2_COMMON_LRN_CFG_VSTAX_BASIC_LRN_MODE_ENA);
 
+    // Avoid port move events when CPU sends using own SMAC
+    JR2_WRM_CLR(VTSS_ANA_L2_COMMON_LRN_CFG,
+                VTSS_M_ANA_L2_COMMON_LRN_CFG_LOCKED_PORTMOVE_DETECT_ENA);
+
     return VTSS_RC_OK;
 }
 

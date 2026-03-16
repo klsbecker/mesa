@@ -3907,6 +3907,9 @@ static vtss_rc fa_l2_port_map_set(vtss_state_t *vtss_state)
     REG_WRM(VTSS_ANA_L2_LRN_CFG, VTSS_F_ANA_L2_LRN_CFG_VSTAX_BASIC_LRN_MODE_ENA(1),
             VTSS_M_ANA_L2_LRN_CFG_VSTAX_BASIC_LRN_MODE_ENA);
 
+    // Avoid port move events when CPU sends using own SMAC
+    REG_WRM_CLR(VTSS_ANA_L2_LRN_CFG, VTSS_M_ANA_L2_LRN_CFG_LOCKED_PORTMOVE_DETECT_ENA);
+
     /* Setup own UPSIDs */
 #if defined(VTSS_ARCH_SPARX5)
     for (i = 0; i < 3; i++) {

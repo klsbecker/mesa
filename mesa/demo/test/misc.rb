@@ -538,3 +538,41 @@ test "vlan-translation-resources" do
     $ts.dut.call("mesa_vlan_trans_group_to_port_set", c)
     #$ts.dut.run("mesa-cmd debug api ai vx")
 end
+
+test "port-move-cpu" do
+    break
+    # Setup NPI port
+    idx_npi = 0
+    port = $ts.dut.p[0]
+    c = $ts.dut.call("mesa_npi_conf_get")
+    c["enable"] = true
+    c["port_no"] = port
+    $ts.dut.call("mesa_npi_conf_set", c)
+
+    # Add static CPU MAC address
+    e = {}
+    e[:vid_mac] = {vid: 1, mac: {addr: [0, 0, 0, 0, 0, 1]}}
+    e[:destination] = ""
+    e[:copy_to_cpu] = true
+    e[:copy_to_cpu_smac] = false
+    e[:locked] = true
+    e[:index_table] = false
+    e[:aged] = false
+    e[:cpu_queue] = 0
+    $ts.dut.call("mesa_mac_table_add", e)
+
+    # CPU/NPI Tx to VLAN
+    f_base = "eth"
+    f_end = "data pattern cnt 46"
+    cmd = "ef name f_tx "
+    cmd += cmd_tx_ifh_push({switch_frm: true})
+    cmd += " eth"
+    cmd += cmd_tag_push({tpid: 0x8100, vid: 1})
+    cmd += " data pattern cnt 46"
+    cmd += " tx #{$ts.pc.p[idx_npi]} name f_tx"
+    $ts.pc.try(cmd)
+
+    # Check that no port moves are seen
+    s = $ts.dut.call("mesa_mac_table_status_get")
+    check_counter("status[:moved]", s["moved"], 0)
+end
