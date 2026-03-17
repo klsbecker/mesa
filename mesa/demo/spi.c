@@ -122,6 +122,50 @@ mesa_rc spi_reg_write(const mesa_chip_no_t chip_no, const uint32_t addr, const u
     return spi_write(SPI_USER_REG, addr, value);
 }
 
+mesa_rc spi_ctrl_to_user(uint8_t ctrl_idx, uint8_t chip_select, spi_user_t *user)
+{
+    mesa_rc rc = MESA_RC_OK;
+
+    switch (ctrl_idx) {
+    case 0:
+        if (chip_select == 1) {
+            *user = SPI_USER_CTRL_0_CS_0;
+            break;
+        }
+
+        if (chip_select == 2) {
+            *user = SPI_USER_CTRL_0_CS_1;
+            break;
+        }
+
+        rc = MESA_RC_ERROR;
+        break;
+    case 1:
+        if (chip_select == 0) {
+            *user = SPI_USER_CTRL_1_CS_0;
+            break;
+        }
+
+        rc = MESA_RC_ERROR;
+        break;
+    default: rc = MESA_RC_ERROR; break;
+    }
+
+    return rc;
+}
+
+void spi_ctrl_cs_to_file(uint8_t ctrl_idx, uint8_t cs, char *device)
+{
+    sprintf(device, "/dev/spidev%d.%d", ctrl_idx, cs);
+}
+
+mesa_bool_t spi_is_init(spi_user_t user)
+{
+    spi_conf_t *conf = &spi_conf[user];
+
+    return conf->fd != 0;
+}
+
 mesa_rc spi_io_init(spi_user_t user, const char *device, int freq, int padding)
 {
     spi_conf_t *conf;

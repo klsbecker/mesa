@@ -74,19 +74,26 @@ typedef enum {
     SPI_USER_REG,  // Switch register access
     SPI_USER_FPGA, // FPGA register access
 
+    SPI_USER_CTRL_0_CS_0, // Access to the slave 0 that is on controller 0
+    SPI_USER_CTRL_0_CS_1, // Access to the slave 1 that is on controller 0
+    SPI_USER_CTRL_1_CS_0, // Access to the slave 0 that is on controller 1
+
     SPI_USER_CNT // Number of users
 } spi_user_t;
 
 // Register access functions
-mesa_rc spi_reg_read(const mesa_chip_no_t chip_no, const uint32_t addr, uint32_t *const value);
-mesa_rc spi_reg_write(const mesa_chip_no_t chip_no, const uint32_t addr, const uint32_t value);
-mesa_rc spi_io_init(spi_user_t user, const char *device, int freq, int padding);
-mesa_rc spi_read(spi_user_t user, const uint32_t addr, uint32_t *const value);
-mesa_rc spi_write(spi_user_t user, const uint32_t addr, const uint32_t value);
-mesa_rc uio_reg_read(const mesa_chip_no_t chip_no, const uint32_t addr, uint32_t *const value);
-mesa_rc uio_reg_write(const mesa_chip_no_t chip_no, const uint32_t addr, const uint32_t value);
-mesa_rc uio_reg_io_init(void);
-mesa_rc udmabuf_init(void);
+mesa_rc     spi_reg_read(const mesa_chip_no_t chip_no, const uint32_t addr, uint32_t *const value);
+mesa_rc     spi_reg_write(const mesa_chip_no_t chip_no, const uint32_t addr, const uint32_t value);
+mesa_rc     spi_io_init(spi_user_t user, const char *device, int freq, int padding);
+mesa_rc     spi_read(spi_user_t user, const uint32_t addr, uint32_t *const value);
+mesa_rc     spi_write(spi_user_t user, const uint32_t addr, const uint32_t value);
+mesa_rc     spi_ctrl_to_user(uint8_t ctrl_idx, uint8_t chip_select, spi_user_t *user);
+void        spi_ctrl_cs_to_file(uint8_t ctrl_idx, uint8_t cs, char *device);
+mesa_bool_t spi_is_init(spi_user_t user);
+mesa_rc     uio_reg_read(const mesa_chip_no_t chip_no, const uint32_t addr, uint32_t *const value);
+mesa_rc     uio_reg_write(const mesa_chip_no_t chip_no, const uint32_t addr, const uint32_t value);
+mesa_rc     uio_reg_io_init(void);
+mesa_rc     udmabuf_init(void);
 
 typedef mesa_rc (*reg_read_t)(const mesa_chip_no_t chip_no,
                               const uint32_t       addr,

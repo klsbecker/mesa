@@ -1054,7 +1054,22 @@ mesa_rc phy_spi_read(const mesa_port_no_t port_no,
                      uint32_t             address,
                      uint32_t *const      data)
 {
-    return MESA_RC_OK;
+    char       device[512];
+    spi_user_t user;
+    mesa_rc    rc;
+
+    rc = spi_ctrl_to_user(controller_idx, chip_select, &user);
+    if (rc != MESA_RC_OK) {
+        return rc;
+    }
+
+    if (!spi_is_init(user)) {
+        memset(device, 0, sizeof(device));
+        spi_ctrl_cs_to_file(controller_idx, chip_select, device);
+        spi_io_init(user, device, SPI_FREQ, 0);
+    }
+
+    return spi_read(user, address, data);
 }
 
 mesa_rc phy_spi_write(const mesa_port_no_t port_no,
@@ -1063,7 +1078,22 @@ mesa_rc phy_spi_write(const mesa_port_no_t port_no,
                       uint32_t             address,
                       uint32_t *const      data)
 {
-    return MESA_RC_OK;
+    char       device[512];
+    spi_user_t user;
+    mesa_rc    rc;
+
+    rc = spi_ctrl_to_user(controller_idx, chip_select, &user);
+    if (rc != MESA_RC_OK) {
+        return rc;
+    }
+
+    if (!spi_is_init(user)) {
+        memset(device, 0, sizeof(device));
+        spi_ctrl_cs_to_file(controller_idx, chip_select, device);
+        spi_io_init(user, device, SPI_FREQ, 0);
+    }
+
+    return spi_write(user, address, *data);
 }
 
 int main(int argc, char **argv)
