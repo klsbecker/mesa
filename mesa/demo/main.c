@@ -906,6 +906,16 @@ static mscc_appl_opt_t main_opt_vlan_counters_disable = {
     "v::", "[p]", "Disable VLAN counters, optionally enable PSFP counters with -vp",
     vlan_counters_disable_option};
 
+static int     phy_spi_access = 0;
+static mesa_rc option_phy_spi(char *parm)
+{
+    phy_spi_access = 1;
+    return MESA_RC_OK;
+}
+
+static mscc_appl_opt_t main_opt_phy_spi = {"y", NULL, "Enable SPI access to the PHYs",
+                                           option_phy_spi};
+
 static void main_init(mscc_appl_init_t *init)
 {
     switch (init->cmd) {
@@ -918,6 +928,7 @@ static void main_init(mscc_appl_init_t *init)
         mscc_appl_opt_reg(&main_opt_reset);
         mscc_appl_opt_reg(&main_opt_spidev);
         mscc_appl_opt_reg(&main_opt_vlan_counters_disable);
+        mscc_appl_opt_reg(&main_opt_phy_spi);
         break;
 
     case MSCC_INIT_CMD_INIT: main_cli_init(); break;
@@ -1183,8 +1194,10 @@ int main(int argc, char **argv)
     board_info.trace = mscc_mepa_trace_printf;
     board_info.lock_enter = mepa_callout_lock;
     board_info.lock_exit = mepa_callout_unlock;
-    board_info.spi_read = phy_spi_read;
-    board_info.spi_write = phy_spi_write;
+    if (phy_spi_access) {
+        board_info.spi_read = phy_spi_read;
+        board_info.spi_write = phy_spi_write;
+    }
     if ((meba_inst = meba_initialize(sizeof(board_info), &board_info)) == NULL) {
         T_E("MEBA failed to Instantiate");
         return 1;
