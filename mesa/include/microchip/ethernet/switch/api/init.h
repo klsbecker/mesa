@@ -107,6 +107,20 @@ typedef mesa_rc (*mesa_reg_write_t)(const mesa_chip_no_t chip_no,
                                     const uint32_t       addr,
                                     const uint32_t       value);
 
+// SPI read function
+typedef mesa_rc (*mesa_spi_read_t)(const mesa_port_no_t port_no,
+                                   const uint8_t        ctrl_idx,
+                                   const uint8_t        cs,
+                                   const uint32_t       addr,
+                                   uint32_t *const      data);
+
+// SPI write function
+typedef mesa_rc (*mesa_spi_write_t)(const mesa_port_no_t port_no,
+                                    const uint8_t        ctrl_idx,
+                                    const uint8_t        cs,
+                                    const uint32_t       addr,
+                                    uint32_t *const      data);
+
 // I2C read function
 // port_no [IN] Port number
 // i2c_addr [IN] I2C device address

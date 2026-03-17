@@ -114,6 +114,27 @@ typedef mesa_rc (*meba_sfp_status_get_t)(struct meba_inst  *inst,
                                          mesa_port_no_t     port_no,
                                          meba_sfp_status_t *status);
 
+// Perform a PHY SPI read
+// port_no      [IN] The port number.
+// dev          [IN] The MMD device
+// reg_num      [IN] The register number
+// data         [OUT] The output data
+typedef mesa_rc (*meba_phy_spi_read_t)(struct meba_inst *inst,
+                                       mesa_port_no_t    port_no,
+                                       uint8_t           dev,
+                                       uint16_t          reg_num,
+                                       uint32_t *const   data);
+// Perform a PHY SPI write
+// port_no      [IN] The port number.
+// dev          [IN] The MMD device
+// reg_num      [IN] The register number
+// data         [IN] Data to be written
+typedef mesa_rc (*meba_phy_spi_write_t)(struct meba_inst *inst,
+                                        mesa_port_no_t    port_no,
+                                        uint8_t           dev,
+                                        uint16_t          reg_num,
+                                        uint32_t *const   data);
+
 // Control the administrative state of a port.
 // port_no   [IN] The port number to configure.
 // state     [IN] The new port state
@@ -213,6 +234,8 @@ typedef struct {
     meba_sfp_i2c_xfer_t             meba_sfp_i2c_xfer;
     meba_sfp_insertion_status_get_t meba_sfp_insertion_status_get;
     meba_sfp_status_get_t           meba_sfp_status_get;
+    meba_phy_spi_read_t             meba_phy_spi_read;
+    meba_phy_spi_write_t            meba_phy_spi_write;
     meba_port_admin_state_set_t     meba_port_admin_state_set;
     meba_status_led_set_t           meba_status_led_set;
     meba_port_led_update_t          meba_port_led_update;
@@ -243,6 +266,8 @@ typedef struct {
     X(meba_sfp_i2c_xfer)                                                                           \
     X(meba_sfp_insertion_status_get)                                                               \
     X(meba_sfp_status_get)                                                                         \
+    X(meba_phy_spi_read)                                                                           \
+    X(meba_phy_spi_write)                                                                          \
     X(meba_port_admin_state_set)                                                                   \
     X(meba_status_led_set)                                                                         \
     X(meba_port_led_update)                                                                        \

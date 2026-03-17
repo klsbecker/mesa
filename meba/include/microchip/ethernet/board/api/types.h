@@ -464,6 +464,8 @@ typedef struct {
     mesa_reg_write_t          reg_write;
     mesa_i2c_read_t           i2c_read;
     mesa_i2c_write_t          i2c_write;
+    mesa_spi_read_t           spi_read;
+    mesa_spi_write_t          spi_write;
     meba_conf_get_t           conf_get;
     meba_debug_t              debug;
     meba_clock_event_enable_t clock_event_enable; // TEMPORARY

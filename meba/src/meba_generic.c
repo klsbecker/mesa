@@ -244,6 +244,28 @@ mepa_rc meba_miim_write(struct mepa_callout_ctx *ctx, const uint8_t addr, const 
                            value);
 }
 
+mesa_rc meba_spi_read(struct mepa_callout_ctx *ctx,
+                      mepa_port_no_t           port_no,
+                      uint8_t                  dev,
+                      uint16_t                 reg_num,
+                      uint32_t *const          data)
+{
+    meba_inst_t inst = ctx->meba_inst;
+
+    return inst->api.meba_phy_spi_read(inst, port_no, dev, reg_num, data);
+}
+
+mesa_rc meba_spi_write(struct mepa_callout_ctx *ctx,
+                       mepa_port_no_t           port_no,
+                       uint8_t                  dev,
+                       uint16_t                 reg_num,
+                       uint32_t *const          data)
+{
+    meba_inst_t inst = ctx->meba_inst;
+
+    return inst->api.meba_phy_spi_write(inst, port_no, dev, reg_num, data);
+}
+
 static void *mem_alloc(struct mepa_callout_ctx *ctx, size_t size) { return malloc(size); }
 
 static void mem_free(struct mepa_callout_ctx *ctx, void *ptr) { free(ptr); }
@@ -276,6 +298,8 @@ void meba_phy_driver_init(meba_inst_t inst)
     inst->mepa_callout.miim_write = meba_miim_write;
     inst->mepa_callout.lock_enter = inst->iface.lock_enter;
     inst->mepa_callout.lock_exit = inst->iface.lock_exit;
+    inst->mepa_callout.spi_read = inst->iface.spi_read ? meba_spi_read : NULL;
+    inst->mepa_callout.spi_write = inst->iface.spi_write ? meba_spi_write : NULL;
     inst->mepa_callout.mem_alloc = mem_alloc;
     inst->mepa_callout.mem_free = mem_free;
 
