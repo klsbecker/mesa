@@ -1,0 +1,205 @@
+# Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+# SPDX-License-Identifier: MIT
+
+vtss_phy_10g_mode_set => {
+    'oper_mode': 'VTSS_PHY_LAN_MODE',
+    'interface': 'VTSS_PHY_XAUI_XFI',
+    'wrefclk': 'VTSS_WREFCLK_155_52',
+    'high_input_gain': 0,
+    'xfi_pol_invert': 1,
+    'xaui_lane_flip': 0,
+    'channel_id': 'VTSS_CHANNEL_AUTO',
+    'hl_clk_synth': 0,
+    'rcvrd_clk': 'VTSS_RECVRD_RXCLKOUT',
+    'rcvrd_clk_div': 'VTSS_RECVRDCLK_CDR_DIV_64',
+    'sref_clk_div': 'VTSS_SREFCLK_DIV_64',
+    'wref_clk_div': 'VTSS_WREFCLK_NONE',
+    'serdes_conf.use_conf': 0,
+    'serdes_conf.ob_conf': 0,
+    'serdes_conf.ib_conf': 0,
+    'serdes_conf.dig_offset_reg': 0,
+    'serdes_conf.apc_offs_ctrl': 0,
+    'serdes_conf.apc_line_ld_ctrl': 0,
+    'serdes_conf.apc_host_ld_ctrl': 0,
+    'serdes_conf.d_filter': 0,
+    'serdes_conf.cfg0': 0,
+    'serdes_conf.ib_ini_lp': 0,
+    'serdes_conf.ib_min_lp': 0,
+    'serdes_conf.ib_max_lp': 0,
+    'serdes_conf.apc_eqz_offs_par_cfg': 0,
+    'serdes_conf.apc_line_eqz_ld_ctrl': 0,
+    'serdes_conf.apc_host_eqz_ld_ctrl': 0,
+    'serdes_conf.l_offset_guard': 1,
+    'serdes_conf.h_offset_guard': 1,
+    'apc_ib_regulator': 'VTSS_APC_IB_SFP_PLUS_ZR',
+    'pma_txratecontrol': 0,
+    'venice_rev_a_los_detection_workaround': 0,
+    'ddr_mode': 'VTSS_DDR_MODE_A',
+    'master': 'VTSS_CLK_MSTR_INTERNAL',
+    'rate': 'VTSS_RPTR_RATE_10_3125',
+    'polarity': {
+        'line_rx': 0,
+        'line_tx': 0,
+        'host_rx': 0,
+        'host_tx': 0
+     },
+     'is_host_wan': 0,
+     'h_clk_src': {
+         'is_high_amp': 1
+      },
+      'l_clk_src': {
+         'is_high_amp': 1
+      },
+      'lref_for_host': 0,
+      'link_6g_distance': 'VTSS_6G_LINK_SHORT_RANGE',
+      'h_media': 'VTSS_MEDIA_TYPE_SR',
+      'l_media': 'VTSS_MEDIA_TYPE_SR',
+      'h_ib_conf': {
+          'offs': {
+              'value': 0,
+              'min': 0,
+              'max': 0
+           },
+          'gain': {
+              'value': 0,
+              'min': 0,
+              'max': 0 },
+          'gainadj': {
+              'value': 0,
+              'min': 0,
+              'max': 0 },
+          'l': {
+              'value': 0,
+              'min': 0,
+              'max': 0
+           },
+           'c': {
+              'value': 0,
+              'min': 0,
+              'max': 0
+           },
+           'agc': {
+              'value': 0,
+              'min': 0,
+              'max': 0 },
+           'dfe1': {
+              'value': 0,
+              'min': 0,
+              'max': 0
+            },
+           'dfe2': {
+              'value': 0,
+              'min': 0,
+              'max': 0
+            },
+           'dfe3': {
+              'value': 0,
+              'min': 0,
+              'max': 0 },
+           'dfe4': {
+              'value': 0,
+              'min': 0,
+              'max': 0 },
+            'ld': 0,
+            'prbs': 0,
+            'prbs_inv': 0,
+            'apc_bit_mask': 255,
+            'freeze_bit_mask': 0,
+            'config_bit_mask': 0,
+            'is_host': 0
+        },
+       'l_ib_conf': {
+          'offs': {
+                'value': 0,
+                 'min': 0,
+                 'max': 0 },
+          'gain': {
+                 'value': 0,
+                 'min': 0,
+                 'max': 0 },
+          'gainadj': {
+                 'value': 0,
+                 'min': 0,
+                 'max': 0 },
+           'l': { 'value': 0, 'min':0, 'max': 0 },
+           'c': { 'value': 0, 'min': 0, 'max': 0 },
+           'agc': { 'value': 0, 'min': 0, 'max': 0 },
+           'dfe1': { 'value': 0, 'min': 0, 'max': 0 },
+           'dfe2': { 'value': 0, 'min': 0, 'max': 0 },
+           'dfe3': { 'value': 0, 'min': 0, 'max': 0 },
+           'dfe4': { 'value': 0, 'min': 0, 'max': 0 },
+           'ld': 0,
+           'prbs': 0,
+           'prbs_inv': 0,
+           'pc_bit_mask': 255,
+            'freeze_bit_mask': 0,
+            'config_bit_mask': 0,
+            'is_host': 0 },
+            'h_apc_conf': { 'op_mode': 'VTSS_IB_APC_AUTO', 'op_mode_flag': 0 },
+            'l_apc_conf': { 'op_mode': 'VTSS_IB_APC_AUTO', 'op_mode_flag': 0 },
+            'enable_pass_thru': 0,
+             'is_init': 0,
+             'sd6g_calib_done': 0,
+             'alternate_port_ena': 0
+}
+
+meba_phy_reset =>{
+    'media_intf':'MESA_PHY_MEDIA_IF_CU',
+    'reset_point':'MEPA_RESET_POINT_POST_MAC',
+    'framepreempt_en':false
+}
+
+meba_phy_conf_set => {
+    'speed': 'MESA_SPEED_100M',
+    'fdx': true,
+    'flow_control': true,
+    'adv_dis': 0,
+    'admin': {
+        'enable': false
+    },
+    'aneg': {
+        'speed_10m_hdx': false,
+        'speed_10m_fdx': false,
+        'speed_100m_hdx': false,
+        'speed_100m_fdx': false,
+        'speed_1g_fdx': false,
+        'speed_1g_hdx': false,
+        'tx_remote_fault': false,
+        'speed_2g5_fdx': false,
+        'speed_5g_fdx': false,
+        'speed_10g_fdx': false,
+        'no_restart_aneg': false
+    },
+    'mac_if_aneg_ena': false,
+    'man_neg': 'MEPA_MANUAL_NEG_DISABLED',
+    'mdi_mode': 'MEPA_MEDIA_MODE_AUTO',
+    'force_ams_mode_sel': 'MEPA_PHY_MEDIA_FORCE_AMS_SEL_NORMAL'
+}
+
+
+meba_phy_conf_set => {
+    'speed': 'MESA_SPEED_100M',
+    'fdx': true,
+    'flow_control': true,
+    'adv_dis': 0,
+    'admin': {
+        'enable': false
+    },
+    'aneg': {
+        'speed_10m_hdx': false,
+        'speed_10m_fdx': false,
+        'speed_100m_hdx': false,
+        'speed_100m_fdx': false,
+        'speed_1g_fdx': false,
+        'speed_1g_hdx': false,
+        'tx_remote_fault': false,
+        'speed_2g5_fdx': false,
+        'speed_5g_fdx': false,
+        'speed_10g_fdx': false,
+        'no_restart_aneg': false
+    },
+    'mac_if_aneg_ena': false,
+    'man_neg': 'MEPA_MANUAL_NEG_DISABLED',
+    'mdi_mode': 'MEPA_MEDIA_MODE_AUTO',
+    'force_ams_mode_sel': 'MEPA_PHY_MEDIA_FORCE_AMS_SEL_NORMAL'
+}

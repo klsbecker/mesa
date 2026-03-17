@@ -266,9 +266,9 @@ mesa_rc meba_spi_write(struct mepa_callout_ctx *ctx,
     return inst->api.meba_phy_spi_write(inst, port_no, dev, reg_num, data);
 }
 
-static void *mem_alloc(struct mepa_callout_ctx *ctx, size_t size) { return malloc(size); }
+void *mem_alloc(struct mepa_callout_ctx *ctx, size_t size) { return malloc(size); }
 
-static void mem_free(struct mepa_callout_ctx *ctx, void *ptr) { free(ptr); }
+void mem_free(struct mepa_callout_ctx *ctx, void *ptr) { free(ptr); }
 
 // The meba_port_entry_get returns the MAC if-type
 // The RGMII Internal Delay cannot be identical between MAC and Phy

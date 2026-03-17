@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/syscall.h>
+#include <pthread.h>
 
 #include "microchip/ethernet/switch/api.h"
 #include "microchip/ethernet/board/api.h"
@@ -41,6 +42,8 @@ static mscc_appl_trace_group_t trace_groups[TRACE_GROUP_CNT] = {
     // TRACE_GROUP_MEBA
     {.name = "meba",    .level = MESA_TRACE_LEVEL_ERROR},
 };
+
+static pthread_mutex_t mepa_mutex;
 
 static mscc_appl_init_t appl_init;
 static void             init_modules(mscc_appl_init_t *init);
@@ -567,6 +570,43 @@ static void board_debug(meba_trace_level_t level,
     }
 }
 
+static void mepa_mutex_init()
+{
+    if (pthread_mutex_init(&mepa_mutex, NULL) != 0) {
+        T_E("%s", "\nError initializing mutex\n");
+    }
+
+    return;
+}
+
+void mepa_callout_lock(const mepa_lock_t *const lock)
+{
+    int err;
+
+    T_I("\n %s function in %s file atempting for Mutex Lock\n", lock->function, lock->file);
+    err = pthread_mutex_lock(&mepa_mutex);
+    if (err != 0) {
+        T_E("Error locking mutex err %d\n", err);
+        return;
+    }
+
+    return;
+}
+
+void mepa_callout_unlock(const mepa_lock_t *const lock)
+{
+    int err;
+
+    T_I("\n %s function in %s file atempting for Mutex Unlock\n", lock->function, lock->file);
+    err = pthread_mutex_unlock(&mepa_mutex);
+    if (err != 0) {
+        T_E("Error unlocking mutex err %d\n", err);
+        return;
+    }
+
+    return;
+}
+
 /* MESA callouts */
 void mesa_callout_lock(const mesa_api_lock_t *const lock) {}
 
@@ -906,6 +946,22 @@ static void init_modules(mscc_appl_init_t *init)
     mscc_appl_spi_init(init);
     mscc_appl_intr_init(init);
     mscc_appl_udmabuf_init(init);
+    mscc_appl_phy_init(init);
+    mscc_appl_kat_demo(init);
+    mscc_appl_phy_synce(init);
+    mepa_demo_appl_macsec_demo(init);
+    mepa_demo_appl_gpio_lp_demo(init);
+    mscc_appl_phy_loopback_init(init);
+    mscc_appl_phy_xconnect(init);
+    mscc_appl_phy_diagnostics_demo(init);
+    mscc_appl_phy_restart(init);
+    mscc_appl_phy_kr_init(init);
+    mepa_demo_appl_ts_demo(init);
+    mepa_demo_appl_macsec_rollover_demo(init);
+#ifdef MEPA_HAS_LAN80XX
+    mscc_appl_m25gdiag_demo(init);
+    mscc_appl_mcu_fw_init(init);
+#endif
 }
 
 typedef struct {
@@ -992,6 +1048,24 @@ mesa_bool_t poll_cnt_us(uint32_t sleep_us, uint32_t *poll_cnt, uint32_t wait_use
     return 0;
 }
 
+mesa_rc phy_spi_read(const mesa_port_no_t port_no,
+                     uint8_t              controller_idx,
+                     uint8_t              chip_select,
+                     uint32_t             address,
+                     uint32_t *const      data)
+{
+    return MESA_RC_OK;
+}
+
+mesa_rc phy_spi_write(const mesa_port_no_t port_no,
+                      uint8_t              controller_idx,
+                      uint8_t              chip_select,
+                      uint32_t             address,
+                      uint32_t *const      data)
+{
+    return MESA_RC_OK;
+}
+
 int main(int argc, char **argv)
 {
     mesa_rc            rc;
@@ -1066,6 +1140,8 @@ int main(int argc, char **argv)
         }
     }
 
+    mepa_mutex_init();
+
     // Initialize MEBA
     memset(&board_info, 0, sizeof(board_info));
     board_info.reg_read = reg_read;
@@ -1075,6 +1151,10 @@ int main(int argc, char **argv)
     board_info.conf_get = board_conf_get;
     board_info.debug = board_debug;
     board_info.trace = mscc_mepa_trace_printf;
+    board_info.lock_enter = mepa_callout_lock;
+    board_info.lock_exit = mepa_callout_unlock;
+    board_info.spi_read = phy_spi_read;
+    board_info.spi_write = phy_spi_write;
     if ((meba_inst = meba_initialize(sizeof(board_info), &board_info)) == NULL) {
         T_E("MEBA failed to Instantiate");
         return 1;

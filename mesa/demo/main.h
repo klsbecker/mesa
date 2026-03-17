@@ -39,6 +39,9 @@ typedef struct {
 
 // Module init functions
 void mscc_appl_port_init(mscc_appl_init_t *init);
+void mscc_appl_phy_init(mscc_appl_init_t *init);
+void mscc_appl_kat_demo(mscc_appl_init_t *init);
+void mscc_appl_phy_synce(mscc_appl_init_t *init);
 void mscc_appl_sfp_init(mscc_appl_init_t *init);
 void mscc_appl_mac_init(mscc_appl_init_t *init);
 void mscc_appl_vlan_init(mscc_appl_init_t *init);
@@ -55,6 +58,17 @@ void mscc_appl_uio_init(mscc_appl_init_t *init);
 void mscc_appl_spi_init(mscc_appl_init_t *init);
 void mscc_appl_intr_init(mscc_appl_init_t *init);
 void mscc_appl_udmabuf_init(mscc_appl_init_t *init);
+void mepa_demo_appl_macsec_demo(mscc_appl_init_t *init);
+void mepa_demo_appl_gpio_lp_demo(mscc_appl_init_t *init);
+void mscc_appl_phy_loopback_init(mscc_appl_init_t *init);
+void mscc_appl_phy_diagnostics_demo(mscc_appl_init_t *init);
+void mscc_appl_phy_xconnect(mscc_appl_init_t *init);
+void mscc_appl_mcu_fw_init(mscc_appl_init_t *init);
+void mscc_appl_m25gdiag_demo(mscc_appl_init_t *init);
+void mscc_appl_phy_restart(mscc_appl_init_t *init);
+void mscc_appl_phy_kr_init(mscc_appl_init_t *init);
+void mepa_demo_appl_ts_demo(mscc_appl_init_t *init);
+void mepa_demo_appl_macsec_rollover_demo(mscc_appl_init_t *init);
 
 typedef enum {
     SPI_USER_REG,  // Switch register access

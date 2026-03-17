@@ -31,6 +31,11 @@ add_executable(fa_board_fpga_init fa_board_fpga_init.c)
 
 include_directories(../../meba/include)
 include_directories(../../mepa/vtss/include)
+include_directories(../../mepa/vtss/src)
+include_directories(../../mepa/microchip/lan80xx/include/microchip)
+include_directories(../../mepa/microchip/lan80xx/src)
+include_directories(../../mepa/microchip/lan8814/include)
+include_directories(../../mepa/common/include)
 
 if (EXISTS ag/mesa-rpc.c AND EXISTS ag/mesa-rpc.h AND ${MESA_PRE_AG})
 set(MESA_RPC ag/mesa-rpc.c)
@@ -48,6 +53,11 @@ list(APPEND API_MEBA_CACHE_IN mepa/include/microchip/ethernet/phy/api/phy_ts.h)
 list(APPEND API_MEBA_CACHE_IN mepa/vtss/include/vtss_phy_types.h)
 list(APPEND API_MEBA_CACHE_IN mepa/vtss/include/vtss_phy_1g_api.h)
 list(APPEND API_MEBA_CACHE_IN mepa/vtss/include/vtss_phy_10g_api.h)
+list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/include/microchip/lan80xx.h)
+list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/src/lan80xx_types.h)
+list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/include/microchip/lan80xx_ts.h)
+list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/src/lan80xx_ts_private.h)
+list(APPEND API_MEBA_CACHE_IN mepa/microchip/lan80xx/src/lan80xx_macsec_private.h)
 set(API_MESA_CACHE_AG_IN)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api.h)
 list (APPEND API_MESA_CACHE_AG_IN mesa/include/microchip/ethernet/switch/api/afi.h)
@@ -79,9 +89,15 @@ endif()
 
 include_directories(.)
 
+file(GLOB_RECURSE MEPA_APP_SRC
+     LIST_DIRECTORIES false
+     CONFIGURE_DEPENDS
+     #RELATIVE ""
+     "${CMAKE_CURRENT_SOURCE_DIR}/mepa_apps/*.c")
+
 add_library(mesa_demo_lib STATIC trace.c cli.c port.c mac.c vlan.c packet.c ip.c
                                  debug.c symreg.c test.c spi.c udmabuf.c uio.c ${MESA_RPC} json_rpc.c
-                                 example.c kr.c intr.c)
+                                 example.c kr.c intr.c ${MEPA_APP_SRC})
 target_include_directories(mesa_demo_lib PUBLIC ${CMAKE_BINARY_DIR}/mesa-ag/)
 
 file(GLOB_RECURSE EXAMPLE_SRC
@@ -90,9 +106,18 @@ file(GLOB_RECURSE EXAMPLE_SRC
      #RELATIVE ""
      "${CMAKE_CURRENT_SOURCE_DIR}/examples/*.c")
 
+file(GLOB_RECURSE EXAMPLE_SRC_MEPA
+     LIST_DIRECTORIES false
+     CONFIGURE_DEPENDS
+     #RELATIVE ""
+     "${CMAKE_CURRENT_SOURCE_DIR}/../../mepa/demo/examples/*.c")
+
 add_library(mesa_demo_examples_lib INTERFACE)
-target_sources(mesa_demo_examples_lib INTERFACE ${EXAMPLE_SRC})
+target_sources(mesa_demo_examples_lib INTERFACE ${EXAMPLE_SRC} ${EXAMPLE_SRC_MEPA})
 #target_include_directories(mesa_demo_examples_lib PUBLIC ${CMAKE_BINARY_DIR}/mesa-ag/)
+
+add_library(chip_specific_api_stub STATIC ../../mepa/microchip/lan_stubs.c)
+target_include_directories(chip_specific_api_stub PUBLIC ../../mepa/include ../../mepa/microchip/lan80xx/include)
 
 macro(APP_TARGET)
     set(options )
@@ -112,6 +137,7 @@ macro(APP_TARGET)
         json-c
         ${A_MESA}
         ${A_MEBA}_static
+        chip_specific_api_stub
     )
     set_target_properties(${A_NAME} PROPERTIES OUTPUT_NAME "mesa-demo-${A_MESA}")
 

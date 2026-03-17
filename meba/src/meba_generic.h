@@ -106,4 +106,8 @@ static inline mesa_bool_t is_10g_port(meba_port_cap_t port_cap)
     return has_cap(port_cap, MEBA_PORT_CAP_10G_FDX);
 }
 
+void *mem_alloc(struct mepa_callout_ctx *ctx, size_t size);
+
+void mem_free(struct mepa_callout_ctx *ctx, void *ptr);
+
 #endif /* _MEBA_GENERIC_H_ */

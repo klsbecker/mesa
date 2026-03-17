@@ -1,0 +1,22 @@
+{"1g_synce": {
+   "src": "MEPA_SYNCE_CLOCK_SRC_SERDES_MEDIA",
+   "dst": "MEPA_SYNCE_CLOCK_DST_1",
+   "freq": "MEPA_FREQ_125M"
+  },
+  "10g_synce": {
+    "mode": "VTSS_PHY_10G_LINE0_RECVRD_CLOCK",
+    "src": "VTSS_CKOUT_NO_SQUELCH",
+    "freq": "VTSS_PHY_10G_SCKOUT_125_00",
+    "squelch_inv": 0,
+    "enable": 1
+   },
+  "25g_synce": {
+    "src": "LAN80XX_SREFCLK",
+    "freq": "LAN80XX_RCKOUT_75_00",
+    "rcvd_clk_enable": 1,
+    "los_squelch_enable": 1,
+    "link_sts_enable": 1,
+    "auto_squelch_enable": 1,
+    "rckout_sel": "LAN80XX_RCKOUTA"
+   }
+}
