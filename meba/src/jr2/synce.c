@@ -1287,7 +1287,8 @@ mesa_rc meba_synce_graph_get(meba_inst_t inst, const meba_synce_graph_t **const 
             synce_graph.attr_length = MEBA_ARRSZ(attr_jr2_48_w_zls30363_board);
         } else if (dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30731 ||
                    dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732 ||
-                   dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30733) {
+                   dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30733 ||
+                   dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732A) {
             synce_graph.graph_length = MEBA_ARRSZ(synce_graph_elements_jr2_48_w_zls3073x_board);
             synce_graph.graph = synce_graph_elements_jr2_48_w_zls3073x_board;
             synce_graph.attr = attr_jr2_48_w_zls3073x_board;

@@ -246,7 +246,7 @@ mesa_rc meba_synce_spi_if_do_dpll_type_detection(meba_inst_t inst, const char *d
         } else if (partnum[1] == 0x2E) {
             meba_synce_read(inst, 0x82, 1, &partnum[2]);
             if (partnum[2] == 0x94) {
-                known_dpll_type = MEBA_SYNCE_CLOCK_HW_ZL_30732; // Really ZL80732
+                known_dpll_type = MEBA_SYNCE_CLOCK_HW_ZL_30732A;
             } else {
                 T_I(inst, "No SyncE DPLL detected. partnum 0X%x%x", partnum[1], partnum[2]);
             }
@@ -327,7 +327,8 @@ static mesa_rc meba_synce_spi_if_do_read_dpll_fw_ver(meba_inst_t                
         known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732 ||
         known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30733 ||
         known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30734 ||
-        known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30735) {
+        known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30735 ||
+        known_dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732A) {
         // select page 0
         uint8_t tx_data[2] = {0};
         uint8_t rx_data[2];

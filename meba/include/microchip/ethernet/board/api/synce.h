@@ -250,6 +250,7 @@ typedef enum {
     MEBA_SYNCE_CLOCK_HW_ZL_30733, // Zarlink ZL 30733 clock present
     MEBA_SYNCE_CLOCK_HW_ZL_30734, // Zarlink ZL 30734clock present
     MEBA_SYNCE_CLOCK_HW_ZL_30735, // Zarlink ZL 30735 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30732A, // Zarlink ZL 30732B clock present
 } meba_synce_clock_hw_id_t;
 
 typedef uint32_t meba_synce_clock_fw_ver_t;

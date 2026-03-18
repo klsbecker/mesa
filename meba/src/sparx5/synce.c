@@ -1860,7 +1860,8 @@ mesa_rc meba_synce_graph_get(meba_inst_t inst, const meba_synce_graph_t **const 
             dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30773 ||
             dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30731 ||
             dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732 ||
-            dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30733) {
+            dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30733 ||
+            dpll_type == MEBA_SYNCE_CLOCK_HW_ZL_30732A) {
             if (board_type == VTSS_BOARD_FIREANT_PCB134_REF) {
                 if (board->port_cfg == VTSS_BOARD_CONF_8x25G_NPI) {
                     synce_graph.graph_length =
