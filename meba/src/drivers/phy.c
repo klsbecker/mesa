@@ -527,6 +527,20 @@ mepa_rc meba_port_status_get(meba_inst_t               inst,
     // Get switch status by default
     MESA_RC(mesa_port_status_get(NULL, port_no, status));
 
+    /* Checking the Port Status for 25G PHY */
+    if ((inst->api.meba_port_entry_get(inst, port_no, &entry) == MESA_RC_OK) &&
+        ((entry.cap & MEBA_PORT_CAP_25G_FDX) != 0)) {
+        if (meba_phy_status_poll(inst, port_no, &status_mepa) == MESA_RC_OK) {
+            status->link = status_mepa.link;
+            status->speed = status_mepa.speed;
+            status->fdx = status_mepa.fdx;
+            status->aneg = status_mepa.aneg;
+            status->copper = status_mepa.copper;
+            status->fiber = status_mepa.fiber;
+            return MESA_RC_OK;
+        }
+    }
+
     meba_phy_info_get(inst, port_no, &id);
     // Check that it is Venice/Malibu - otherwise return
     if (((entry.cap & MEBA_PORT_CAP_VTSS_10G_PHY) == 0) ||
