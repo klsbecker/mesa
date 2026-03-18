@@ -1093,6 +1093,38 @@ vtss_rc vtss_port_inst_create(struct vtss_state_s *vtss_state)
 }
 
 /* - Port utilities ------------------------------------------------ */
+
+/*
+ * Cisco SGMII Auto-Negotiation Control Word
+ * ----------------------------------------
+ * Sent by PHY to MAC to communicate copper-side link status.
+ * Bit(s) | Name          | Description
+ * -------|---------------|-------------------------------------------------------
+ * D[15]  | Link          | 0 = Link Down, 1 = Link Up
+ * D[14]  | Acknowledge   | 1 = Acknowledge
+ * D[13]  | Reserved      | Write as 0
+ * D[12]  | Duplex        | 0 = Half Duplex, 1 = Full Duplex
+ * D[11:10| Speed         | 00 = 10Mbps, 01 = 100Mbps, 10 = 1000Mbps, 11 = Reserved
+ * D[9]   | Reserved      | Write as 0
+ * D[8:1] | Reserved      | Write as 0
+ * D[0]   | Mode          | 1 = SGMII Mode (Fixed)
+ */
+
+/*
+ * IEEE 802.3 Clause 37 Auto-Negotiation Base Page (1000BASE-X)
+ * -----------------------------------------------------------
+ * Bit(s) | Name         | Description
+ * -------|--------------|---------------------------------------------------------
+ * D[15]  | Next Page    | 0 = Last Page, 1 = Additional Next Pages follow
+ * D[14]  | Acknowledge  | 1 = Successfully received Link Partner's Base Page
+ * D[13:12| RF (Remote)  | Remote Fault: 00=No Error, 01=Offline, 10=Link_Failure, 11=Auto-Neg_Error
+ * D[11:9]| Reserved     | Write as 0, Ignore on Read
+ * D[8:7] | Pause        | 00=No Pause, 01=Asymmetric toward LP, 10=Symmetric, 11=Both
+ * D[6]   | Half Duplex  | 1 = Half Duplex Capable
+ * D[5]   | Full Duplex  | 1 = Full Duplex Capable
+ * D[4:0] | Reserved     | Write as 0, Ignore on Read
+ */
+
 /* Decode advertisement word */
 vtss_rc vtss_cmn_port_clause_37_adv_get(u32 value, vtss_port_clause_37_adv_t *adv)
 {
