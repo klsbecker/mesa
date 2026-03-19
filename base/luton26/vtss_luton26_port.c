@@ -66,11 +66,10 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
                                            vtss_port_clause_37_status_t *const status)
 
 {
-    u32 value, tgt = VTSS_TO_DEV(vtss_state->port.map[port_no].chip_port);
+    u32 value, aneg_cfg, tgt = VTSS_TO_DEV(vtss_state->port.map[port_no].chip_port);
     u32 port = VTSS_CHIP_PORT(port_no);
-    vtss_port_clause_37_control_t *aneg = &vtss_state->port.clause_37[port_no];
-    vtss_port_conf_t              *conf = &vtss_state->port.conf[port_no];
-    BOOL                           sync;
+    vtss_port_sgmii_aneg_t *sgmii_adv = &status->autoneg.partner.sgmii;
+    BOOL                    in_sync = FALSE;
 
     if (vtss_state->port.conf[port_no].power_down) {
         status->link = 0;
@@ -87,6 +86,7 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
     /* Get the link state 'down' sticky bit  */
     L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_STICKY(tgt), &value);
     status->link = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_STICKY_LINK_DOWN_STICKY, value) ? 0 : 1;
+
     if (status->link == 0) {
         /* The link has been down. Clear the sticky bit and return the 'down'
          * value  */
@@ -94,50 +94,45 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
                VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_STICKY_LINK_DOWN_STICKY |
                    VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_STICKY_OUT_OF_SYNC_STICKY);
     } else {
+        /* Get current sync status  */
         L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS(tgt), &value);
-        status->link = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS_LINK_STATUS, value) &&
-                       L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS_SYNC_STATUS, value);
+        in_sync = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS_SYNC_STATUS, value);
+        status->link = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS_LINK_STATUS, value) && in_sync;
     }
-
-    sync = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_LINK_STATUS_SYNC_STATUS, value);
 
     /* Get PCS ANEG status register */
     L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS(tgt), &value);
+    L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG(tgt), &aneg_cfg);
 
     /* Get 'Aneg complete'   */
     status->autoneg.complete = L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
 
-    /* Workaround for a Serdes fdx issue */
-    if (aneg->enable) {
-        /* Check if auto-negotiation needs restart */
-        if ((status->autoneg.complete && (((value >> 21) & 0x1) == 0)) ||
-            (sync && !status->autoneg.complete))
+    /* Aneg restart workaround for for 1000Base-X / SGMII-CISCO (TN1395)                       */
+    /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14)  */
+    /* Case-2: ANEG state machine does not complete despite being in Sync             */
+    if (aneg_cfg & VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_ANEG_ENA) {
+        if ((status->autoneg.complete && (((value >> 16) & 0xbfff) == 0)) ||
+            (!status->autoneg.complete && in_sync)) {
             L26_WRM_CLR(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
                         VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
-        L26_WRM_SET(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
-                    VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
-        /* Restart Clause 37 Auto-Negotiation */
-        (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no);
-        VTSS_MSLEEP(50);
-        L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS(tgt), &value);
-        status->autoneg.complete =
-            L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+            L26_WRM_SET(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
+                        VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
+            /* Restart Aneg */
+            (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no);
+            VTSS_MSLEEP(50);
+            L26_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS(tgt), &value);
+            status->autoneg.complete =
+                L26_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+        }
     }
 
     /* Return partner advertisement ability */
     value = VTSS_X_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_LP_ADV_ABILITY(value);
 
-    if (conf->if_type == VTSS_PORT_INTERFACE_SGMII_CISCO) {
-        status->autoneg.partner.sgmii.link = ((value >> 15) == 1) ? 1 : 0;
-        status->autoneg.partner.sgmii.speed_10M = (((value >> 10) & 3) == 0) ? 1 : 0;
-        status->autoneg.partner.sgmii.speed_100M = (((value >> 10) & 3) == 1) ? 1 : 0;
-        status->autoneg.partner.sgmii.speed_1G = (((value >> 10) & 3) == 2) ? 1 : 0;
-        status->autoneg.partner.sgmii.fdx = (((value >> 12) & 0x1) == 1) ? 1 : 0;
-        if (status->link) {
-            /* If the SFP module does not have a link then the port does not
-             * have link */
-            status->link = status->autoneg.partner.sgmii.link;
-        }
+    if (vtss_state->port.conf[port_no].if_type == VTSS_PORT_INTERFACE_SGMII_CISCO) {
+        VTSS_RC(vtss_cmn_port_sgmii_cisco_aneg_get(value, sgmii_adv));
+        /* status->link = PCS link. sgmii_adv->link = Phy link */
+        status->link = (sgmii_adv->link && status->link);
     } else {
         VTSS_RC(vtss_cmn_port_clause_37_adv_get(value, &status->autoneg.partner.cl37));
     }
