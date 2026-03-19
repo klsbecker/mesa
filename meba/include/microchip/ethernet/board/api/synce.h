@@ -236,20 +236,20 @@ typedef struct {
 } meba_synce_graph_t;
 
 typedef enum {
-    MEBA_SYNCE_CLOCK_HW_NONE,     // NO Synce clock present
-    MEBA_SYNCE_CLOCK_HW_SI_5326,  // Silabs 5326 (PCB104) clock present
-    MEBA_SYNCE_CLOCK_HW_SI_5328,  // Silabs 5328 (PCB104)  clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30343, // Zarlink ZL 30343 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30363, // Zarlink ZL 30363 clock present
-    MEBA_SYNCE_CLOCK_HW_OMEGA,    // OMEGA (ServalT) clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30771, // Zarlink ZL 30771 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30772, // Zarlink ZL 30772 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30773, // Zarlink ZL 30773 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30731, // Zarlink ZL 30731 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30732, // Zarlink ZL 30732 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30733, // Zarlink ZL 30733 clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30734, // Zarlink ZL 30734clock present
-    MEBA_SYNCE_CLOCK_HW_ZL_30735, // Zarlink ZL 30735 clock present
+    MEBA_SYNCE_CLOCK_HW_NONE,      // NO Synce clock present
+    MEBA_SYNCE_CLOCK_HW_SI_5326,   // Silabs 5326 (PCB104) clock present
+    MEBA_SYNCE_CLOCK_HW_SI_5328,   // Silabs 5328 (PCB104)  clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30343,  // Zarlink ZL 30343 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30363,  // Zarlink ZL 30363 clock present
+    MEBA_SYNCE_CLOCK_HW_OMEGA,     // OMEGA (ServalT) clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30771,  // Zarlink ZL 30771 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30772,  // Zarlink ZL 30772 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30773,  // Zarlink ZL 30773 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30731,  // Zarlink ZL 30731 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30732,  // Zarlink ZL 30732 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30733,  // Zarlink ZL 30733 clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30734,  // Zarlink ZL 30734clock present
+    MEBA_SYNCE_CLOCK_HW_ZL_30735,  // Zarlink ZL 30735 clock present
     MEBA_SYNCE_CLOCK_HW_ZL_30732A, // Zarlink ZL 30732B clock present
 } meba_synce_clock_hw_id_t;
 
