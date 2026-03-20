@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2004-2026 Microchip Technology Inc. and its subsidiaries.
+# SPDX-License-Identifier: MIT
+#
+# Like "do", but runs tests via the remote easytest server (run-suites-on.rb).
+# Automatically selects system and image from the DUT name.
+#
+# Usage: do_remote [--clean] <dut> [<system>] <test_script> [<test_script> ...]
+#
+#   --clean:     clean before building
+#   dut:         fa|fireant | la|lan969x | j2|jr2 | oc|ocelot | st|servalt |
+#                ca1|luton10 | mc | me|m8 | lan932x
+#   system:      optional specific system (e.g. dk-t34-3); first match used if omitted
+#   test_script: path relative to mesa/demo/test/ (e.g. reboot.rb)
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+RUNNER="${SCRIPT_DIR}/utils/dispatch/run-suites-on.rb"
+REPORT="${SCRIPT_DIR}/utils/dispatch/generate-report.rb"
+CONFIG="${SCRIPT_DIR}/utils/dispatch/test-config.yaml"
+
+usage() {
+    local duts
+    duts=$(ruby -r yaml -e "puts YAML.load_file('${CONFIG}')['systems'].map { |s| s['dut'] }.uniq.sort.join(' | ')" 2>/dev/null) \
+        || duts="see ${CONFIG}"
+    cat <<EOF
+Usage: $0 [--clean] <dut> [<system>] <test_script> [<test_script> ...]
+
+  --clean:          clean before building
+  --session-name|-n name: session name (default: auto timestamp)
+  dut:              ${duts}
+  system:      optional specific system (e.g. dk-t34-3), first match used if omitted
+  test_script: path relative to mesa/demo/test/ (e.g. reboot.rb)
+
+Examples:
+  $0 fa reboot.rb
+  $0 fa reboot.rb l2_mac_table.rb
+  $0 --clean fa dk-t34-3 reboot.rb
+  $0 fireant reboot.rb        # long form also accepted
+EOF
+    exit 1
+}
+
+# Strip flags before positional parsing
+clean=0
+session=""
+positional=()
+while (( $# > 0 )); do
+    case $1 in
+        --clean|-c)
+            clean=1
+            shift ;;
+        --session-name|-n)
+            session="$2"
+            shift 2 ;;
+        --session-name=*)
+            session="${1#--session-name=}"
+            shift ;;
+        *)
+            positional+=("$1")
+            shift ;;
+    esac
+done
+set -- "${positional[@]}"
+
+if (( $# < 2 )); then
+    usage
+fi
+
+dut=$1
+shift
+
+# If the next arg looks like a system name, treat it as a system override
+if [[ $1 == dk-* ]]; then
+    forced_system=$1
+    shift
+else
+    forced_system=""
+fi
+
+# Resolve "do" script platform aliases to test-config.yaml DUT names.
+# mc and me/m8 both map to lan966x but on different systems, so pin the system.
+case $dut in
+    fa)    dut="fireant" ;;
+    la)    dut="lan969x" ;;
+    j2)    dut="jr2" ;;
+    oc)    dut="ocelot" ;;
+    st)    dut="servalt" ;;
+    ca1)   dut="luton10" ;;
+    mc)    dut="lan966x"; [[ -z "${forced_system}" ]] && forced_system="dk-t36-1" ;;
+    me|m8) dut="lan966x"; [[ -z "${forced_system}" ]] && forced_system="dk-t35-0" ;;
+esac
+
+test_scripts=("$@")
+
+if (( ${#test_scripts[@]} == 0 )); then
+    usage
+fi
+
+# -------------------------------------------------------
+# Resolve dut -> system, image from test-config.yaml
+# -------------------------------------------------------
+
+resolved=$(ruby -r yaml -e "
+  cfg  = YAML.load_file(ARGV[0])
+  dut  = ARGV[1]
+  forced = ARGV[2]
+  candidates = cfg['systems'].select { |s| s['dut'] == dut }
+  if candidates.empty?
+    duts = cfg['systems'].map { |s| s['dut'] }.uniq.sort.join(', ')
+    abort \"Unknown dut '#{dut}'. Available: #{duts}\"
+  end
+  entry = forced.empty? ? candidates.first \
+                        : candidates.find { |s| s['system'] == forced }
+  if entry.nil?
+    avail = candidates.map { |s| s['system'] }.join(', ')
+    abort \"System '#{forced}' not found for dut '#{dut}'. Available: #{avail}\"
+  end
+  puts entry['system']
+  puts entry['image']
+  puts cfg['timeout']
+" "${CONFIG}" "${dut}" "${forced_system}") || exit 1
+
+system=$(echo "$resolved"       | sed -n '1p')
+image_yaml=$(echo "$resolved"   | sed -n '2p')
+TEST_TIMEOUT=$(echo "$resolved" | sed -n '3p')
+
+# image_yaml is arch/mesa/demo/... (Jenkins format); prepend build- for local use
+arch="${image_yaml%%/*}"
+build_dir="build-${arch}"
+image="${build_dir}/${image_yaml#*/}"
+out="${build_dir}/easytest-logs"
+
+# -------------------------------------------------------
+# Build (optional)
+# -------------------------------------------------------
+
+echo "=== Build: ${build_dir}"
+cd "${REPO_ROOT}/${build_dir}"
+if (( clean == 1 )); then
+    dr make clean
+fi
+dr make -j 10
+cd "${REPO_ROOT}"
+
+# -------------------------------------------------------
+# Sanity checks
+# -------------------------------------------------------
+
+if [[ ! -f "${REPO_ROOT}/${image}" ]]; then
+    echo "Image not found after build: ${image}"
+    exit 1
+fi
+
+for t in "${test_scripts[@]}"; do
+    if [[ ! -f "${SCRIPT_DIR}/${t}" ]]; then
+        echo "Test script not found: ${t}"
+        exit 1
+    fi
+done
+
+# -------------------------------------------------------
+# Run
+# -------------------------------------------------------
+
+# Create session directory
+timestamp=$(date +%Y%m%d-%H%M%S)
+session_name="${session:+${session}-}test-session-${timestamp}"
+session_dir="${out}/${session_name}"
+mkdir -p "${session_dir}"
+
+echo "=== DUT:     ${dut} (${system})"
+echo "=== Image:   ${image}"
+echo "=== Suites:  ${test_scripts[*]}"
+echo "=== Session: ${session_dir}"
+echo ""
+
+suite_args=()
+for t in "${test_scripts[@]}"; do
+    suite_args+=(-T "$t")
+done
+
+suite_meta_args=()
+for t in "${test_scripts[@]}"; do
+    suite_meta_args+=(--suite "$t")
+done
+
+cd "${REPO_ROOT}"
+
+# Run test suites on the remote system
+"${RUNNER}" -s "${system}" -i "${image}" -o "${session_dir}" -t "${TEST_TIMEOUT}" "${suite_args[@]}"
+
+# Generate combined report
+"${REPORT}" -o "${session_dir}" \
+    --system "${system}" \
+    --image  "${image}"  \
+    "${suite_meta_args[@]}"
