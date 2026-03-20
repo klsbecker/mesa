@@ -318,7 +318,12 @@ class Sample < ::Ox::Sax
                 if $env_prop_db[a[:name]].nil?
                     $env_prop_db[a[:name]] = e[:data]
                 else
-                    raise "env not stable!" if $env_prop_db[a[:name]] != e[:data] and a[:name] != "git_branch"
+                    # git_sha and git_id both embed a short SHA that may have different truncation lengths
+                    # across git versions/repos ('git rev-parse --short' / 'git describe'), so allow
+                    # prefix matches (same commit)
+                    same_sha = ["git_sha", "git_id"].include?(a[:name]) && ($env_prop_db[a[:name]].start_with?(e[:data]) || e[:data].start_with?($env_prop_db[a[:name]]))
+                    # git_branch and build_id may legitimately differ across test systems
+                    raise "env not stable! #{a[:name]}: '#{$env_prop_db[a[:name]]}' != '#{e[:data]}'" if $env_prop_db[a[:name]] != e[:data] and !["git_branch", "build_id"].include?(a[:name]) and !same_sha
                 end
             end
 
@@ -474,6 +479,7 @@ OptionParser.new do |opts|
   opts.on('-o', '--output dir', 'report gen path') { |v| options[:reports_path] = v}
   opts.on('-url', '--url', 'report url path') { |v| options[:reports_url] = v}
   opts.on('-m', '--mulit runs', 'pass 1 for repeated runs or 0 for single run') { |v| options[:reports_multi] = v}
+  opts.on('-f', '--flat', 'place files directly in logs/output dirs without a timestamped subdirectory') { options[:flat] = true }
 end.parse!
 
 if options[:allure_bin] == nil || options[:json_logs] == nil || options[:reports_path] == nil || options[:reports_url] == nil
@@ -494,10 +500,10 @@ options[:reports_path] = options[:reports_path] + '/'
 options[:reports_url] = options[:reports_url].chomp('/').to_s
 options[:reports_url] = options[:reports_url] + '/'
 
-foldername = Time.new.strftime("%Y-%m-%d::%H%M%S")
+foldername = options[:flat] ? "" : Time.new.strftime("%Y-%m-%d::%H%M%S")
 
-root_path = options[:json_logs]
-logs_path = (options[:json_logs] + foldername).to_s
+root_path    = options[:json_logs]
+logs_path    = (options[:json_logs] + foldername).to_s
 reports_path = (options[:reports_path] + foldername).to_s
 
 allurecmd = "#{options[:allure_bin]} generate #{logs_path} -o #{reports_path}"
