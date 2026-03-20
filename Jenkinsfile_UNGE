@@ -12,7 +12,6 @@ pipeline {
                 skipDefaultCheckout()
     }
 
-    // agent none;
     agent { kubernetes { yamlFile '.cmake/pod-base.yaml' } }
 
     environment {
@@ -45,7 +44,6 @@ pipeline {
                 }
             }
         }
-
         stage('Build in parallel') {
             parallel {
                 stage("arm64") {
@@ -53,33 +51,31 @@ pipeline {
                     steps {
                         container('pod-mesa-build') {
                             unstash name: "src"
-                                    sh "tar -xf ws.tar && rm ws.tar"
-                                    sh "./.cmake/create_cmake_project.rb -vfnp arm64 arm64"
-                                    stash name: "bin-arm64", includes: "arm64.tar"
+                            sh "tar -xf ws.tar && rm ws.tar"
+                            sh "./.cmake/create_cmake_project.rb -vfnp arm64 arm64"
+                            stash name: "bin-arm64", includes: "arm64.tar"
                         }
                     }
                 }
-
                 stage("arm") {
                     agent { kubernetes { yamlFile '.cmake/pod-build.yaml' } }
                     steps {
                         container('pod-mesa-build') {
                             unstash name: "src"
-                                    sh "tar -xf ws.tar && rm ws.tar"
-                                    sh "./.cmake/create_cmake_project.rb -vfnp arm arm"
-                                    stash name: "bin-arm", includes: "arm.tar"
+                            sh "tar -xf ws.tar && rm ws.tar"
+                            sh "./.cmake/create_cmake_project.rb -vfnp arm arm"
+                            stash name: "bin-arm", includes: "arm.tar"
                         }
                     }
                 }
-
                 stage("mips") {
                     agent { kubernetes { yamlFile '.cmake/pod-build.yaml' } }
                     steps {
                         container('pod-mesa-build') {
                             unstash name: "src"
-                                    sh "tar -xf ws.tar && rm ws.tar"
-                                    sh "./.cmake/create_cmake_project.rb -vfnp mipsel mipsel"
-                                    stash name: "bin-mipsel", includes: "mipsel.tar"
+                            sh "tar -xf ws.tar && rm ws.tar"
+                            sh "./.cmake/create_cmake_project.rb -vfnp mipsel mipsel"
+                            stash name: "bin-mipsel", includes: "mipsel.tar"
                         }
                     }
                 }
@@ -94,7 +90,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage("misc") {
                     stages {
                         stage('Style') {
@@ -106,7 +101,6 @@ pipeline {
                                 }
                             }
                         }
-
                         stage('Copyright') {
                             steps {
                                 container('pod-mesa-base') {
@@ -116,7 +110,6 @@ pipeline {
                                 }
                             }
                         }
-
                         stage('License') {
                             steps {
                                 container('pod-mesa-base') {
@@ -126,7 +119,6 @@ pipeline {
                                 }
                             }
                         }
-
                         stage('Docs') {
                             steps {
                                 container('pod-mesa-base') {
@@ -136,7 +128,6 @@ pipeline {
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -156,7 +147,6 @@ pipeline {
             }
         }
     }
-
     post {
         success {
             echo "Pipeline Success! Project: ${env.JOB_NAME}, Build Number: ${env.BUILD_NUMBER}"
