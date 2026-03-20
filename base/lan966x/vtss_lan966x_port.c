@@ -148,11 +148,10 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
                                            const vtss_port_no_t                port_no,
                                            vtss_port_clause_37_status_t *const status)
 {
-    u32                            value, port = VTSS_CHIP_PORT(port_no);
-    vtss_port_sgmii_aneg_t        *sgmii_adv = &status->autoneg.partner.sgmii;
-    BOOL                           synced_status;
-    vtss_port_clause_37_control_t *aneg = &vtss_state->port.clause_37[port_no];
-    vtss_port_interface_t          if_type = vtss_state->port.conf[port_no].if_type;
+    u32                     value, aneg_ena, port = VTSS_CHIP_PORT(port_no);
+    vtss_port_sgmii_aneg_t *sgmii_adv = &status->autoneg.partner.sgmii;
+    BOOL                    in_sync = FALSE;
+    vtss_port_interface_t   if_type = vtss_state->port.conf[port_no].if_type;
 
     if (vtss_state->port.conf[port_no].power_down) {
         status->link = 0;
@@ -162,26 +161,29 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
     /* Get the link state 'down' sticky bit  */
     REG_RD(DEV_PCS1G_STICKY(port), &value);
     status->link = (value & DEV_PCS1G_STICKY_LINK_DOWN_STICKY_M ? 0 : 1);
-    REG_RD(DEV_PCS1G_LINK_STATUS(port), &value);
-    synced_status = (value & DEV_PCS1G_LINK_STATUS_SYNC_STATUS_M);
     if (status->link == 0) {
         /* The link has been down. Clear the sticky bit and return the 'down'
          * value  */
-        REG_WR(DEV_PCS1G_STICKY(port), DEV_PCS1G_STICKY_LINK_DOWN_STICKY_M);
+        REG_WR(DEV_PCS1G_STICKY(port),
+               DEV_PCS1G_STICKY_LINK_DOWN_STICKY_M | DEV_PCS1G_STICKY_OUT_OF_SYNC_STICKY_M);
     } else {
-        status->link = ((value & DEV_PCS1G_LINK_STATUS_LINK_STATUS_M) && synced_status);
+        /* Get current sync status */
+        REG_RD(DEV_PCS1G_LINK_STATUS(port), &value);
+        in_sync = (value & DEV_PCS1G_LINK_STATUS_SYNC_STATUS_M);
+        status->link = ((value & DEV_PCS1G_LINK_STATUS_LINK_STATUS_M) && in_sync);
     }
 
     /* Get PCS ANEG status register */
     REG_RD(DEV_PCS1G_ANEG_STATUS(port), &value);
+    REG_RD(DEV_PCS1G_ANEG_CFG(port), &aneg_ena);
     status->autoneg.complete = (value & DEV_PCS1G_ANEG_STATUS_ANEG_COMPLETE_M ? 1 : 0);
 
-    /* Workaround for a Serdes issue, when aneg completes with FDX capability=0 */
-    /* There is another situation which needs to restart aneg: aneg un-complete
-     * but the synced status is up, added by SGZ */
-    if (aneg->enable && if_type == VTSS_PORT_INTERFACE_SERDES) {
-        if ((status->autoneg.complete && ((value >> 21) & 0x1) == 0) ||
-            (synced_status && !status->autoneg.complete)) {
+    /* Aneg restart workaround for 1000Base-X / SGMII-CISCO (TN1395)                      */
+    /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14) */
+    /* Case-2: ANEG state machine does not complete despite being in Sync            */
+    if (aneg_ena & DEV_PCS1G_ANEG_CFG_ENA_M) {
+        if ((status->autoneg.complete && (((value >> 16) & 0xbfff) == 0)) ||
+            (!status->autoneg.complete && in_sync)) {
             REG_WRM_CLR(DEV_PCS1G_CFG(port), DEV_PCS1G_CFG_PCS_ENA_M);
             REG_WRM_SET(DEV_PCS1G_CFG(port), DEV_PCS1G_CFG_PCS_ENA_M);
             (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no); /* Restart Aneg */
@@ -195,20 +197,9 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
     value = DEV_PCS1G_ANEG_STATUS_LP_ADV_X(value);
     VTSS_N("port:%d, if_type:0x%X", port_no, if_type);
     if (if_type == VTSS_PORT_INTERFACE_SGMII_CISCO) {
-        sgmii_adv->link = ((value >> 15) == 1) ? 1 : 0;
-        sgmii_adv->fdx = (((value >> 12) & 0x1) == 1) ? 1 : 0;
-        value = ((value >> 10) & 3);
-        sgmii_adv->speed_10M = (value == 0 ? 1 : 0);
-        sgmii_adv->speed_100M = (value == 1 ? 1 : 0);
-        sgmii_adv->speed_1G = (value == 2 ? 1 : 0);
-        sgmii_adv->hdx = (status->autoneg.partner.cl37.fdx ? 0 : 1);
-        if (status->link) {
-            /* If the SFP module does not have a link then the port does not
-             * have link */
-            status->link = sgmii_adv->link;
-        }
-        VTSS_N("port:%d, value:0x%X, sgmii_adv->link:%d, status->link:%d", port_no, value,
-               sgmii_adv->link, status->link);
+        VTSS_RC(vtss_cmn_port_sgmii_cisco_aneg_get(value, sgmii_adv));
+        /* status->link = PCS link. sgmii_adv->link = Phy link */
+        status->link = (sgmii_adv->link && status->link);
     } else {
         VTSS_RC(vtss_cmn_port_clause_37_adv_get(value, &status->autoneg.partner.cl37));
     }

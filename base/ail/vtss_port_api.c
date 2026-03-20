@@ -1112,6 +1112,7 @@ vtss_rc vtss_port_inst_create(struct vtss_state_s *vtss_state)
 
 /*
  * IEEE 802.3 Clause 37 Auto-Negotiation Base Page (1000BASE-X)
+ * The 16-bit word used for peer-to-peer Fiber Auto-Negotiation.
  * -----------------------------------------------------------
  * Bit(s) | Name         | Description
  * -------|--------------|---------------------------------------------------------
@@ -1123,6 +1124,23 @@ vtss_rc vtss_port_inst_create(struct vtss_state_s *vtss_state)
  * D[6]   | Half Duplex  | 1 = Half Duplex Capable
  * D[5]   | Full Duplex  | 1 = Full Duplex Capable
  * D[4:0] | Reserved     | Write as 0, Ignore on Read
+ */
+
+/*
+ * USXGMII 16-bit Control/Status Word
+ * ----------------------------------
+ * Sent by PHY to MAC to communicate copper-side link status.
+ * Bit(s)   | Name          | Description
+ * ---------|---------------|-------------------------------------------------------
+ * D[15]    | Link          | 1 = Link Up, 0 = Link Down
+ * D[14]    | Acknowledge   | 1 = ACK
+ * D[13]    | Reserved      | Write as 0
+ * D[12]    | Duplex        | 1 = Full Duplex, 0 = Half Duplex
+ * D[11:9]  | Speed         | 000=10M, 001=100M, 010=1G, 011=2.5G, 100=5G, 101=10G
+ * D[8]     | EEE           | 1 = EEE Capable
+ * D[7:3]   | Port ID       | Identifies the port number (0-31)
+ * D[2:1]   | EEE Clock     | EEE Clock Stop Capability
+ * D[0]     | Ability/Fixed | 1 = USXGMII mode enabled
  */
 
 /* Decode advertisement word */

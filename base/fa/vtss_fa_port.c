@@ -570,7 +570,7 @@ vtss_rc vtss_cil_port_clause_37_status_get(struct vtss_state_s                *v
                                            vtss_port_clause_37_status_t *const status)
 
 {
-    u32                     value, port = VTSS_CHIP_PORT(port_no);
+    u32                     value, aneg_conf, port = VTSS_CHIP_PORT(port_no);
     u32                     tgt = VTSS_TO_DEV2G5(port);
     vtss_port_sgmii_aneg_t *sgmii_adv = &status->autoneg.partner.sgmii;
     vtss_port_interface_t   if_type = vtss_state->port.conf[port_no].if_type;
@@ -598,7 +598,8 @@ vtss_rc vtss_cil_port_clause_37_status_get(struct vtss_state_s                *v
     if (!status->link) {
         /* The link has been down. Clear the sticky bit and return the 'down'
          * value  */
-        REG_WR(VTSS_DEV1G_PCS1G_STICKY(tgt), VTSS_M_DEV1G_PCS1G_STICKY_LINK_DOWN_STICKY);
+        REG_WR(VTSS_DEV1G_PCS1G_STICKY(tgt), VTSS_M_DEV1G_PCS1G_STICKY_LINK_DOWN_STICKY |
+                                                 VTSS_M_DEV1G_PCS1G_STICKY_OUT_OF_SYNC_STICKY);
     } else {
         /* PCS1G_LINK_STATUS holds the result of 1) aneg-enable=LINK_OK or
                                                  2)
@@ -611,18 +612,18 @@ vtss_rc vtss_cil_port_clause_37_status_get(struct vtss_state_s                *v
 
     /* Get PCS ANEG status register */
     REG_RD(VTSS_DEV1G_PCS1G_ANEG_STATUS(tgt), &value);
+    REG_RD(VTSS_DEV1G_PCS1G_ANEG_CFG(tgt), &aneg_conf);
 
     /* Get 'Aneg complete'   */
     status->autoneg.complete = REG_BF(DEV1G_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
 
-    /* Workaround for a Clause 37 Aneg issue (TN1395)
-       1) When aneg completes with FDX capability=0
-       2) PCS in in sync and ACK is received but we cannot complete aneg. */
-    if (in_sync && vtss_state->port.conf[port_no].if_type == VTSS_PORT_INTERFACE_SERDES) {
+    /* Aneg restart workaround for 1000Base-X / SGMII-CISCO (TN1395)                        */
+    /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14)   */
+    /* Case-2: ANEG state machine does not complete despite being in Sync              */
+    if (VTSS_X_DEV1G_PCS1G_ANEG_CFG_ANEG_ENA(aneg_conf) != 0U) {
         if ((status->autoneg.complete &&
-             (((value >> 21U) & 0x1U) == 0U)) || /* aneg-complete && !FDX */
-            (!status->autoneg.complete &&
-             (((value >> 30U) & 0x1U) == 1U))) { /* !aneg-complete && ACK */
+             (((value >> 16U) & 0xbfffU) == 0U)) ||   /* aneg-complete && no capabilities */
+            (!status->autoneg.complete && in_sync)) { /* !aneg-complete && in sync */
             /* Reset PCS and restart Aneg */
             REG_WRM_CLR(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
             REG_WRM_SET(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
