@@ -7,11 +7,8 @@
 
 // Jenkins-specific scheduling config
 def TEST_NIGHTLY_BRANCH_NAME = 'master.nightly'
-def TEST_NIGHTLY_TIME_HOUR   = 1
+def TEST_NIGHTLY_TIME_HOUR   = 22
 def TEST_NIGHTLY_TIME_MIN    = 0
-
-// Helper def
-def isNightlyRun = { -> currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause').size() > 0 }
 
 // Run a named suite type ("nightly" or "basic") on all systems in parallel,
 // all writing results into the same shared session directory.
