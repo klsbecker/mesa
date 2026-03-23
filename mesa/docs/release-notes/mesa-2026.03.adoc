@@ -8,19 +8,29 @@
 |===
 |Version:          |MESA-2026.03
 |Previous Version: |MESA-2025.12
-|Date:             |2026-03-31
+|Date:             |2026-03-26
 |Description:      |Roadmap release
 |===
 
 === Outer tag filtering
 
-Advanced outer tag filtering has been added, using the `mesa_vlan_port_conf_t::outer_tag_discard` field.
+Advanced outer tag filtering has been added, using the
+`mesa_vlan_port_conf_t::outer_tag_discard` field.
 
 === ACL MEG level filtering
 
-ACL MEG level filtering has been added, using the `mesa_ace_frame_etype_t::mel` field.
+ACL MEG level filtering has been added, using the `mesa_ace_frame_etype_t::mel`
+field.
 
 === CPU queue port and priority redirect
 
-Options for redirecting frames classified to a CPU queue to a specific port and priority have been added
-in the `mesa_packet_rx_queue_npi_conf_t` struct.
+Options for redirecting frames classified to a CPU queue to a specific port and
+priority have been added in the `mesa_packet_rx_queue_npi_conf_t` struct.
+
+=== Serdes PRBS test pattern APIs
+
+New APIs: `mesa_port_serdes_prbs_conf_set` and
+`mesa_port_serdes_prbs_status_get` has been added to facilitate serdes tuning.
+Look for the `SERDES_PRBS_TEST` capability to see supported chips.
+
+
