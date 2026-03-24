@@ -1737,6 +1737,10 @@ static void port_init(meba_inst_t inst)
             pc->speed = MESA_SPEED_2500M;
             pc->autoneg = 1;
             break;
+        case MESA_PORT_INTERFACE_VAUI:
+            entry->media_type = MSCC_PORT_TYPE_SFP;
+            pc->speed = MESA_SPEED_2500M;
+            break;
         case MESA_PORT_INTERFACE_USXGMII:
             entry->media_type = MSCC_PORT_TYPE_SFP;
             pc->speed = MESA_SPEED_10G;
