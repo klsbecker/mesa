@@ -20,7 +20,12 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
         def stageName = "${s.system} (${s.dut})"
         [stageName, {
             container('pod-mesa-base') {
-                sh """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs}"""
+                def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs}""")
+                if (rc == 7) {
+                    unstable("Reserve timed out for ${s.system} (${s.dut})")
+                } else if (rc != 0) {
+                    error("Tests failed for ${s.system} (${s.dut})")
+                }
             }
         }]
     }
@@ -229,9 +234,11 @@ pipeline {
         stage("Run test suites (nightly)") {
             when { triggeredBy 'TimerTrigger' }
             steps {
-                script {
-                    def sessionDir = "easytest-logs/nightly-${env.BUILD_NUMBER}"
-                    runTestsOnAllSystems("nightly", sessionDir)
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        def sessionDir = "easytest-logs/nightly-${env.BUILD_NUMBER}"
+                        runTestsOnAllSystems("nightly", sessionDir)
+                    }
                 }
             }
         }
