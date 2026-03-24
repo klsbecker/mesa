@@ -25,12 +25,12 @@ field.
 === CPU queue port and priority redirect
 
 Options for redirecting frames classified to a CPU queue to a specific port and
-priority have been added in the `mesa_packet_rx_queue_npi_conf_t` struct.
+priority have been added to the `mesa_packet_rx_queue_npi_conf_t` struct.
 
 === Serdes PRBS test pattern APIs
 
 New APIs: `mesa_port_serdes_prbs_conf_set` and
-`mesa_port_serdes_prbs_status_get` has been added to facilitate serdes tuning.
+`mesa_port_serdes_prbs_status_get` have been added to facilitate SerDes tuning.
 Look for the `SERDES_PRBS_TEST` capability to see supported chips.
 
 
