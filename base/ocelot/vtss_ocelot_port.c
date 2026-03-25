@@ -78,21 +78,24 @@ vtss_rc vtss_cil_port_clause_37_status_get(vtss_state_t                       *v
     /* Get 'Aneg complete'   */
     status->autoneg.complete = SRVL_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
 
-    /* Aneg restart workaround for 1000Base-X / SGMII-CISCO (TN1395)                      */
-    /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14) */
-    /* Case-2: ANEG state machine does not complete despite being in Sync            */
-    if (aneg_ena & VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_ANEG_ENA) {
-        if ((status->autoneg.complete && (((value >> 16) & 0xbfff) == 0)) ||
-            (!status->autoneg.complete && in_sync)) {
-            SRVL_WRM_CLR(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
-                         VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
-            SRVL_WRM_SET(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
-                         VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
-            (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no); /* Restart Aneg */
-            VTSS_MSLEEP(50);
-            SRVL_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS(tgt), &value);
-            status->autoneg.complete =
-                SRVL_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+    if (vtss_state->port.conf[port_no].if_type == VTSS_PORT_INTERFACE_SERDES) {
+        /* Aneg restart workaround for 1000Base-X  (TN1395)                              */
+        /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14) */
+        /* Case-2: ANEG state machine does not complete despite being in Sync            */
+        SRVL_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG(tgt), &aneg_ena);
+        if (aneg_ena & VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_ANEG_ENA) {
+            if ((status->autoneg.complete && (((value >> 16) & 0xbfff) == 0)) ||
+                (!status->autoneg.complete && in_sync)) {
+                SRVL_WRM_CLR(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
+                             VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
+                SRVL_WRM_SET(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_CFG(tgt),
+                             VTSS_F_DEV_PCS1G_CFG_STATUS_PCS1G_CFG_PCS_ENA);
+                (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no); /* Restart Aneg */
+                VTSS_MSLEEP(50);
+                SRVL_RD(VTSS_DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS(tgt), &value);
+                status->autoneg.complete =
+                    SRVL_BF(DEV_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+            }
         }
     }
 

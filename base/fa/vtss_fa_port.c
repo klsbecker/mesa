@@ -612,25 +612,26 @@ vtss_rc vtss_cil_port_clause_37_status_get(struct vtss_state_s                *v
 
     /* Get PCS ANEG status register */
     REG_RD(VTSS_DEV1G_PCS1G_ANEG_STATUS(tgt), &value);
-    REG_RD(VTSS_DEV1G_PCS1G_ANEG_CFG(tgt), &aneg_conf);
 
     /* Get 'Aneg complete'   */
     status->autoneg.complete = REG_BF(DEV1G_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
-
-    /* Aneg restart workaround for 1000Base-X / SGMII-CISCO (TN1395)                        */
-    /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14)   */
-    /* Case-2: ANEG state machine does not complete despite being in Sync              */
-    if (VTSS_X_DEV1G_PCS1G_ANEG_CFG_ANEG_ENA(aneg_conf) != 0U) {
-        if ((status->autoneg.complete &&
-             (((value >> 16U) & 0xbfffU) == 0U)) ||   /* aneg-complete && no capabilities */
-            (!status->autoneg.complete && in_sync)) { /* !aneg-complete && in sync */
-            /* Reset PCS and restart Aneg */
-            REG_WRM_CLR(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
-            REG_WRM_SET(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
-            (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no);
-            VTSS_MSLEEP(50);
-            REG_RD(VTSS_DEV1G_PCS1G_ANEG_STATUS(tgt), &value);
-            status->autoneg.complete = REG_BF(DEV1G_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+    if (vtss_state->port.conf[port_no].if_type == VTSS_PORT_INTERFACE_SERDES) {
+        /* Aneg restart workaround for 1000Base-X (TN1395)                                 */
+        /* Case-1: ANEG state machine completes with no capabilities (ignore ACK bit 14)   */
+        /* Case-2: ANEG state machine does not complete despite being in Sync              */
+        REG_RD(VTSS_DEV1G_PCS1G_ANEG_CFG(tgt), &aneg_conf);
+        if (VTSS_X_DEV1G_PCS1G_ANEG_CFG_ANEG_ENA(aneg_conf) != 0U) {
+            if ((status->autoneg.complete &&
+                 (((value >> 16U) & 0xbfffU) == 0U)) ||   /* aneg-complete && no capabilities */
+                (!status->autoneg.complete && in_sync)) { /* !aneg-complete && in sync */
+                /* Reset PCS and restart Aneg */
+                REG_WRM_CLR(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
+                REG_WRM_SET(VTSS_DEV1G_PCS1G_CFG(tgt), VTSS_M_DEV1G_PCS1G_CFG_PCS_ENA);
+                (void)vtss_cil_port_clause_37_ctrl_set(vtss_state, port_no);
+                VTSS_MSLEEP(50);
+                REG_RD(VTSS_DEV1G_PCS1G_ANEG_STATUS(tgt), &value);
+                status->autoneg.complete = REG_BF(DEV1G_PCS1G_ANEG_STATUS_ANEG_COMPLETE, value);
+            }
         }
     }
 
