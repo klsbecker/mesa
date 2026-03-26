@@ -20,6 +20,7 @@ typedef enum {
     BOARD_TYPE_SUNRISE = VTSS_BOARD_LAN9668_SUNRISE_REF,
     BOARD_TYPE_SPARX5_EMULATION = 999,
     BOARD_TYPE_LAGUNA_PCB8398 = 0x8398, /* Laguna 24x1G + 4x10G port */
+    BOARD_TYPE_SPARX5_PCB8415 = 0x8415, /* Sparx5 EDSX */
     BOARD_TYPE_LAGUNA_PCB8422 = 0x8422, /* Laguna 10x10G + NPI */
 } board_type_t;
 
@@ -65,6 +66,12 @@ typedef struct meba_board_state {
     mepa_device_t         *phy_devices[MAX_PORTS];
     mesa_port_status_t     status[MAX_PORTS];
 } meba_board_state_t;
+
+/* EDSx/PCB8415 Port Number Mapping Based on Port Count Config of the Switch */
+typedef struct {
+    int sfp_slot1_port; /*SFP Slot1 Port Number */
+    int sfp_slot2_port; /*SFP Slot2 Port Number */
+} edsx_slot_port_t;
 
 #define PORT_2_BOARD_PORT(board, p) (board->port[p].board_port)
 #define PORT_2_SGPIO_PORT(board, p) (board->port[p].sgpio_port)

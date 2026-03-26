@@ -320,7 +320,7 @@ static uint32_t get_fa_port_cnt_default(uint32_t target, uint32_t pcb)
         }
         break;
     case MESA_TARGET_7558TSN:
-    case MESA_TARGET_7558:    return (pcb == 135) ? 57 : 21;
+    case MESA_TARGET_7558:    return (pcb == 135) ? 57 : (pcb == 134) ? 21 : 9;
     default:                  T_E("Unknown target '%x'", target);
     }
     return 0;
