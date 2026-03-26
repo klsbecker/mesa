@@ -105,9 +105,9 @@ class EtXML < ::Ox::Sax
             indent += "    "
         end
 
-        l = "#{@time_now_rel_s} #{pre_indent} #{indent}#{msg}\n"
+        l = "#{@time_now_rel_s} #{pre_indent} #{indent}#{msg.chomp}\n"
         if @short_stdout
-            l = "#{indent}#{msg}\n"
+            l = "#{indent}#{msg.chomp}\n"
         end
         if not @brief_stdout
             STDOUT.write(l)
