@@ -50,8 +50,8 @@ pipeline {
         timestamps ()
                 // Only keep 5 builds at a time to avoid fill up the storage
                 buildDiscarder(logRotator(numToKeepStr:'5'))
-                // Make sure this build doesn't hang forever
-                timeout(time: 5, unit: 'HOURS')
+                // Make sure this build ad tests don't hang forever
+                timeout(time: 8, unit: 'HOURS')
                 skipDefaultCheckout()
     }
 
