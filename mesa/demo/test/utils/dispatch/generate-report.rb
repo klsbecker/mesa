@@ -148,21 +148,34 @@ def upload_session(session_dir, keyfile = nil)
     project   = "#{PUBLISH_PROJECT}/#{branch}"
     session   = File.basename(session_dir)
 
-    log_local("Creating tar.xz of #{session_dir}...")
-    tardata, st = Open3.capture2("tar", "-cJf", "-", "-C", session_dir, ".")
-    raise "tar failed (exit #{st.exitstatus})" unless st.success?
+    ssh_cmd  = "ssh"
+    ssh_cmd += " -i #{keyfile}" if keyfile
+    ssh_cmd += " -o \"UserKnownHostsFile #{PUBLISH_KNOWN_HOSTS}\""
+    ssh_cmd += " #{PUBLISH_SERVER}"
+    ssh_cmd += " ./web-pack-rx -n #{build_num} -b #{session} -J -p #{project}"
 
-    cmd  = "ssh"
-    cmd += " -i #{keyfile}" if keyfile
-    cmd += " -o \"UserKnownHostsFile #{PUBLISH_KNOWN_HOSTS}\""
-    cmd += " #{PUBLISH_SERVER}"
-    cmd += " ./web-pack-rx -n #{build_num} -b #{session} -J -p #{project}"
-
-    log_local("Uploading to #{PUBLISH_SERVER}...")
+    log_local("Creating tar.xz of #{session_dir} and uploading to #{PUBLISH_SERVER}...")
     log_local("  URL: http://lon-vm-ung-mdi.microchip.com/ci/#{project}/#{session}/")
-    out, st = Open3.capture2e(cmd, stdin_data: tardata)
-    log_local(out) unless out.empty?
-    raise "Upload failed (exit #{st.exitstatus})" unless st.success?
+
+    # Stream tar output directly to ssh stdin to avoid buffering the entire
+    # tarball in memory (large sessions were OOM-killed at this step).
+    Open3.popen2e(ssh_cmd) do |ssh_in, ssh_out, ssh_thread|
+        # Drain ssh output concurrently to avoid deadlock if the server writes
+        # enough to fill the pipe buffer while we are still streaming tar data.
+        out_buf = ""
+        reader = Thread.new { out_buf = ssh_out.read }
+
+        Open3.popen2("tar", "-cJf", "-", "-C", session_dir, ".") do |_, tar_out, tar_thread|
+            IO.copy_stream(tar_out, ssh_in)
+            tar_st = tar_thread.value
+            raise "tar failed (exit #{tar_st.exitstatus})" unless tar_st.success?
+        end
+        ssh_in.close
+        reader.join
+        ssh_st = ssh_thread.value
+        log_local(out_buf) unless out_buf.empty?
+        raise "Upload failed (exit #{ssh_st.exitstatus})" unless ssh_st.success?
+    end
     log_local("Upload complete")
 end
 
