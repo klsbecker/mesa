@@ -324,7 +324,7 @@ void meba_phy_driver_init(meba_inst_t inst)
         meba_port_cap_t       port_cap = entry.cap;
 
         if ((port_cap & (MEBA_PORT_CAP_COPPER | MEBA_PORT_CAP_DUAL_COPPER)) ||
-            (port_cap & MEBA_PORT_CAP_VTSS_10G_PHY)) {
+            (port_cap & MEBA_PORT_CAP_VTSS_10G_PHY) || (port_cap & MEBA_PORT_CAP_25G_FDX)) {
 
             mepa_board_conf_t board_conf = {};
             board_conf.numeric_handle = port_no;
