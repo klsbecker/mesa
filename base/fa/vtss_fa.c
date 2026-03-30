@@ -2600,7 +2600,10 @@ static vtss_rc fa_feature_init(vtss_state_t *vtss_state)
     vtss_rc rc = VTSS_RC_OK;
 
     switch (vtss_state->create.target) {
-    case VTSS_TARGET_P64H: vtss_state->vtss_features[FEATURE_FRER] = TRUE; break;
+    case VTSS_TARGET_P64H:
+        vtss_state->vtss_features[FEATURE_QOS_FRAME_PREEMPTION] = TRUE;
+        vtss_state->vtss_features[FEATURE_FRER] = TRUE;
+        break;
     case VTSS_TARGET_7546:
     case VTSS_TARGET_7549:
     case VTSS_TARGET_7552:
