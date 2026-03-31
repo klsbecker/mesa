@@ -547,13 +547,35 @@ vtss_rc lk_init(vtss_state_t *vtss_state)
     return rc;
 }
 
+static void lk_pie_chnl_rx_desc_printout(vtss_state_t     *vtss_state,
+                                         const char       *reason,
+                                         lk_pie_rx_desc_t *d,
+                                         int               i)
+{
+    u64 addr = d->memory_addr;
+    u32 block_len = d->block_len;
+    u32 packet_len = d->pkt_len;
+
+    VTSS_E("Rx desc: %s, id=%i addr=0x%lx blk_len=%i pkt_len=%i %s%s%s%s%s%s", reason, i, addr,
+           block_len, packet_len, (d->valid ? "V" : ""), (d->owner ? "O" : ""), (d->sop ? "S" : ""),
+           (d->eop ? "E" : ""), (d->ifh_present ? " IFH" : ""), (d->rofh_present ? " ROFH" : ""));
+    if (d->error_present)
+        VTSS_E("Err=%s%s%s%s%s%s%s%s", (d->err_invalid_isdx ? " ISDX" : ""),
+               (d->err_checksum ? " CKSUM" : ""), (d->err_missing_sof ? " MSOF" : ""),
+               (d->err_missing_eof ? " MEOF" : ""), (d->err_1clock_pkt ? " 1CLK" : ""),
+               (d->err_wrong_unused ? " WRNG" : ""), (d->err_fifo_overflow ? " OVFLW" : ""),
+               (d->err_pkt_oversize ? " OVSZ" : ""));
+}
+
 vtss_rc lk_pie_chnl_rx(vtss_state_t *vtss_state, void *data, const u32 buflen, u8 *ifh, u32 *pktlen)
 {
     vtss_circ_ring_idx_t rxid, endid;
     lk_pie_rx_desc_t    *d;
     u8                  *pkt;
     u64                  end;
+    vtss_rc              ret;
     vtss_lk_pie_chnl_t  *c = lk_get_chnl(vtss_state);
+
     lk_edesc_write_ptr_read(vtss_state, &end);
     endid = (end - c->pc_rx_ring_mem_dma) / sizeof(lk_pie_rx_desc_t);
     rxid = lk_crc_get_rd_idx(&c->pc_rx_ring_ctl);
@@ -562,43 +584,41 @@ vtss_rc lk_pie_chnl_rx(vtss_state_t *vtss_state, void *data, const u32 buflen, u
     }
     d = &c->pc_rx_ring_mem[rxid];
 
+    ret = VTSS_RC_ERROR;
     if (!d->valid) {
-        VTSS_E("Received packet with no valid bit id=%i", rxid);
-        return VTSS_RC_ERROR;
+        lk_pie_chnl_rx_desc_printout(vtss_state, "no valid bit", d, rxid);
+    } else if (!d->owner) {
+        lk_pie_chnl_rx_desc_printout(vtss_state, "invalid owner bit", d, rxid);
+    } else if (d->rofh_present) {
+        lk_pie_chnl_rx_desc_printout(vtss_state, "rofh bit", d, rxid);
+    } else if (!d->sop || !d->eop) {
+        lk_pie_chnl_rx_desc_printout(vtss_state, "no SOP or EOP bit", d, rxid);
+    } else if (d->error_present || d->err_invalid_isdx || d->err_checksum || d->err_missing_sof ||
+               d->err_missing_eof || d->err_1clock_pkt || d->err_wrong_unused ||
+               d->err_fifo_overflow || d->err_pkt_oversize) {
+        lk_pie_chnl_rx_desc_printout(vtss_state, "error bit set", d, rxid);
+    } else {
+        ret = VTSS_RC_OK;
+        pkt = c->pc_rx_bmem + (rxid * c->pc_buff_sz);
+        *pktlen = d->pkt_len;
+        VTSS_I("Received packet, pkt_len=%i, block_len=%i", (uint32_t)d->pkt_len,
+               (uint32_t)d->block_len);
+        VTSS_I_HEX(pkt, d->pkt_len);
+        VTSS_MEMCPY(ifh, pkt, VTSS_FA_RX_IFH_SIZE);
+        if (buflen < d->pkt_len) {
+            VTSS_E("laika rx buffer too small %d", buflen);
+        }
+        VTSS_MEMCPY(data, (pkt + VTSS_FA_RX_IFH_SIZE),
+                    MIN(buflen, d->pkt_len - VTSS_FA_RX_IFH_SIZE));
     }
-    if (!d->owner) {
-        VTSS_E("Received packet with invalid owner bit id=%i", rxid);
-        return VTSS_RC_ERROR;
-    }
-    if (d->rofh_present) {
-        VTSS_E("Received packet with rofh bit");
-        return VTSS_RC_ERROR;
-    }
-    if (!d->sop || !d->eop) {
-        VTSS_E("Received packet without sop or eop bit");
-        return VTSS_RC_ERROR;
-    }
-    if (d->error_present || d->err_invalid_isdx || d->err_checksum || d->err_missing_sof ||
-        d->err_missing_eof || d->err_1clock_pkt || d->err_wrong_unused || d->err_fifo_overflow ||
-        d->err_pkt_oversize) {
-        VTSS_E("Received packet an error bit set id=%i", rxid);
-        return VTSS_RC_ERROR;
-    }
-    pkt = c->pc_rx_bmem + (rxid * c->pc_buff_sz);
-    *pktlen = d->pkt_len;
-    VTSS_I("Received packet, pkt_len=%i, block_len=%i", (uint32_t)d->pkt_len,
-           (uint32_t)d->block_len);
-    VTSS_I_HEX(pkt, d->pkt_len);
-    VTSS_MEMCPY(ifh, pkt, VTSS_FA_RX_IFH_SIZE);
-    if (buflen < d->pkt_len) {
-        VTSS_E("laika rx buffer too small %d", buflen);
-    }
-    VTSS_MEMCPY(data, (pkt + VTSS_FA_RX_IFH_SIZE), MIN(buflen, d->pkt_len - VTSS_FA_RX_IFH_SIZE));
+
+    // Move on to the next descriptor and refill rx descs even if there was an error in the last
+    // packet.
     rxid = lk_crc_rd_next(&c->pc_rx_ring_ctl);
     end = c->pc_rx_ring_mem_dma + rxid * sizeof(lk_pie_rx_desc_t);
     lk_edesc_read_ptr_update(vtss_state, end);
     pie_rx_fill_bp(vtss_state);
-    return VTSS_RC_OK;
+    return ret;
 }
 
 vtss_rc lk_pie_chnl_tx(vtss_state_t                     *vtss_state,
