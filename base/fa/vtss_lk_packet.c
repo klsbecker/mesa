@@ -139,7 +139,7 @@ struct lk_pie_tx_desc_t {
     u64 remain_bits           : 6;
 };
 
-vtss_lk_pie_chnl_t *lk_get_chnl(vtss_state_t *vtss_state)
+static inline vtss_lk_pie_chnl_t *lk_get_chnl(vtss_state_t *vtss_state)
 {
     return &vtss_state->packet.lk.chnls[PIE_CHANNEL];
 }
@@ -303,7 +303,7 @@ static vtss_rc lk_chn_traffic_disable(vtss_state_t *vtss_state)
     return VTSS_RC_OK;
 }
 
-vtss_rc lk_setup_rx_cfg(vtss_state_t *vtss_state)
+static vtss_rc lk_setup_rx_cfg(vtss_state_t *vtss_state)
 {
     u32 val, mask;
     val = SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_MISS_EOF_Msk |
@@ -323,7 +323,7 @@ vtss_rc lk_setup_rx_cfg(vtss_state_t *vtss_state)
     return VTSS_RC_OK;
 }
 
-vtss_rc lk_setup_tx_cfg(vtss_state_t *vtss_state)
+static vtss_rc lk_setup_tx_cfg(vtss_state_t *vtss_state)
 {
     u32 priority_mask = 0;
     u32 dest_mask = 0;
