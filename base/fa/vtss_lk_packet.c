@@ -443,7 +443,7 @@ static vtss_rc lk_xmit_update(vtss_state_t *vtss_state)
     end = (current - c->pc_tx_ring_mem_dma) / sizeof(lk_pie_tx_desc_t);
     begin = lk_crc_get_rd_idx(&c->pc_tx_ring_ctl);
     while (begin != end) {
-        VTSS_D("Pie finished sending frame at index %i", begin);
+        VTSS_I("Pie finished sending frame at index %i", begin);
         begin = lk_crc_rd_next(&c->pc_tx_ring_ctl);
     }
     return VTSS_RC_OK;
@@ -492,7 +492,7 @@ static vtss_rc pie_rx_fill_bp(vtss_state_t *vtss_state)
         desc.valid = 1;
         desc.owner = 0;
         desc.block_len = c->pc_buff_sz;
-        VTSS_D("Allocate RX packet at id=%i dma_addr=0x%lx ", id, bmem_dma);
+        VTSS_I("Allocate RX packet at id=%i dma_addr=0x%lx ", id, bmem_dma);
         *pd = desc;
         update_hw = TRUE;
         lk_crc_wr_next(&c->pc_rx_ring_ctl);
@@ -586,9 +586,9 @@ vtss_rc lk_pie_chnl_rx(vtss_state_t *vtss_state, void *data, const u32 buflen, u
     }
     pkt = c->pc_rx_bmem + (rxid * c->pc_buff_sz);
     *pktlen = d->pkt_len;
-    VTSS_D("Received packet, pkt_len=%i, block_len=%i", (uint32_t)d->pkt_len,
+    VTSS_I("Received packet, pkt_len=%i, block_len=%i", (uint32_t)d->pkt_len,
            (uint32_t)d->block_len);
-    VTSS_N_HEX(pkt, d->pkt_len);
+    VTSS_I_HEX(pkt, d->pkt_len);
     VTSS_MEMCPY(ifh, pkt, VTSS_FA_RX_IFH_SIZE);
     if (buflen < d->pkt_len) {
         VTSS_E("laika rx buffer too small %d", buflen);
@@ -642,8 +642,8 @@ vtss_rc lk_pie_chnl_tx(vtss_state_t                     *vtss_state,
     tx_desc.eop = 1;
     tx_desc.block_len = flen + ifh->length;
     tx_desc.memory_addr = c->pc_tx_bmem_dma + (c->pc_buff_sz * txid);
-    VTSS_N_HEX(bp, tx_desc.block_len);
-    VTSS_D("Queue packet id=%i dma_addr=0x%lx block_len=%i flen=%i ifh->length=%i", txid,
+    VTSS_I_HEX(bp, tx_desc.block_len);
+    VTSS_I("Queue packet id=%i dma_addr=0x%lx block_len=%i flen=%i ifh->length=%i", txid,
            (uint64_t)tx_desc.memory_addr, (uint32_t)tx_desc.block_len, flen, ifh->length);
     c->pc_tx_ring_mem[txid] = tx_desc;
     txid = lk_crc_wr_next(&c->pc_tx_ring_ctl);
