@@ -284,16 +284,22 @@ vtss_rc lk_debug_pkt(vtss_state_t *vtss_state, lmu_ss_t *ss, const vtss_debug_in
     return VTSS_RC_OK;
 }
 
-vtss_rc lk_chn_traffic_enable(vtss_state_t *vtss_state, bool enable)
+static vtss_rc lk_chn_traffic_enable(vtss_state_t *vtss_state)
 {
-    REG_WRM(PIE_REG(SRX_PIE_CTRL), (enable ? SRX_PIE_CTRL_BIT_SRX_PIE_CH_EN_Msk : 0),
+    REG_WRM(PIE_REG(SRX_PIE_CTRL), SRX_PIE_CTRL_BIT_SRX_PIE_CH_EN_Msk,
             SRX_PIE_CTRL_BIT_SRX_PIE_CH_EN_Msk);
-
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (enable ? STX_PIE_CH_EN_Msk : 0), STX_PIE_CH_EN_Msk);
-
-    REG_WRM(PIE_REG(PIE_GEN_CFG),
-            (enable ? (PIE_GEN_CFG_BIT_CHN_PI_EN_Msk | PIE_GEN_CFG_BIT_CHN_PE_EN_Msk) : 0),
+    REG_WRM(PIE_REG(STX_PIE_CTRL), STX_PIE_CH_EN_Msk, STX_PIE_CH_EN_Msk);
+    REG_WRM(PIE_REG(PIE_GEN_CFG), (PIE_GEN_CFG_BIT_CHN_PI_EN_Msk | PIE_GEN_CFG_BIT_CHN_PE_EN_Msk),
             (PIE_GEN_CFG_BIT_CHN_PI_EN_Msk | PIE_GEN_CFG_BIT_CHN_PE_EN_Msk));
+    return VTSS_RC_OK;
+}
+
+static vtss_rc lk_chn_traffic_disable(vtss_state_t *vtss_state)
+{
+    REG_WRM(PIE_REG(PIE_GEN_CFG), 0,
+            (PIE_GEN_CFG_BIT_CHN_PI_EN_Msk | PIE_GEN_CFG_BIT_CHN_PE_EN_Msk));
+    REG_WRM(PIE_REG(STX_PIE_CTRL), 0, STX_PIE_CH_EN_Msk);
+    REG_WRM(PIE_REG(SRX_PIE_CTRL), 0, SRX_PIE_CTRL_BIT_SRX_PIE_CH_EN_Msk);
     return VTSS_RC_OK;
 }
 
@@ -529,12 +535,12 @@ vtss_rc lk_init(vtss_state_t *vtss_state)
     VTSS_MEMSET(c, 0, sizeof(*c));
 
     c->pc_buff_sz = CEIL_ALIGN(MTU, P64H_PIE_BUFF_ALIGN);
-    rc = lk_chn_traffic_enable(vtss_state, FALSE);
+    rc = lk_chn_traffic_disable(vtss_state);
     rc = lk_tx_init(vtss_state);
     rc = lk_rx_init(vtss_state);
     rc = lk_setup_tx_cfg(vtss_state);
     rc = lk_setup_rx_cfg(vtss_state);
-    rc = lk_chn_traffic_enable(vtss_state, TRUE);
+    rc = lk_chn_traffic_enable(vtss_state);
     rc = lk_alloc_rx_bmem(vtss_state);
     rc = lk_alloc_tx_bmem(vtss_state);
     rc = pie_rx_fill_bp(vtss_state);
