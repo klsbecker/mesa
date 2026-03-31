@@ -142,11 +142,14 @@ def run_allure(log_file, session_dir)
     log_local("  URL:     #{allure_url}")
 end
 
-def upload_session(session_dir, keyfile = nil)
-    build_num = ENV["BUILD_NUMBER"] || Time.now.strftime("%Y%m%d%H%M%S")
-    branch    = ENV["BRANCH_NAME"]  || %x{git rev-parse --abbrev-ref HEAD}.strip
-    project   = "#{PUBLISH_PROJECT}/#{branch}"
-    session   = File.basename(session_dir)
+def upload_session(session_dir, keyfile = nil, report_only: false)
+    build_num  = ENV["BUILD_NUMBER"] || Time.now.strftime("%Y%m%d%H%M%S")
+    branch     = ENV["BRANCH_NAME"]  || %x{git rev-parse --abbrev-ref HEAD}.strip
+    project    = "#{PUBLISH_PROJECT}/#{branch}"
+    session    = File.basename(session_dir)
+    upload_dir = report_only ? "#{session_dir}/allure/report" : session_dir
+
+    raise "Allure report not found at #{upload_dir}" unless File.directory?(upload_dir)
 
     ssh_cmd  = "ssh"
     ssh_cmd += " -i #{keyfile}" if keyfile
@@ -154,7 +157,7 @@ def upload_session(session_dir, keyfile = nil)
     ssh_cmd += " #{PUBLISH_SERVER}"
     ssh_cmd += " ./web-pack-rx -n #{build_num} -b #{session} -J -p #{project}"
 
-    log_local("Creating tar.xz of #{session_dir} and uploading to #{PUBLISH_SERVER}...")
+    log_local("Creating tar.xz of #{upload_dir} and uploading to #{PUBLISH_SERVER}...")
     log_local("  URL: http://lon-vm-ung-mdi.microchip.com/ci/#{project}/#{session}/")
 
     # Stream tar output directly to ssh stdin to avoid buffering the entire
@@ -165,7 +168,7 @@ def upload_session(session_dir, keyfile = nil)
         out_buf = ""
         reader = Thread.new { out_buf = ssh_out.read }
 
-        Open3.popen2("tar", "-cJf", "-", "-C", session_dir, ".") do |_, tar_out, tar_thread|
+        Open3.popen2("tar", "-cJf", "-", "-C", upload_dir, ".") do |_, tar_out, tar_thread|
             IO.copy_stream(tar_out, ssh_in)
             tar_st = tar_thread.value
             raise "tar failed (exit #{tar_st.exitstatus})" unless tar_st.success?
@@ -192,8 +195,9 @@ OptionParser.new do |opts|
     opts.on("--system name",         "System name for metadata (default: 'all systems')")  { |v| $options[:system]  = v }
     opts.on("--image path",          "Image path for metadata (default: 'multiple')")      { |v| $options[:image]   = v }
     opts.on("--suite path",          "Suite name for metadata (repeatable)")                { |v| $options[:suites] << v }
-    opts.on("--publish",             "Upload session to web server")                        { $options[:publish]     = true }
-    opts.on("--keyfile path",        "SSH private key for publishing")                      { |v| $options[:keyfile] = v }
+    opts.on("--publish",             "Upload session to web server")                        { $options[:publish]      = true }
+    opts.on("--report-only",         "Upload only the Allure report instead of full session") { $options[:report_only] = true }
+    opts.on("--keyfile path",        "SSH private key for publishing")                      { |v| $options[:keyfile]  = v }
 end.parse!
 
 abort "Error: -o <session_dir> is required" unless $options[:session_dir]
@@ -220,5 +224,5 @@ run_allure(merged_log, session_dir)
 
 if $options[:publish]
     log_section_header("Publish session")
-    upload_session(session_dir, $options[:keyfile])
+    upload_session(session_dir, $options[:keyfile], report_only: $options[:report_only])
 end

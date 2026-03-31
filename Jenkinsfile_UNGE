@@ -36,7 +36,7 @@ def generateReport = { suiteType, sessionDir ->
     def config     = readYaml file: 'mesa/demo/test/utils/dispatch/test-config.yaml'
     def suiteArgs  = config["suites_${suiteType}"].collect { "--suite \"${it}\"" }.join(" ")
     withCredentials([sshUserPrivateKey(credentialsId: 'lon-vm-ung-mdi', keyFileVariable: 'keyfile')]) {
-        sh """./mesa/demo/test/utils/dispatch/generate-report.rb -o "${sessionDir}" ${suiteArgs} --publish --keyfile \$keyfile"""
+        sh """./mesa/demo/test/utils/dispatch/generate-report.rb -o "${sessionDir}" ${suiteArgs} --publish --report-only --keyfile \$keyfile"""
     }
 }
 
