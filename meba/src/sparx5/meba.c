@@ -222,6 +222,50 @@ static const meba_aux_rawio_t rawio_mdio3 = {
                }
 };
 
+typedef struct {
+    mepa_phy_channel_id_t channel_id;    /* Channel Id of the PHY */
+    uint16_t              gpio_i2c_clk;  /* GPIO No of I2C Clk */
+    uint16_t              gpio_i2c_data; /* GPIO No of I2C Data */
+} edsx_phy_config_map_t;
+
+static const edsx_phy_config_map_t lan80xx_phy_map[] = {
+    /* Channel 3 */
+    {
+     MEPA_CHANNELID_3, 26,
+     27, },
+    /* Channel 2 */
+    {
+     MEPA_CHANNELID_2,               18,
+     19, },
+    /* Channel 1 */
+    {
+     MEPA_CHANNELID_1,10,
+     11, },
+    /* Channel 0 */
+    {
+     MEPA_CHANNELID_0,                 2,
+     3, },
+};
+
+static const edsx_phy_config_map_t vsc825x_gpio_map[] = {
+    /* P49: CH3 */
+    {
+     MEPA_CHANNELID_3, 27,
+     26, },
+    /* P50: CH2 */
+    {
+     MEPA_CHANNELID_2,               19,
+     18, },
+    /* P51: CH1 */
+    {
+     MEPA_CHANNELID_1,11,
+     10, },
+    /* P52: CH0 */
+    {
+     MEPA_CHANNELID_0,                 3,
+     2, },
+};
+
 /* --------------------------- Board specific ------------------------------- */
 static void fa_gpy241_detect(meba_inst_t inst)
 {
@@ -2005,6 +2049,176 @@ static void phy_25g_slot2_scan(meba_inst_t        inst,
     T_I(inst, "port(%d):  %x\n", port_no, phy_id & 0xFFFF);
 }
 
+/* Resetting the lan malibu */
+static void lan80xx_phy_conf(meba_inst_t inst, mepa_port_no_t port_no, mesa_port_speed_t speed)
+{
+    mepa_rc                      rc = MEPA_RC_ERROR;
+    const edsx_phy_config_map_t *map = &lan80xx_phy_map[port_no % 4];
+    mepa_conf_t                  conf = {0};
+    mepa_gpio_conf_t             gpio_conf = {0};
+    conf.fdx = 1;
+
+    /* Polarity configurations in M25G EVB */
+    conf.conf_25g.polarity.line_tx = 0;
+    conf.conf_25g.polarity.line_rx = 0;
+    conf.conf_25g.polarity.host_tx = 0;
+    conf.conf_25g.polarity.host_rx = 0;
+
+    /* Speed Config based on SKU */
+    switch (speed) {
+    case MESA_SPEED_25G:
+        conf.speed = MESA_SPEED_25G;
+        conf.conf_25g.host_media = MEPA_MEDIA_TYPE_SFP28_25G_DAC1M;
+        conf.conf_25g.line_media = MEPA_MEDIA_TYPE_SFP28_25G_SR;
+        break;
+    case MESA_SPEED_10G:
+        conf.speed = MESA_SPEED_10G;
+        conf.conf_25g.host_media = MEPA_MEDIA_TYPE_DAC;
+        conf.conf_25g.line_media = MEPA_MEDIA_TYPE_SR;
+        break;
+    default: conf.speed = MESA_SPEED_UNDEFINED; break;
+    }
+    conf.conf_25g.channel_id = map->channel_id;
+    if ((rc = mepa_conf_set(inst->phy_devices[port_no], &conf)) != MESA_RC_OK) {
+        return;
+    }
+    /* GPIO Pins are Configured to Alternate Mode to perform SFP I2C Read */
+    gpio_conf.pp_enable = 0;
+    gpio_conf.gpio_no = map->gpio_i2c_clk;
+    gpio_conf.mode = MEPA_GPIO_MODE_ALT;
+    if ((rc = mepa_gpio_mode_set(inst->phy_devices[port_no], &gpio_conf)) != MESA_RC_OK) {
+        return;
+    }
+
+    gpio_conf.gpio_no = map->gpio_i2c_data;
+    gpio_conf.mode = MEPA_GPIO_MODE_ALT;
+    if ((rc = mepa_gpio_mode_set(inst->phy_devices[port_no], &gpio_conf)) != MESA_RC_OK) {
+        return;
+    }
+    return;
+}
+
+/* Reseting the vtss malibu */
+static void m10g_mode_conf(meba_inst_t meba_inst, mepa_port_no_t iport, mepa_port_no_t slot_port)
+{
+
+    mesa_rc                      rc = MESA_RC_OK;
+    vtss_gpio_10g_gpio_mode_t    gpio_conf;
+    const edsx_phy_config_map_t *gmap =
+        &vsc825x_gpio_map[iport - slot_port]; /*have to be changed to respective slot */
+    mepa_conf_t conf = {0};
+
+    if ((rc = mepa_conf_get(meba_inst->phy_devices[iport], &conf)) != MESA_RC_OK) {
+        return;
+    }
+    conf.speed = MESA_SPEED_10G;
+    conf.conf_10g.oper_mode = MEPA_PHY_LAN_MODE;
+    conf.conf_10g.interface_mode = MEPA_PHY_SFI_XFI;
+    conf.conf_10g.channel_id = gmap->channel_id;
+    conf.conf_10g.h_media = MEPA_MEDIA_TYPE_SR;
+    conf.conf_10g.l_media = MEPA_MEDIA_TYPE_SR;
+    conf.conf_10g.channel_high_to_low =
+        true; /* Change this to "false" if Connecting the M10G PHY with increasing Channel ID */
+    if (conf.conf_10g.channel_high_to_low == false) {
+        conf.conf_10g.channel_id = VTSS_CHANNEL_AUTO;
+    }
+    conf.conf_10g.polarity.host_rx = false;
+    conf.conf_10g.polarity.line_rx = false;
+    conf.conf_10g.polarity.host_tx = false;
+    conf.conf_10g.polarity.line_tx = false;
+    conf.conf_10g.h_clk_src_is_high_amp = true;
+    conf.conf_10g.l_clk_src_is_high_amp = true;
+    if ((rc = mepa_conf_set(meba_inst->phy_devices[iport], &conf)) != MESA_RC_OK) {
+        return;
+    }
+    /* Configure I2c Slave pins clk,data(for SFP access on line)  */
+    if ((vtss_phy_10g_gpio_mode_get(PHY_INST, iport, gmap->gpio_i2c_clk, &gpio_conf)) ==
+        MESA_RC_OK) {
+        gpio_conf.mode = VTSS_10G_PHY_GPIO_OUT;
+        gpio_conf.p_gpio = 2;
+        gpio_conf.in_sig = VTSS_10G_GPIO_INTR_SGNL_I2C_MSTR_CLK_OUT;
+
+        if (vtss_phy_10g_gpio_mode_set(PHY_INST, iport, gmap->gpio_i2c_clk, &gpio_conf) !=
+            MESA_RC_OK) {
+            return;
+        }
+        gpio_conf.mode = VTSS_10G_PHY_GPIO_OUT;
+        gpio_conf.p_gpio = 3;
+        gpio_conf.in_sig = VTSS_10G_GPIO_INTR_SGNL_I2C_MSTR_DATA_OUT;
+        if (vtss_phy_10g_gpio_mode_set(PHY_INST, iport, gmap->gpio_i2c_data, &gpio_conf) !=
+            MESA_RC_OK) {
+            return;
+        }
+    }
+
+    /* In VSC825X PHYs, by default the GPIO Pins 34, 35, 36, 37 are used for LINE side LOPC signal
+     * but as per the EVB Hardware, these signals are not handled, so disable the LOPC detection from
+     * GPIO PIN and invert the coresponding GPIO PIN to High state The LOPC register of each channel
+     * should be configured with 0x13F, where the base address for channel 0 register is 0xf234
+     */
+    uint32_t lopc_reg_addr = 0xf234 + (gmap->channel_id - 1);
+    uint32_t reg_mmd = 0x1e;
+    vtss_phy_10g_csr_write(PHY_INST, iport, reg_mmd, lopc_reg_addr, 0x13f);
+}
+
+static mesa_bool_t fa_phy_is_vtss_malibu(mepa_phy_info_t *phy_info)
+{
+    if (phy_info->part_number == 0x8258) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static void fa_phy_reset(meba_inst_t inst)
+{
+    mesa_port_no_t port_no;
+    mesa_port_no_t base_port_no = 0;
+
+    for (port_no = 0; port_no < inst->phy_device_cnt; ++port_no) {
+        mepa_reset_param_t phy_reset = {};
+        mepa_phy_info_t    phy_info = {};
+        meba_port_entry_t  entry = {};
+        mepa_device_t     *phy_dev;
+
+        fa_port_entry_get(inst, port_no, &entry);
+        phy_dev = inst->phy_devices[port_no];
+
+        if (phy_dev && inst->phy_devices[entry.phy_base_port]) {
+            base_port_no = entry.phy_base_port;
+        }
+
+        /* Pre Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_PRE;
+        meba_phy_reset(inst, port_no, &phy_reset);
+
+        meba_phy_info_get(inst, port_no, &phy_info);
+
+        if (fa_phy_is_vtss_malibu(&phy_info)) {
+            phy_reset.media_intf = MESA_PHY_MEDIA_IF_FI_10G_LAN;
+        }
+
+        /* Default Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_DEFAULT;
+        meba_phy_reset(inst, port_no, &phy_reset);
+
+        /* Post Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_POST;
+        meba_phy_reset(inst, port_no, &phy_reset);
+
+        if (fa_phy_is_vtss_malibu(&phy_info)) {
+            m10g_mode_conf(inst, port_no, base_port_no);
+            continue;
+        }
+
+        if (mepa_capability(inst->phy_devices[port_no], MEPA_CAP_SPEED_25G)) {
+            lan80xx_phy_conf(inst, port_no, MESA_SPEED_25G);
+        } else if (mepa_capability(inst->phy_devices[port_no], MEPA_CAP_SPEED_10G)) {
+            lan80xx_phy_conf(inst, port_no, MESA_SPEED_10G);
+        }
+    }
+}
+
 static mesa_rc fa_reset(meba_inst_t inst, meba_reset_point_t reset)
 {
     meba_board_state_t *board = INST2BOARD(inst);
@@ -2056,6 +2270,10 @@ static mesa_rc fa_reset(meba_inst_t inst, meba_reset_point_t reset)
         if (board->malibu_present) {
             /* Initlize the 10G Malibu Phy */
             malibu_init(inst);
+        }
+
+        if (board->type == BOARD_TYPE_SPARX5_PCB8415) {
+            fa_phy_reset(inst);
         }
         break;
     case MEBA_PORT_RESET_POST:
