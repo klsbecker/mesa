@@ -138,32 +138,6 @@ struct lk_pie_tx_desc_t {
     u64 insert_prio           : 3;
     u64 remain_bits           : 6;
 };
-typedef struct {
-    u32 abort_miss_eof : 1; ///<  Assert an abort on missing EOF packets
-    u32 abort_wrong_ub : 1; ///<  Assert an abort on packets with unused bytes non-null on non-EOP
-                            ///<  words
-    u32 remove_rofh : 1;    ///<  Enable/Disable ROFH removal from packets destined to the PIE path
-    u32 remove_fcs  : 1;    ///<  Enable/Disable FCS removal from packets destined to the PIE path
-    u32 prepend_rofh : 1; ///<  Enable/Disable prepend ROFH as a standalone word only if removing ROFH
-} lk_pie_chnl_rx_cfg_t;
-typedef struct {
-    u32 abort_miss_tlast      : 1; ///<  Assert an abort on missing EOF packets
-    u32 abort_1cc_pkt_err     : 1; ///<  Assert an abort on missing EOF packets
-    u32 abort_wrong_tkeep     : 1; ///<  Assert an abort on missing EOF packets
-    u32 size_ctrl_adjt_fh     : 1; ///<  adjust bytes based on TOFH insertion
-    u32 size_ctrl_adjt_rem_fh : 1; ///<  Adjust bytes based on FCS insertion
-    u32 ins_fcs               : 1; ///<  Assert an abort on missing EOF packets
-    u32 ins_tofh              : 1; ///<  Assert an abort on missing EOF packets
-    u32 src_tofh              : 1; ///<  Assert an abort on missing EOF packets
-    u32 ins_vlan              : 1; ///< PIE insert VLAN
-    u32 src_vlan              : 1; ///<  PIE source VLAN
-    u32 src_prio              : 1; ///<  priority
-    u32 size_ctrl_osize_ch_en : 1; ///<  enable oversize frames
-    u32 size_ctrl_usize_ch_en : 1; ///<  enable undersize frames
-
-    u32 priority_mask; ///< PIE channel priority mapping mask
-    u32 dest_mask;     ///< PIE channel destination mapping mask
-} lk_pie_chnl_tx_cfg_t;
 
 vtss_lk_pie_chnl_t *lk_get_chnl(vtss_state_t *vtss_state)
 {
@@ -323,70 +297,48 @@ vtss_rc lk_chn_traffic_enable(vtss_state_t *vtss_state, bool enable)
     return VTSS_RC_OK;
 }
 
-vtss_rc lk_setup_rx_thresholds(vtss_state_t *vtss_state)
+vtss_rc lk_setup_rx_cfg(vtss_state_t *vtss_state)
 {
+    u32 val, mask;
+    val = SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_MISS_EOF_Msk |
+          SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_WRONG_UB_Msk;
+    mask = val;
+    REG_WRM(PIE_REG(SRX_TAXI_ERROR_CH_CTRL_PIE), val, mask);
+
+    val = SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_FCS_Msk;
+    mask = SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_ROFH_Msk | SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_FCS_Msk |
+           SRX_PIE_CTRL_BIT_SRX_PIE_PREPEND_ROFH_Msk;
+    REG_WRM(PIE_REG(SRX_PIE_CTRL), val, mask);
+
     REG_WR(PIE_REG(PE_CB_EDESC_CFG4), 0); // CHN_PE_CB_EDESC_HI_THLD
     REG_WR(PIE_REG(PE_CB_EDESC_CFG5), 1); // CHN_PE_CB_EDESC_LO_THLD
     REG_WR(PIE_REG(PE_CB_EDESC_CFG8), 1); // CHN_PE_CB_EDESC_TIMER
+
     return VTSS_RC_OK;
 }
 
-vtss_rc lk_setup_rx_cfg(vtss_state_t *vtss_state, const lk_pie_chnl_rx_cfg_t *cfg)
+vtss_rc lk_setup_tx_cfg(vtss_state_t *vtss_state)
 {
-    u32 val;
-    val = (cfg->abort_miss_eof ? SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_MISS_EOF_Msk : 0) |
-          (cfg->abort_wrong_ub ? SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_WRONG_UB_Msk : 0);
-    REG_WRM(PIE_REG(SRX_TAXI_ERROR_CH_CTRL_PIE), val,
-            (SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_MISS_EOF_Msk |
-             SRX_TAXI_ERROR_CH_CTRL_PIE_BIT_SRX_PIE_ABORT_WRONG_UB_Msk));
+    u32 priority_mask = 0;
+    u32 dest_mask = 0;
+    u32 val, mask;
 
-    val = (cfg->remove_rofh ? SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_ROFH_Msk : 0) |
-          (cfg->remove_fcs ? SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_FCS_Msk : 0) |
-          (cfg->prepend_rofh ? SRX_PIE_CTRL_BIT_SRX_PIE_PREPEND_ROFH_Msk : 0);
-    REG_WRM(PIE_REG(SRX_PIE_CTRL), val,
-            (SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_ROFH_Msk | SRX_PIE_CTRL_BIT_SRX_PIE_REMOVE_FCS_Msk |
-             SRX_PIE_CTRL_BIT_SRX_PIE_PREPEND_ROFH_Msk));
-    lk_setup_rx_thresholds(vtss_state);
-    return VTSS_RC_OK;
-}
+    val = STX_PIE_SIZE_CTRL_ADJT_FH_Msk | STX_PIE_SIZE_CTRL_ADJT_REM_FH_Msk;
+    mask = STX_PIE_ABORT_MISS_TLAST_Msk | STX_PIE_ABORT_1CC_PKT_ERR_Msk |
+           STX_PIE_ABORT_WRONG_TKEEP_Msk | STX_PIE_SIZE_CTRL_ADJT_FH_Msk |
+           STX_PIE_SIZE_CTRL_ADJT_REM_FH_Msk;
 
-vtss_rc lk_setup_tx_cfg(vtss_state_t *vtss_state, const lk_pie_chnl_tx_cfg_t *cfg)
-{
-    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE),
-            (cfg->abort_miss_tlast ? STX_PIE_ABORT_MISS_TLAST_Msk : 0),
-            STX_PIE_ABORT_MISS_TLAST_Msk);
-    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE),
-            (cfg->abort_1cc_pkt_err ? STX_PIE_ABORT_1CC_PKT_ERR_Msk : 0),
-            STX_PIE_ABORT_1CC_PKT_ERR_Msk);
-    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE),
-            (cfg->abort_wrong_tkeep ? STX_PIE_ABORT_WRONG_TKEEP_Msk : 0),
-            STX_PIE_ABORT_WRONG_TKEEP_Msk);
-    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE),
-            (cfg->size_ctrl_adjt_fh ? STX_PIE_SIZE_CTRL_ADJT_FH_Msk : 0),
-            STX_PIE_SIZE_CTRL_ADJT_FH_Msk);
-    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE),
-            (cfg->size_ctrl_adjt_rem_fh ? STX_PIE_SIZE_CTRL_ADJT_REM_FH_Msk : 0),
-            STX_PIE_SIZE_CTRL_ADJT_REM_FH_Msk);
+    REG_WRM(PIE_REG(STX_AXIS_ERR_CTRL_PIE), val, mask);
 
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->ins_fcs ? STX_PIE_INS_TOFH_Msk : 0), STX_PIE_INS_TOFH_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->ins_tofh ? STX_PIE_SRC_TOFH_Msk : 0),
-            STX_PIE_SRC_TOFH_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->src_tofh ? STX_PIE_INS_VLAN_Msk : 0),
-            STX_PIE_INS_VLAN_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->ins_vlan ? STX_PIE_SRC_VLAN_Msk : 0),
-            STX_PIE_SRC_VLAN_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->src_vlan ? STX_PIE_INS_FCS_Msk : 0), STX_PIE_INS_FCS_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL), (cfg->src_prio ? STX_PIE_SRC_PRIO_Msk : 0),
-            STX_PIE_SRC_PRIO_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL),
-            (cfg->size_ctrl_osize_ch_en ? STX_PIE_SIZE_CTRL_USIZE_CH_EN_Msk : 0),
-            STX_PIE_SIZE_CTRL_USIZE_CH_EN_Msk);
-    REG_WRM(PIE_REG(STX_PIE_CTRL),
-            (cfg->size_ctrl_usize_ch_en ? STX_PIE_SIZE_CTRL_OSIZE_CH_EN_Msk : 0),
-            STX_PIE_SIZE_CTRL_OSIZE_CH_EN_Msk);
+    val = STX_PIE_INS_FCS_Msk;
+    mask = STX_PIE_INS_FCS_Msk | STX_PIE_INS_TOFH_Msk | STX_PIE_SRC_TOFH_Msk |
+           STX_PIE_INS_VLAN_Msk | STX_PIE_SRC_VLAN_Msk | STX_PIE_SRC_PRIO_Msk |
+           STX_PIE_SIZE_CTRL_OSIZE_CH_EN_Msk | STX_PIE_SIZE_CTRL_USIZE_CH_EN_Msk;
 
-    REG_WR(PIE_REG(GEN_CFG0), cfg->dest_mask);
-    REG_WR(PIE_REG(GEN_CFG1), cfg->priority_mask);
+    REG_WRM(PIE_REG(STX_PIE_CTRL), val, mask);
+
+    REG_WR(PIE_REG(GEN_CFG0), dest_mask);
+    REG_WR(PIE_REG(GEN_CFG1), priority_mask);
     return VTSS_RC_OK;
 }
 
@@ -576,27 +528,12 @@ vtss_rc lk_init(vtss_state_t *vtss_state)
     vtss_lk_pie_chnl_t *c = lk_get_chnl(vtss_state);
     VTSS_MEMSET(c, 0, sizeof(*c));
 
-    const lk_pie_chnl_rx_cfg_t rx_cfg = {
-        .remove_rofh = 0,
-        .remove_fcs = 1,
-        .prepend_rofh = 0,
-        .abort_miss_eof = 1,
-        .abort_wrong_ub = 1,
-    };
-
-    const lk_pie_chnl_tx_cfg_t tx_cfg = {
-        .size_ctrl_adjt_fh = 1,
-        .size_ctrl_adjt_rem_fh = 1,
-        .ins_fcs = 1,
-        .ins_tofh = 0,
-        .src_tofh = 0,
-    };
     c->pc_buff_sz = CEIL_ALIGN(MTU, P64H_PIE_BUFF_ALIGN);
     rc = lk_chn_traffic_enable(vtss_state, FALSE);
     rc = lk_tx_init(vtss_state);
     rc = lk_rx_init(vtss_state);
-    rc = lk_setup_tx_cfg(vtss_state, &tx_cfg);
-    rc = lk_setup_rx_cfg(vtss_state, &rx_cfg);
+    rc = lk_setup_tx_cfg(vtss_state);
+    rc = lk_setup_rx_cfg(vtss_state);
     rc = lk_chn_traffic_enable(vtss_state, TRUE);
     rc = lk_alloc_rx_bmem(vtss_state);
     rc = lk_alloc_tx_bmem(vtss_state);
