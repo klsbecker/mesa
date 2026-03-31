@@ -621,6 +621,29 @@ static mesa_rc lan966x_sensor_get(meba_inst_t inst, meba_sensor_t type, int six,
     }
     return rc;
 }
+
+static void lan966x_phy_reset(meba_inst_t inst)
+{
+    mesa_port_no_t port_no;
+
+    for (port_no = 0; port_no < inst->phy_device_cnt; ++port_no) {
+        mepa_reset_param_t phy_reset = {};
+
+        /* Pre Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_PRE;
+        meba_phy_reset(inst, port_no, &phy_reset);
+
+        /* Default Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_DEFAULT;
+        phy_reset.media_intf = MESA_PHY_MEDIA_IF_CU;
+        meba_phy_reset(inst, port_no, &phy_reset);
+
+        /* Post Reset Point */
+        phy_reset.reset_point = MEPA_RESET_POINT_POST;
+        meba_phy_reset(inst, port_no, &phy_reset);
+    }
+}
+
 static mesa_rc lan966x_reset(meba_inst_t inst, meba_reset_point_t reset)
 {
     meba_board_state_t *board = INST2BOARD(inst);
@@ -648,6 +671,10 @@ static mesa_rc lan966x_reset(meba_inst_t inst, meba_reset_point_t reset)
         break;
 
     case MEBA_PORT_RESET:
+        if (board->type == BOARD_TYPE_EDS2) {
+            lan966x_phy_reset(inst);
+        }
+
     case MEBA_PORT_RESET_POST:
     case MEBA_STATUS_LED_INITIALIZE:
     case MEBA_FAN_INITIALIZE:
