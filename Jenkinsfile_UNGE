@@ -23,7 +23,11 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
         [server, {
             systems.each { s ->
                 container('pod-mesa-base') {
-                    def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs}""")
+                    // For nightly runs, pass the per-system branch so the remote server
+                    // checks out the correct commit (e.g. master.hallberg for dk-t38-0).
+                    // For regular builds, always use HEAD (current branch).
+                    def branchArg = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
+                    def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs} ${branchArg}""")
                     if (rc == 7) {
                         unstable("Reserve timed out for ${s.system} (${s.dut})")
                     } else if (rc != 0) {

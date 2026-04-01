@@ -35,43 +35,56 @@ systems:
   # dk-t34, Fireant systems
   - system: dk-t34-0
     dut: jr2
+    branch: master
     image: mipsel/mesa/demo/mipsel_vsc7468_pcb110.mfi
   - system: dk-t34-3
     dut: fireant
+    branch: master
     image: arm64/mesa/demo/arm64_vsc7558TSN.itb
   - system: dk-t34-4
     dut: fireant
+    branch: master
     image: arm64/mesa/demo/arm64_vsc7558TSN.itb
   - system: dk-t34-5
     dut: fireant
+    branch: master
     image: arm64/mesa/demo/arm64_vsc7558TSN.itb
   # dk-t35, MIPS systems
   - system: dk-t35-0
     dut: lan966x
+    branch: master
     image: arm/mesa/demo/armv7_lan966x.itb
   - system: dk-t35-1
     dut: ocelot
+    branch: master
     image: mipsel/mesa/demo/mipsel_vsc7514_pcb123.mfi
   - system: dk-t35-2
     dut: servalt
+    branch: master
     image: mipsel/mesa/demo/mipsel_vsc7437.mfi
   - system: dk-t35-4
     dut: luton10
+    branch: master
     image: mipsel/mesa/demo/mipsel_vsc7428.mfi
   # dk-t36, Laguna systems
   - system: dk-t36-1
     dut: lan966x
+    branch: master
     image: arm/mesa/demo/armv7_lan966x.itb
   - system: dk-t36-2
     dut: lan969x
+    branch: master
     image: arm64/mesa/demo/arm64_lan9698RED.itb
   - system: dk-t36-6
     dut: lan969x
+    branch: master
     image: arm64/mesa/demo/arm64_lan9698RED.itb
   - system: dk-t37-0
     dut: lan969x
+    branch: master
     image: arm64/mesa/demo/arm64_lan9698RED.itb
   # dk-t38, Hallberg FPGA systems
   - system: dk-t38-0
     dut: lan932x
+    branch: master.hallberg
     image: arm/mesa/demo/armv7_lan932x_fpga.itb
