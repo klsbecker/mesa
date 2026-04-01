@@ -3288,7 +3288,11 @@ static vtss_rc fa_port_conf_2g5_set(vtss_state_t *vtss_state, const vtss_port_no
         /* UNG_LAGUNA-590 */
         tx_gap = (speed == VTSS_SPEED_1G ? 4U : fdx ? 6U : 5U);
 #else
-        tx_gap = (speed == VTSS_SPEED_1G ? 4U : fdx ? 5U : 4U);
+        if (conf->if_type == VTSS_PORT_INTERFACE_RMII) {
+            tx_gap = 3; /* LMSTAX-1559 */
+        } else {
+            tx_gap = (speed == VTSS_SPEED_1G ? 4U : fdx ? 5U : 4U);
+        }
 #endif
     } else {
         tx_gap = conf->frame_gaps.fdx_gap;
