@@ -16,15 +16,19 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
     def config    = readYaml file: 'mesa/demo/test/utils/dispatch/test-config.yaml'
     def suites    = config["suites_${suiteType}"]
     def suiteArgs = suites.collect { "-T \"${it}\"" }.join(" ")
-    parallel config.systems.collectEntries { s ->
-        def stageName = "${s.system} (${s.dut})"
-        [stageName, {
-            container('pod-mesa-base') {
-                def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs}""")
-                if (rc == 7) {
-                    unstable("Reserve timed out for ${s.system} (${s.dut})")
-                } else if (rc != 0) {
-                    error("Tests failed for ${s.system} (${s.dut})")
+    // Group systems by server — systems on the same server run sequentially to
+    // avoid interfering with each other; different servers run in parallel.
+    def byServer = config.systems.groupBy { s -> s.system.split('-')[1] }
+    parallel byServer.collectEntries { server, systems ->
+        [server, {
+            systems.each { s ->
+                container('pod-mesa-base') {
+                    def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs}""")
+                    if (rc == 7) {
+                        unstable("Reserve timed out for ${s.system} (${s.dut})")
+                    } else if (rc != 0) {
+                        error("Tests failed for ${s.system} (${s.dut})")
+                    }
                 }
             }
         }]
