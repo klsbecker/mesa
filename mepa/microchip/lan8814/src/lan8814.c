@@ -27,7 +27,7 @@ static mepa_bool_t lan8814_is_lan8842(mepa_device_t *dev)
 {
     phy_data_t *data = (phy_data_t *) dev->data;
 
-    return data->dev.model == 0xc0;
+    return data->dev.model == 0x2c;
 }
 
 // Return true if the PHY is the internal PHY of lan966x
@@ -264,14 +264,14 @@ static mepa_rc lan8814_rev_workaround(mepa_device_t *dev)
     // work-arounds applicable for both models lan8814 & lan966x internal phy
     do {
         // work-around for Rev C done.
-        if (data->dev.rev >= 2) {
+        if (data->dev.rev >= LAN8814_REV_C0) {
             break;
         }
         // MDI-X setting for swap A,B transmit
         EP_WRM(dev, LAN8814_ALIGN_SWAP, LAN8814_F_ALIGN_TX_A_B_SWAP, LAN8814_M_ALIGN_TX_SWAP);
     } while (0);
     // work-around for model lan966x internal PHY only
-    if (lan8814_is_lan966x(dev) && data->dev.rev <= 2) {
+    if (lan8814_is_lan966x(dev) && data->dev.rev <= LAN8814_REV_C0) {
         EP_WR(dev, LAN8814_1000BT_FIX_LATENCY_ENABLE, 1);
         // In LAN8814 internal phy clock generation stops when link goes down.
         EP_WR(dev, LAN8814_CLOCK_MANAGEMENT_MODE_5, 0x27e);
@@ -290,12 +290,16 @@ static mepa_rc lan8814_rev_workaround(mepa_device_t *dev)
     EP_WR(dev, LAN8814_ANALOG_CONTROL_1, 0x40);
     EP_WR(dev, LAN8814_ANALOG_CONTROL_10, 0x1);
 
+    // Fix LED issue. It was noticed that when traffic is passing and then
+    // the cable is removed the LED was still on. (UNG_INDY_QGPHY-800)
+    EP_WRM(dev, LAN8814_1000_EEE_STATE_REMAPPING, 0, LAN8814_F_1000_EEE_MASK2P5P);
+
     // Rev C work-around done.
-    if (data->dev.rev >= 2) {
+    if (data->dev.rev >= LAN8814_REV_C0) {
         return MEPA_RC_OK;
     }
     // Rev B work-around done.
-    if (data->dev.rev >= 1) {
+    if (data->dev.rev >= LAN8814_REV_B) {
         return MEPA_RC_OK;
     }
     EP_WR(dev, LAN8814_OPERATION_MODE_STRAP_LOW, 0x2);
@@ -725,6 +729,25 @@ mepa_rc lan8814_downshift_conf_set(mepa_device_t *dev, const lan8814_phy_downshi
 {
     phy_data_t *data = (phy_data_t *) dev->data;
     MEPA_ENTER(dev);
+
+    // For rev D of lan8814, and lan8842 the downshift seems to be fixed in
+    // the silicon.
+    // According to the datasheet if it fails to link after 4 attempts it will
+    // restart autonegotiation at lower speeds. Therefore it is required to
+    // check what is the dsh_thr_cnt for this revision.
+    if (data->dev.rev >= LAN8814_REV_D || lan8814_is_lan8842(dev)) {
+        if (dsh->dsh_enable == TRUE &&
+            dsh->dsh_thr_cnt != MEPA_PHY_DOWNSHIFT_CNT_4) {
+            return MEPA_RC_ERR_PARM;
+        }
+
+        // Enable downshift in HW, it is not required to restart
+        // auto-negotiation as it gets restarted when this is enabled.
+        EP_WRM(dev, LAN8814_PCS_1000_TEST_4,
+               dsh->dsh_enable ? LAN8814_F_PCS_1000_TEST_4_AUTO_DOWNSHIFT_ENABLE : 0,
+               LAN8814_F_PCS_1000_TEST_4_AUTO_DOWNSHIFT_ENABLE);
+    }
+
     if (!dsh->dsh_enable && data->dsh_conf.dsh_enable) {
         WRM(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_RESTART_ANEG, LAN8814_F_BASIC_CTRL_RESTART_ANEG);
     }
@@ -1654,17 +1677,23 @@ static mepa_rc lan8814_poll(mepa_device_t *dev, mepa_status_t *status)
         // Auto Downshift Feature: Downshift allows an interface to link at a lower advertised speed when unable to establish a stable link at the maximum speed.
         // Both the Downshift and MEPA 555 ANEG State Machine Stuck Fix has same criteria. When Downshift is enabled, the Restart ANEG happens first and still couldn't
         // establish the link then perform downshift to 100M.
+        // The Software workaround for downshift is needed only for lan8814 for
+        // revisions previous to revision D and for lan966x internal ports. That
+        // means the SW workaround is not needed for lan8814 revision D and
+        // lan8842.
         RD(dev, LAN8814_DIGITAL_AX_AN_STATUS, &val3);
         RD(dev, LAN8814_CONTROL, &val2);
-        if (data->dsh_conf.dsh_enable && !status->link && ((val2 & LAN8814_F_1000T_SPEED_STATUS) && (val3 & LAN8814_F_LINK_DET) && (data->aneg_flag)) && !data->dsh_complete) {
-            data->loop_cnt++;
-            if (data->loop_cnt > data->dsh_conf.dsh_thr_cnt * data->rep_cnt) {
-                lan8814_downshift(dev);
-                data->loop_cnt = 0;
-                data->aneg_flag = FALSE;
-                T_I(MEPA_TRACE_GRP_GEN, "Downshift on port %d", data->port_no);
+        if (data->dev.rev < LAN8814_REV_D && !lan8814_is_lan8842(dev)) {
+            if (data->dsh_conf.dsh_enable && !status->link && ((val2 & LAN8814_F_1000T_SPEED_STATUS) && (val3 & LAN8814_F_LINK_DET) && (data->aneg_flag)) && !data->dsh_complete) {
+                data->loop_cnt++;
+                if (data->loop_cnt > data->dsh_conf.dsh_thr_cnt * data->rep_cnt) {
+                    lan8814_downshift(dev);
+                    data->loop_cnt = 0;
+                    data->aneg_flag = FALSE;
+                    T_I(MEPA_TRACE_GRP_GEN, "Downshift on port %d", data->port_no);
+                }
+                T_I(MEPA_TRACE_GRP_GEN, "Downshift capable on port %d dsh_loop_cnt%d rep_cnt %d", data->port_no, data->loop_cnt, data->rep_cnt);
             }
-            T_I(MEPA_TRACE_GRP_GEN, "Downshift capable on port %d dsh_loop_cnt%d rep_cnt %d", data->port_no, data->loop_cnt, data->rep_cnt);
         }
 
         // MEPA 555: This is a SW workaround for the ANEG state machine hung.
@@ -2331,9 +2360,13 @@ static mepa_rc lan8814_loopback_set(mepa_device_t *dev, const mepa_loopback_t *l
     }
     if (loopback->qsgmii_serdes_ena == TRUE) { // Enable qsgmii serdes loopback.
         // Serdes configuration would affect all the 4 ports.
+        EP_WRM(dev, LAN8814_QSGMII_SERDES_TX_GENERAL, 0,
+               LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV);
         EP_WRM(dev, LAN8814_QSGMII_SERDES_MISC_CTRL, LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE,
                LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE);
     } else if (data->loopback.qsgmii_serdes_ena == TRUE) {
+        EP_WRM(dev, LAN8814_QSGMII_SERDES_TX_GENERAL, LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV,
+               LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV);
         EP_WRM(dev, LAN8814_QSGMII_SERDES_MISC_CTRL, 0, LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE);
     }
     data->loopback = *loopback;

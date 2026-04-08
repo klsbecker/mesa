@@ -4755,11 +4755,6 @@ mepa_rc lan80xx_phy_loopback_conf_set_priv(mepa_device_t            *dev,
                     LAN80XX_M_HOST_SLICE_L3P_LPBK_L3P_LPBK);
     data->port_state.loopback_conf.l3p_lp = loopback->l3p_lp_ena;
 
-    /* H3P Loopback */
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_H3P_LPBK, loopback->h3p_lp_ena ? LAN80XX_M_LINE_SLICE_H3P_LPBK_H3P_LPBK : 0,
-                    LAN80XX_M_LINE_SLICE_H3P_LPBK_H3P_LPBK);
-    data->port_state.loopback_conf.h3p_lp = loopback->h3p_lp_ena;
-
     /* L3M Loopback */
     LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_LB_CFG, loopback->l3m_lp_ena ? LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LB_CFG_XGMII_HOST_LB_ENA : 0,
                     LAN80XX_M_HOST_MAC_HOST_MAC_MAC_LB_CFG_XGMII_HOST_LB_ENA);
@@ -6169,6 +6164,17 @@ static mepa_rc lan80xx_ram_init(mepa_device_t    *dev, mepa_port_no_t  port_no)
     /* Wait for 50us to do RAM Initialization */
     MEPA_NSLEEP(50000);
 
+    /* MEPA-1330: Reset FC buffer controller after RAM_INIT to recover from
+     * any corruption caused by RAM_INIT while traffic was flowing.
+     * This resets the FC buffer pointers/state to a clean initial state. */
+    LAN80XX_CSR_WRM(port_no, LAN80XX_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL_INGR_FC_BUFFER_SWRST,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL_INGR_FC_BUFFER_SWRST);
+
+    LAN80XX_CSR_WRM(port_no, LAN80XX_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL_EGR_FC_BUFFER_SWRST,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL_EGR_FC_BUFFER_SWRST);
+
     if (data->port_state.port_mode.oper_mode == PCS_RETIMER) {
         /* Switch to PCS Retimer mode back and Do not replace DESCLK with SERCLK */
         LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_SLICE_SLICE_CONFIG, 0x0, LAN80XX_BIT(7) | LAN80XX_BIT(8));
@@ -6232,6 +6238,16 @@ static mepa_rc lan80xx_post1_bist_trigger(mepa_device_t  *dev, mepa_port_no_t  p
 
     /* Wait for 350us to run BIST */
     MEPA_NSLEEP(350000);
+
+    /* MEPA-1330: Reset FC buffer controller after BIST to recover from
+     * any corruption caused by BIST while traffic was flowing. */
+    LAN80XX_CSR_WRM(port_no, LAN80XX_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL_INGR_FC_BUFFER_SWRST,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_INGR_FC_BUFFER_ECC_CTL_INGR_FC_BUFFER_SWRST);
+
+    LAN80XX_CSR_WRM(port_no, LAN80XX_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL_EGR_FC_BUFFER_SWRST,
+                    LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_EGR_FC_BUFFER_ECC_CTL_EGR_FC_BUFFER_SWRST);
 
     if (data->port_state.port_mode.oper_mode == PCS_RETIMER) {
         /* Switch to PCS Retimer mode back and Do not replace DESCLK with SERCLK */
@@ -6561,14 +6577,11 @@ mepa_rc lan80xx_MB_SendRequest(const mepa_device_t *dev, uint8_t *au8CmdPkt, uin
         u16DataLen -= SPI_VAL_LEN;
     }
     T_D(MEPA_TRACE_GRP_GEN, "Pkt written, checking MCU busy status...\n");
-    uint8_t u8McuInterrupt = 0;
-    if (base_data->ft_gpio_read == NULL) {
-        T_E(MEPA_TRACE_GRP_GEN, "INTR_A/B callback not registered!\n");
-        rc = MEPA_RC_ERR_PARM;
-        return rc;
+    uint8_t u8McuInterrupt = 1;
 
+    if (base_data->ft_gpio_read) {
+        u8McuInterrupt = base_data->ft_gpio_read(dev);
     }
-    u8McuInterrupt = base_data->ft_gpio_read(dev);
     uint32_t u32Val = 0;
     if (1 == u8McuInterrupt) {
         /*
@@ -6610,7 +6623,7 @@ mepa_rc lan80xx_MB_ReadResponse(const mepa_device_t *dev, uint8_t *u8ResponsePkt
 {
     mepa_rc rc = MEPA_RC_OK;
     uint16_t u16Timeout = 0;
-    uint8_t u8McuInterrupt = 0;
+    uint8_t u8McuInterrupt = 1;
     phy25g_phy_state_t *data = NULL;
     mepa_port_no_t port_no = 0;
     uint32_t u32Val = 0x00000000;
@@ -6630,7 +6643,9 @@ mepa_rc lan80xx_MB_ReadResponse(const mepa_device_t *dev, uint8_t *u8ResponsePkt
 
     T_D (MEPA_TRACE_GRP_GEN, "Waiting for HOST interrupt...");
     while (1) {
-        u8McuInterrupt = base_data->ft_gpio_read(dev);
+        if (base_data->ft_gpio_read) {
+            u8McuInterrupt = base_data->ft_gpio_read(dev);
+        }
         /*
          * If interrupt is set, then make sure HOST interrupt is set before reading response
          */
@@ -7001,7 +7016,7 @@ mepa_rc lan80xx_fw_update_priv(mepa_device_t *dev)
     uint8_t au8CmdParam[MB_MAX_PAYLOAD_LEN] = { 0 };
     uint32_t u32Val = 0;
     uint16_t u16Timeout = 0;
-    uint8_t u8McuInterrupt = 0;
+    uint8_t u8McuInterrupt = 1;
     uint16_t u16Count = 0;
     uint32_t u32Offset = 0, u32BytesWritten = 0;
     uint16_t u16CmdParamLen = 0;
@@ -7030,12 +7045,6 @@ mepa_rc lan80xx_fw_update_priv(mepa_device_t *dev)
     phy25g_phy_state_t *base_data;
     LAN80XX_BASE_DEV(data, base_dev, base_data);
 
-    /* Without INTR_A/B DFU can't be handled */
-    if (base_data->ft_gpio_read == NULL) {
-        T_E(MEPA_TRACE_GRP_GEN, "INTR_A/B callback not registered!\n");
-        rc = MEPA_RC_ERR_PARM;
-        return rc;
-    }
     /* perform SHA256 authentication, send to MCU only if SHA is valid */
     rc = authenticate_fw_image();
     if (rc != MEPA_RC_OK) {
@@ -7100,7 +7109,9 @@ mepa_rc lan80xx_fw_update_priv(mepa_device_t *dev)
     // Wait for DFU first packet Interrupt
     u16Timeout = 0;
     while (1) {
-        u8McuInterrupt = base_data->ft_gpio_read(dev);
+        if (base_data->ft_gpio_read) {
+            u8McuInterrupt = base_data->ft_gpio_read(dev);
+        }
         if (u8McuInterrupt) {
             LAN80XX_CSR_RD(dev, port_no, LAN80XX_IOREG(MMD_ID_MCU_MAILBOX, 1, MAILBOX_FLAG_REGISTER), &u32Val);
             if (u32Val & MAILBOX_DFU_FIRST_PKT) {

@@ -26,6 +26,12 @@
 #define LAN8814_CABLE_SHORT  2
 #define LAN8814_CABLE_FAIL   3
 
+#define LAN8814_REV_D        4
+#define LAN8814_REV_C1       3
+#define LAN8814_REV_C0       2
+#define LAN8814_REV_B        1
+#define LAN8814_REV_A        0
+
 // register access functions
 mepa_rc lan8814_direct_reg_rd(mepa_device_t *dev, uint16_t addr, uint16_t *value);
 mepa_rc lan8814_direct_reg_wr(mepa_device_t *dev, uint16_t addr, uint16_t value, uint16_t mask);
