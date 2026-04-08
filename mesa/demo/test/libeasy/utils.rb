@@ -562,9 +562,10 @@ def check_rate(cfg)
         end
     end
 
-    $ts.pc.run("rm -f /tmp/dump.pcap")
+    fname = "/tmp/#{$ts.pc.p[eg]}.pcap"
+    $ts.pc.run("rm -f #{fname}")
     t_i("Start tcpdump logging on egress port: #{$ts.pc.p[eg]}")
-    pid_tcp = $ts.pc.bg("tcpdump", "tcpdump -i #{$ts.pc.p[eg]} -j adapter_unsynced -s22 -w /tmp/dump.pcap")
+    pid_tcp = $ts.pc.bg("tcpdump", "tcpdump -i #{$ts.pc.p[eg]} -j adapter_unsynced -s22 -w #{fname}")
 
 #    t_i("Wait for necessary amount of frames to be transmitted")
 #    time1 = Time.now
@@ -637,7 +638,7 @@ def check_rate(cfg)
             end
             expected_tolerance << "#{tolerance},"
         end
-        $ts.pc.try("pcap_analyze.rb --frame-count pcp --pre-tx-sec #{pre_tx} --count-sec #{sec} --pcp_values #{expected_pcp} --exp-count #{expected_count} --exp-tolerance #{expected_tolerance} #{expected_cycle} /tmp/dump.pcap")
+        $ts.pc.try("pcap_analyze.rb --frame-count pcp --pre-tx-sec #{pre_tx} --count-sec #{sec} --pcp_values #{expected_pcp} --exp-count #{expected_count} --exp-tolerance #{expected_tolerance} #{expected_cycle} #{fname}")
     else
         sec_count_in = 1000000000/8/(20+size)    # Calculate frames per second at line speed. The ef tx function can only run at line speed. The 'size' parameter is the requested frame size inclusive checksum
         sec_count_out = 1000000000/8/((data_rate ? 0 : 20)+size)  # This is the theoretical full rate number of outgoing frames per sec. 'size' is requested frame size inclusive checksum
@@ -645,8 +646,9 @@ def check_rate(cfg)
         sec_count = (sec_count < sec_count_in) ? sec_count : sec_count_in   # Number of outgoing frames cannot be larger than the number of incomming. In case of data rate and line speed shaping this could be calculated
         expected_count = frame_rate ? sec*erate[0] : sec*sec_count
         expected_tolerance = ((expected_count * etolerance[0]) / 100) + ((((expected_count * etolerance[0]) % 100) != 0) ? 1 : 0)
-        $ts.pc.try("pcap_analyze.rb --frame-count all --pre-tx-sec #{pre_tx} --count-sec #{sec} --exp-count #{expected_count} --exp-tolerance #{expected_tolerance} /tmp/dump.pcap")
+        $ts.pc.try("pcap_analyze.rb --frame-count all --pre-tx-sec #{pre_tx} --count-sec #{sec} --exp-count #{expected_count} --exp-tolerance #{expected_tolerance} #{fname}")
     end
+    $ts.pc.run("rm -f #{fname}")
 end
 
 def measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=[1000000000], etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[], size_array=[])
