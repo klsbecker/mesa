@@ -7,8 +7,9 @@
 
 // Jenkins-specific scheduling config
 def TEST_NIGHTLY_BRANCH_NAME = 'master.nightly'
-def TEST_NIGHTLY_TIME_HOUR   = 22
+def TEST_NIGHTLY_TIME_HOUR   = 20
 def TEST_NIGHTLY_TIME_MIN    = 0
+def PIPELINE_TIMEOUT_HOURS   = 10
 
 // Run a named suite type ("nightly" or "basic") on all systems in parallel,
 // all writing results into the same shared session directory.
@@ -59,7 +60,7 @@ pipeline {
                 // Only keep 5 builds at a time to avoid fill up the storage
                 buildDiscarder(logRotator(numToKeepStr:'5'))
                 // Make sure this build ad tests don't hang forever
-                timeout(time: 8, unit: 'HOURS')
+                timeout(time: PIPELINE_TIMEOUT_HOURS, unit: 'HOURS')
                 skipDefaultCheckout()
     }
 
