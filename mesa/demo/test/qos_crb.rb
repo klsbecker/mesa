@@ -31,7 +31,7 @@ def shaper_test(idx_tx, idx_rx, prio, rate, level, credit_enable)
     cmd = "sudo ef -c #{$ts.pc.p[idx_rx]},1,adapter_unsynced,,#{tx_cnt} "
     cmd += "name f1 eth data pattern cnt #{len - 18} "
     cmd += "tx #{$ts.pc.p[idx_tx]} rep 10 name f1 "
-    $ts.pc.run(cmd)
+    $ts.pc.run_with_stderr_as_info(cmd)
     pkts = $ts.pc.get_pcap("#{$ts.pc.p[idx_rx]}.pcap")
     if (pkts.size == 0)
         t_e("No packets logged");

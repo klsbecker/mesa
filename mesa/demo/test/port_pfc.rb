@@ -166,7 +166,7 @@ $test_list.each do |entry|
         cmd += "name f#{$port_tx2} eth dmac #{$pause_dmac} smac #{$ucast_dmac} et #{$pause_etype} data hex #{pause_str} "
         cmd += "tx #{$ts.pc.p[$port_tx1]} rep #{$num_of_frames} name f#{$port_tx1} "
         cmd += "tx #{$ts.pc.p[$port_tx2]} rep #{$num_of_pause} name f#{$port_tx2} "
-        $ts.pc.try cmd
+        $ts.pc.try_with_stderr_as_info cmd
 
         if ((conf_pfc[entry[:data_frame_pcp]] == 1) && (pause_frame_pfc[entry[:data_frame_pcp]] == 1))
             # Pause frames are transmitted

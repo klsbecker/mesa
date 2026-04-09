@@ -118,7 +118,7 @@ def frame_tx(cfg)
         end
     end
 
-    $ts.pc.try cmd
+    $ts.pc.try_with_stderr_as_info cmd
 end
 
 def rx_ifh_extract(frame)

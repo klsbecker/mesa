@@ -171,7 +171,7 @@ test "timestamp" do
         idx_list.each do |idx|
             cmd += "-c #{$ts.pc.p[idx]},1,adapter_unsynced,,2 "
         end
-        $ts.pc.run(cmd)
+        $ts.pc.run_with_stderr_as_info(cmd)
 
         # Calculate timestamp difference between the two frames on Tx and Rx port
         t = []

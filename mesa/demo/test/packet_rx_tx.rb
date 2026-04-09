@@ -48,7 +48,7 @@ test "frame-cpu-queue-shaper" do
     cmd = "sudo ef -c #{$ts.pc.p[$idx_rx]},1,adapter_unsynced,,#{tx_cnt} "
     cmd += "name f1 eth dmac 01:80:c2:00:00:00 data pattern cnt 46 "
     cmd += "tx #{$ts.pc.p[$idx_tx]} rep #{tx_cnt} name f1"
-    $ts.pc.run(cmd)
+    $ts.pc.run_with_stderr_as_info(cmd)
     pkts = $ts.pc.get_pcap("#{$ts.pc.p[$idx_rx]}.pcap")
     cnt = pkts.size
     assert(cnt == tx_cnt, "Logged #{cnt} packets, expected #{tx_cnt}")

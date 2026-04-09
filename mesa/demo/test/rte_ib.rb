@@ -122,7 +122,7 @@ def tx_time_test(time, margin)
 
     tx_cnt = 10
     cmd = "sudo ef -c #{$ts.pc.p[$idx_rx]},1,adapter_unsynced,,#{tx_cnt} "
-    $ts.pc.run(cmd)
+    $ts.pc.run_with_stderr_as_info(cmd)
     pkts = $ts.pc.get_pcap("#{$ts.links[$idx_rx][:pc]}.pcap")
     cnt = pkts.size
     if (cnt != tx_cnt)

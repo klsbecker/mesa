@@ -44,7 +44,7 @@ end
 
 def frame_rx(idx, usec)
     cnt = 10
-    $ts.pc.run("sudo ef -c #{$ts.pc.p[idx]},1,adapter_unsynced,,#{cnt}")
+    $ts.pc.run_with_stderr_as_info("sudo ef -c #{$ts.pc.p[idx]},1,adapter_unsynced,,#{cnt}")
     pkts = $ts.pc.get_pcap("#{$ts.pc.p[idx]}.pcap")
     if (pkts.size == cnt)
         t_i("Logged #{cnt} packets, expect #{usec} usec between each")

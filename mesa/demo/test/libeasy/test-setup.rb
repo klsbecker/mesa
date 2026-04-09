@@ -688,6 +688,11 @@ class TestPCRemote
         execute cmd, "run", error_is_info: true
     end
 
+    # Same as 'try' but stderr is treated as informational (not a test failure).
+    def try_with_stderr_as_info cmd
+        execute cmd, "try", error_is_info: true
+    end
+
     def bash_function cmd
         @io.write "#{cmd}\n"
     end
