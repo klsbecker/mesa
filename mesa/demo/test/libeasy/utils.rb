@@ -714,7 +714,7 @@ def tx_capture ts, tx, capture, no_rx, frame, frame_size, num_frames, pause = ni
     fsz = (res[:out].chomp.length / 2) - 64 # Subtract 64 bytes to find length excluding padding
     payload = frame_size - fsz
 
-    ts.pc.run "ef #{cap} #{rx} tx #{tx} #{rep} #{frame} data repeat #{payload} 0"
+    ts.pc.run_with_stderr_as_info "ef #{cap} #{rx} tx #{tx} #{rep} #{frame} data repeat #{payload} 0"
 
     return nil if capture.nil?
 
