@@ -1766,7 +1766,6 @@ vtss_rc vtss_fa_qos_shaper_conf_set(vtss_state_t        *vtss_state,
             /* cir = shaper->rate / frame_per_sec; */
             cir_64 = ((uint64_t)shaper->rate * lg->leak_time) / 10000U;
             cir = (u32)cir_64;
-            cbs = MIN(VTSS_BITMASK(6), VTSS_DIV_ROUND_UP((shaper->level * 10U), 3U));
             mode = 3U;
 
             if (VTSS_BITMASK(17) < cir) { /* Check if CIR fits into the register */
@@ -1792,12 +1791,12 @@ vtss_rc vtss_fa_qos_shaper_conf_set(vtss_state_t        *vtss_state,
                 /* cir = shaper->rate / frame_per_sec; */
                 cir_64 = ((uint64_t)shaper->rate * lg->leak_time) / 1000000U;
                 cir = (u32)cir_64;
-                cbs = MIN(VTSS_BITMASK(6), VTSS_DIV_ROUND_UP((shaper->level * 10U), 328U));
                 mode = 2U;
             }
 
-            VTSS_D("cir %u  cbs %u  mode %u  leak_time %u", cir, cbs, mode, lg->leak_time);
             cir = MIN(VTSS_BITMASK(17), cir);
+            cbs = MIN(VTSS_BITMASK(6), (cir < 32768U) ? 1U : VTSS_DIV_ROUND_UP(cir, 32768U));
+            VTSS_D("cir %u  cbs %u  mode %u  leak_time %u", cir, cbs, mode, lg->leak_time);
         }
         REG_WR(VTSS_HSCH_CIR_CFG(se),
                VTSS_F_HSCH_CIR_CFG_CIR_RATE(cir) | VTSS_F_HSCH_CIR_CFG_CIR_BURST(cbs));
