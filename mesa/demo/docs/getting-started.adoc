@@ -434,10 +434,10 @@ Configuration of U-boot variables are necessary only one time for the board, it 
 
 ==== U-boot variables for EDSx Boards
 For EDSx boards, check the U-boot variable `pcb` by giving `printenv` command in U-boot and make sure
-the `pcb = edsx_emmc`, if not set this U-boot Variable by command `setenv pcb edsx_emmc` and then `saveenv`.
+the `pcb = pcb8415`, if not set this U-boot Variable by command `setenv pcb pcb8415` and then `saveenv`.
 
 ----
-setenv `pcb edsx_emmc`
+setenv `pcb pcb8415`
 saveenv
 ----
 
@@ -479,7 +479,7 @@ nor_only=env set mtdparts mtdparts=${nor_parts}; env set bootcmd run nor_boot; e
 nor_parts=spi0.0:1m(UBoot),256k(Env),256k(Env.bk),20m(linux),20m(linux.bk),32m(rootfs_data)
 nor_tryboot=mtd read ${active} ${loadaddr}; run ramboot
 nor_update=sf probe; sf update ${fileaddr} linux ${filesize}
-pcb=edsx_emmc
+pcb=pcb8415
 ramboot=run setup; bootm ${loadaddr}#${pcb}
 rootargs=root=/dev/ram0 rw rootfstype=squashfs
 setup=setenv bootargs console=${console} ${mtdparts} ${rootargs} ${mtdroot} fis_act=${active} ${bootargs_extra}
@@ -730,7 +730,7 @@ The above command will boot the kernel and the console will display the below ou
 ----
 run ramboot
 ## Loading kernel from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
+   Using 'pcb8415' configuration
    Trying 'kernel' kernel subimage
      Description:  Linux kernel
      Type:         Kernel Image
@@ -743,7 +743,7 @@ run ramboot
      Entry Point:  0x700080000
    Verifying Hash Integrity ... OK
 ## Loading ramdisk from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
+   Using 'pcb8415' configuration
    Trying 'ramdisk' ramdisk subimage
      Description:  ramdisk
      Type:         RAMDisk Image
@@ -756,8 +756,8 @@ run ramboot
      Entry Point:  unavailable
    Verifying Hash Integrity ... OK
 ## Loading fdt from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
-   Trying 'fdt_edsx_emmc' fdt subimage
+   Using 'pcb8415' configuration
+   Trying 'fdt_pcb8415' fdt subimage
      Description:  Flattened Device Tree blob
      Type:         Flat Device Tree
      Compression:  uncompressed
@@ -800,7 +800,7 @@ The expected console output is provided below.
 run mmc_boot
 5698260 bytes read in 128 ms (42.5 MiB/s)
 ## Loading kernel from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
+   Using 'pcb8415' configuration
    Trying 'kernel' kernel subimage
      Description:  Linux kernel
      Type:         Kernel Image
@@ -813,7 +813,7 @@ run mmc_boot
      Entry Point:  0x700080000
    Verifying Hash Integrity ... OK
 ## Loading ramdisk from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
+   Using 'pcb8415' configuration
    Trying 'ramdisk' ramdisk subimage
      Description:  ramdisk
      Type:         RAMDisk Image
@@ -826,8 +826,8 @@ run mmc_boot
      Entry Point:  unavailable
    Verifying Hash Integrity ... OK
 ## Loading fdt from FIT Image at 740000000 ...
-   Using 'edsx_emmc' configuration
-   Trying 'fdt_edsx_emmc' fdt subimage
+   Using 'pcb8415' configuration
+   Trying 'fdt_pcb8415' fdt subimage
      Description:  Flattened Device Tree blob
      Type:         Flat Device Tree
      Compression:  uncompressed
