@@ -248,7 +248,7 @@ if $options[:system]
 
         log_section_header("Running test suites")
         log_local("Start time: #{Time.now}")
-        Timeout.timeout($options[:timeout]) { run_suites($options[:system], $options[:image], $options[:out], $options[:tests_to_run], $options[:timeout]) }
+        run_suites($options[:system], $options[:image], $options[:out], $options[:tests_to_run], $options[:timeout])
 
     rescue => e
         log_section_header("Test fail summary")
