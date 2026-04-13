@@ -209,7 +209,7 @@ def pch_read(port)
 t_i("port #{port} chip_port #{chip_port}")
     ret = {}
     if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        out = $ts.dut.run("symreg SYS:PTPPORT[#{chip_port}]:PCH_CFG")
+        out = $ts.dut.run("symreg_lan966x SYS:PTPPORT[#{chip_port}]:PCH_CFG")
         split = out[:out].split(" ")
         regval = split[2].to_i(16)
         ret[:port_id] = (regval & 0x780) >> 7
