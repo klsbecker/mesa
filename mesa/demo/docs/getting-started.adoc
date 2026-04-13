@@ -871,6 +871,11 @@ demo application using the command `mesa-demo`:
 ----
 $ mesa-demo
 ----
+
+By default access to the PHY is through the MDIO bus, it is possible to
+change this to use SPI access. To enable this, it is required to start
+`mesa-demo` using the `-y` argument. For more options use `--help`.
+
 This will run in the background as a daemon in the background, and allow the
 `mesa-cmd` to issue commands.
 
