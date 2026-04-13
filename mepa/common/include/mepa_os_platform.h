@@ -46,18 +46,20 @@ typedef struct {
        t.now = os_platform_get_system_time();  \
 } /**< System time macro */
 
-#if 0
-static inline time_t MEPA_UPTIME_SECONDS(void)
+static inline uint32_t MEPA_UPTIME_SECONDS(void)
 {
-    return os_platform_get_uptime_seconds();
+    return os_platform_get_system_time();
 }
-#endif
 
-#define MEPA_MTIMER_TIMEOUT(timer) (((((timer)->now = os_platform_get_system_time()) - (timer)->timeout) > 0)?(((timer)->now/TICKS_PER_MS_300MHZ > MAX_ALLOWED_TIME_DIFF)? MEPA_OS_TRUE:MEPA_OS_FALSE):MEPA_OS_FALSE) /**< Timer timeout macro */
+static inline BOOL MEPA_MTIMER_TIMEOUT(mepa_mtimer_t *timer)
+{
+    return (((((timer)->now = os_platform_get_system_time()) - (timer)->timeout) > 0) ? (((timer)->now / TICKS_PER_MS_300MHZ > MAX_ALLOWED_TIME_DIFF) ? MEPA_OS_TRUE : MEPA_OS_FALSE) : MEPA_OS_FALSE);
+}
 
-#define MEPA_MTIMER_START(timer, msec) { \
-    (timer)->now = os_platform_get_system_time();  \
-    (timer)->timeout = ((timer)->now + (uint32_t)(msec)); \
+static inline void MEPA_MTIMER_START(mepa_mtimer_t *timer, uint32_t msec)
+{
+    (timer)->now = os_platform_get_system_time();
+    (timer)->timeout = ((timer)->now + msec);
 } /**< Timer timeout macro */
 
 #endif /* _MEPA_OS_PLATFORM_H_ */

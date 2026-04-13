@@ -62,6 +62,32 @@ mepa_rc phy_reg_clear_bits(mepa_device_t *const phydev,
 }
 
 //Device register read
+static mepa_rc phy_mmd_indirect(mepa_device_t *const dev,
+                                uint32_t const mmd, u32 addr)
+{
+    mepa_rc rc;
+
+    if ((dev->callout->miim_read != NULL) &&
+        (dev->callout->miim_write != NULL)) {
+        rc = dev->callout->miim_write(dev->callout_ctx, MII_MMD_CTRL, mmd);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = dev->callout->miim_write(dev->callout_ctx, MII_MMD_DATA, addr);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = dev->callout->miim_write(dev->callout_ctx, MII_MMD_CTRL,
+                                      (MMDCTRL_NO_POST_INC | mmd));
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+    }
+    return MEPA_RC_OK;
+}
+
 mepa_rc phy_mmd_reg_rd(mepa_device_t *const phydev,
                        uint32_t const dev, uint32_t const offset,
                        uint16_t *const value)
@@ -72,20 +98,7 @@ mepa_rc phy_mmd_reg_rd(mepa_device_t *const phydev,
         (phydev->callout->miim_write != NULL)) {
         *value = 0;
 
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_CTRL,
-                                         dev);
-        if (rc != MEPA_RC_OK) {
-            return rc;
-        }
-
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_DATA,
-                                         offset);
-        if (rc != MEPA_RC_OK) {
-            return rc;
-        }
-
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_CTRL,
-                                         (MMDCTRL_NO_POST_INC | dev));
+        rc = phy_mmd_indirect(phydev, dev, offset);
         if (rc != MEPA_RC_OK) {
             return rc;
         }
@@ -107,20 +120,7 @@ mepa_rc phy_mmd_reg_wr(mepa_device_t *const phydev,
     if ((phydev->callout->miim_read != NULL) &&
         (phydev->callout->miim_write != NULL)) {
 
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_CTRL,
-                                         dev);
-        if (rc != MEPA_RC_OK) {
-            return rc;
-        }
-
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_DATA,
-                                         offset);
-        if (rc != MEPA_RC_OK) {
-            return rc;
-        }
-
-        rc = phydev->callout->miim_write(phydev->callout_ctx, MII_MMD_CTRL,
-                                         (MMDCTRL_NO_POST_INC | dev));
+        rc = phy_mmd_indirect(phydev, dev, offset);
         if (rc != MEPA_RC_OK) {
             return rc;
         }
@@ -172,6 +172,7 @@ mepa_rc phy_mmd_reg_rd32(mepa_device_t *const dev,
                          uint8_t const devad, uint32_t const addr,
                          uint32_t *const value)
 {
+    /* Read lsb first */
     mepa_rc rc;
     uint16_t data_l;
     uint16_t data_h;
@@ -284,7 +285,6 @@ mepa_rc phy_mmd_reg_poll32(mepa_device_t *const dev, uint8_t const devad,
 static void phy_dbg_pr(mepa_device_t *const dev,
                        const mepa_debug_print_t pr,
                        uint8_t mmd, uint16_t offset,
-                       uint8_t bit_hi, uint8_t bit_lo,
                        const char *str, const uint8_t is_ms)
 {
     if (is_ms == 0U) {
@@ -310,7 +310,6 @@ void phy_reg_dump(struct mepa_device *dev,
     (void) pr("%-45s:\tPAGE.REG\t=\tVALUE \r\n", "REG_NAME");
     for (i = 0; i < reglen; i++) {
         phy_dbg_pr(dev, pr, regs[i].mmd, regs[i].reg,
-                   regs[i].bit_hi, regs[i].bit_lo,
                    regs[i].string, is_ms);
     }
 }
