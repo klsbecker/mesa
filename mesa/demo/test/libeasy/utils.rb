@@ -302,7 +302,7 @@ def cmd_tx_ifh_push(info={}, pfx = true)
     cmd += "data hex #{ifh[0].take(ifh[1]).pack("c*").unpack("H*").first} "
 end
 
-def ethtool_stat ts, diff = nil, if_list = [], ns = nil
+def ethtool_stat ts, diff = nil, if_list = [], ns = nil, all = false
     tot = {}
 
     ns_ = ""
@@ -311,22 +311,14 @@ def ethtool_stat ts, diff = nil, if_list = [], ns = nil
     end
 
     if (if_list.length == 0)
-        ts.pc.run("#{ns_} ip link")[:out].each_line do |l|
-            name = ""
-            if /^\d+:\s+(\w+):/ =~ l
-                name = $1
-            elsif /^\d+:\s+(\w+\.\d+)@/ =~ l
-                name = $1
-            end
-            if (ts.pc.p.include?(name))
-                if_list << name
-            end
-        end
+        if_list = ts.pc.p
     end
 
     if_list.each do |e|
         begin
-            ts.pc.run("#{ns_} ethtool -S #{e}")[:out].each_line do |l|
+            a = (all ? "" : " | grep -v queue | grep -v os2bmc | grep -v hwt")
+            cmd = "sh -c 'ethtool -S #{e}#{a}'"
+            ts.pc.run(cmd)[:out].each_line do |l|
                 tot[e] = { "rx" => {}, "tx" => {}} if tot[e].nil?
                 if /(rx|tx)_(\w+):\s+(\d+)/ =~ l
                     tot[e][$1][$2] = $3.to_i
@@ -430,6 +422,44 @@ def eval_stats actual_stat, if_list, expect_stat, tolerance = 0
 
     if err > 0
         t_e("Counter mismatch")
+    end
+end
+
+# Show Rx/Tx counters in two columns
+def ethtool_show(if_list, cnt)
+    if_list.each do |name|
+        t_i("")
+        t_i("Counters for #{name}:")
+        table = [
+            ["packets", ""],
+            ["bytes", ""],
+            ["broadcast", ""],
+            ["multicast", ""],
+            ["flow_control_xon", ""],
+            ["flow_control_xoff", ""],
+            ["errors", ""],
+            ["fifo_errors", ""],
+            ["smbus", ""],
+            ["crc_errors", "carrier_errors"],
+            ["align_errors", "aborted_errors"],
+            ["no_buffer_count", "dropped"],
+            ["length_errors", "abort_late_coll"],
+            ["short_length_errors", "deferred_ok"],
+            ["long_length_errors", "single_coll_ok"],
+            ["over_errors", "multi_coll_ok"],
+            ["frame_errors", "window_errors"],
+            ["missed_errors", "heartbeat_errors"],
+        ]
+        table.each do |e|
+            n = ""
+            str = ""
+            e.each_with_index do |c, i|
+                n = c if (c != "")
+                dir = (i == 0 ? "rx" : "tx")
+                str += sprintf("%-22s: %10u   ", "#{dir}_#{n}", cnt[name][dir][n])
+            end
+            t_i(str)
+        end
     end
 end
 

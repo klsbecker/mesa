@@ -576,3 +576,12 @@ test "port-move-cpu" do
     s = $ts.dut.call("mesa_mac_table_status_get")
     check_counter("status[:moved]", s["moved"], 0)
 end
+
+test "pc-counters" do
+    break
+    if_list = [$ts.pc.p[0]]
+    base = ethtool_stat($ts, nil, if_list)
+    run_ef_tx_rx_cmd($ts, 0, [1, 2, 3], "eth")
+    base, diff = ethtool_stat($ts, base, if_list)
+    ethtool_show(if_list, diff)
+end
