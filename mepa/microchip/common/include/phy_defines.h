@@ -151,6 +151,9 @@
 #define MDIO_AN_T1_LP_H         (519U)     /* BASE-T1 AN LP Base Page ability register [47:32] */
 #define MDIO_PCS_1000BT1_STAT   (2305U)    /* 1000BASE-T1 PCS status register */
 
+#define MDIO_PMA_PMD_BT1_STAT           MDIO_PCS_1000BT1_STAT
+#define MDIO_PMA_PMD_BT1_LINK_STS       (0x0001U)
+
 #define MDIO_AN_T1_ADV_L_FORCE_MS       (0x1000U)   /* Force Master/slave Configuration */
 #define MDIO_AN_T1_LP_L_FORCE_MS        (0x1000U)   /* LP Force Master/slave Configuration */
 #define MDIO_AN_T1_ADV_M_MST            (0x0010U)   /* advertise master preference */

@@ -7,10 +7,10 @@
 #include <phy_lib.h>
 #include "lan8x8x_registers.h"
 
-#define LAN8X8X_NSLEEP(ns)           MEPA_NSLEEP((ns))
-#define LAN8X8X_MTIMER_START(t, ms)  MEPA_MTIMER_START((t), (ms))
-
-#define MEPA_RC(rc, expr) { { (rc) = (expr); }  if ((rc) != 0) { return rc; } }
+static inline void LAN8X8X_NSLEEP(uint32_t ns)
+{
+    MEPA_NSLEEP((ns));
+}
 
 // Locking Macros
 // The variable 'dev' is passed as macro argument to obtain callback pointers and call actual lock functions. It does not indicate locks per port.
@@ -51,27 +51,35 @@
 #define PHY_ID_LAN878X          (0x002216A0U)
 #define PHY_ID_LAN888X          (0x002216B0U)
 #define PHY_ID_MASK     (0xFFFFFFF0U)
-#define IS_LAN888X(id)      (((id) & PHY_ID_MASK) == PHY_ID_LAN888X)
-#define IS_LAN878X(id)      (((id) & PHY_ID_MASK) == PHY_ID_LAN878X)
+static inline uint8_t IS_LAN888X(uint32_t id)
+{
+    return ((((id) & PHY_ID_MASK) == PHY_ID_LAN888X) ? 1U : 0U);
+}
+static inline uint8_t IS_LAN878X(uint32_t id)
+{
+    return ((((id) & PHY_ID_MASK) == PHY_ID_LAN878X) ? 1U : 0U);
+}
 
 #define PHY_LINKUP                  (PHY_TRUE)
 #define PHY_LINKDOWN                (PHY_FALSE)
 
 //Retrieve PHY_ID
-#define GET_PHY_ID1(x)              (((x) << 2U) & 0x03FFFCU)
-#define GET_PHY_ID2(x)              ((EXTRACT_BITS(x, 10U, 6U) << 18U) & 0xFFFFFFFFU)
-#define GET_PHY_REV(x)              EXTRACT_BITS(x, 0U, 4U)
-#define GET_PHY_MODEL(x)            EXTRACT_BITS(x, 4U, 6U)
-
-/* Maximum supported SECYs */
-//8 vPorts, 16 SAs per direction (2 SAs per vPort)
-#define MCHP_MS_MAX_SECYS               8
-#define MCHP_MS_MAX_FLOWS               16
-
-/* Blackfyre ENGINEERING NOTE:
- * Blackfyre supports only 2 VLAN TAG bypass for insertion of SecTAG.
- */
-#define MCHP_MS_MAX_VLANS               2
+static inline uint32_t GET_PHY_ID1(uint32_t x)
+{
+    return (((x) << 2U) & 0x03FFFCU);
+}
+static inline uint32_t GET_PHY_ID2(uint32_t x)
+{
+    return ((EXTRACT_BITS(x, 10U, 6U) << 18U) & 0xFFFFFFFFU);
+}
+static inline uint32_t GET_PHY_REV(uint32_t x)
+{
+    return EXTRACT_BITS(x, 0U, 4U);
+}
+static inline uint32_t GET_PHY_MODEL(uint32_t x)
+{
+    return EXTRACT_BITS(x, 4U, 6U);
+}
 
 /*
  * Data structures
@@ -81,10 +89,12 @@ typedef struct {
     mepa_bool_t dis_1588;
     mepa_bool_t dis_1000;
     mepa_bool_t dis_100;
-} mchp_t1_otp_cap_t;
+    mepa_bool_t is_sgmii;
+} lan8x8x_otp_cap_t;
 
 typedef struct {
     uint32_t id;
+    uint16_t  part_id;
     uint16_t  model;
     uint16_t  rev;
     mepa_bool_t is_master;
@@ -92,7 +102,7 @@ typedef struct {
 } phy_dev_info_t;
 
 typedef struct {
-    mchp_t1_otp_cap_t       t1_cap;
+    lan8x8x_otp_cap_t       t1_cap;
     mepa_bool_t             init_done;
     mepa_bool_t             link_status;
     mepa_port_no_t          port_no;

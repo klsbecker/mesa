@@ -268,6 +268,10 @@ typedef uint8_t mesa_phy_led_intensity; /**< LED intensity from 0-200, LED
     ((uint32_t)1U << 26) /**< PHY MACSEC Egress interrupt event*/
 #define MESA_PHY_LINK_EXT_MEM_INT_RING_EV                                                          \
     ((uint32_t)1U << 27) /**< PHY MEM Integrity Ring Control interrupt event*/
+#define MESA_PHY_LINK_EXT_TC10_SLEEP_FAIL                                                          \
+    ((uint32_t)1U << 28) /**< PHY TC10 Entered Sleep Fail interrupt event*/
+#define MESA_PHY_LINK_EXT_TC10_SLEEP_MODE                                                          \
+    ((uint32_t)1U << 29) /**< PHY TC10 Entered Sleep Mode interrupt event*/
 
 /** \brief PHY interrupt event type */
 typedef uint32_t mesa_phy_event_t;

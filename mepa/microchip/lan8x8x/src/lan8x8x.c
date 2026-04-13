@@ -1,12 +1,11 @@
 // Copyright (c) 2004-2024 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#if defined(MEPA_HAS_LAN8X8X)
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
 #include <mepa_trace.h>
+#include <phy_defines_macsec.h>
 #include <string.h>
-
 #include "lan8x8x_private.h"
 
 #ifdef MEPA_lan8x8x_static_mem
@@ -41,13 +40,9 @@ static mepa_rc phy_get_device_info(mepa_device_t *const dev)
     //Setup structure
     data->dev.rev   = (uint16_t)GET_PHY_REV(id2);
     data->dev.model = (uint16_t)GET_PHY_MODEL(id2);
-    /**
-     *  PHY_ID_NUM0: Assigned to the 3rd through 18th bits of the Organizationally Unique Identifier (OUI), respectively.
-     */
+    // PHY_ID_NUM0: Assigned to the 3rd through 18th bits of the Organizationally Unique Identifier (OUI), respectively.
     data->dev.id = GET_PHY_ID1(id1);
-    /**
-     *  PHY_ID_NUM1: Assigned to the 19th through 24th bits of the OUI.
-     */
+    // PHY_ID_NUM1: Assigned to the 19th through 24th bits of the OUI.
     data->dev.id |= GET_PHY_ID2(id2);
 
     return MEPA_RC_OK;
@@ -58,10 +53,26 @@ static void lan8x8x_read_capabilities(mepa_device_t *const dev)
     phy_data_t *const priv = (phy_data_t *const)dev->data;
     uint16_t val = 0U;
 
+    // Model/Part ID from OTP
+    (void) phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, T1_OTP_RO_PART_ID, &val);
+    priv->dev.part_id = val;
+    T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u part_id 0x%x!\n", priv->port_no, priv->dev.part_id);
+
+    //set mac-interface
+    priv->mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
+    priv->t1_cap.is_sgmii = PHY_FALSE;
+    if ((val == 0x8782U) || (val == 0x878BU) ||
+        (val == 0x8882U) || (val == 0x888BU) ||
+        (val == 0x8884U) || (val == 0x888DU)) {
+        priv->t1_cap.is_sgmii = PHY_TRUE;
+        priv->mac_if = MESA_PORT_INTERFACE_SGMII;
+        T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u mac_mode is SGMII!\n", priv->port_no);
+    }
+
     //Read Feature disable from OTP
     (void) phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, T1_OTP_RO_FEAT_DIS, &val);
     priv->t1_cap.dis_1000 = PHY_FALSE;
-    if (IS_LAN888X(dev->drv->id) &&
+    if ((IS_LAN888X(dev->drv->id) == ONE) &&
         ((val & T1_OTP_RO_FEAT_DIS_1000M) != 0U)) {
         priv->t1_cap.dis_1000 = PHY_TRUE;
     }
@@ -74,15 +85,6 @@ static void lan8x8x_read_capabilities(mepa_device_t *const dev)
         priv->t1_cap.dis_macsec = PHY_TRUE;
     }
 
-    //set mac-interface
-    priv->mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
-    (void) phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, T1_OTP_RO_PART_ID, &val);
-    T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u part_id 0x%x!\n", priv->port_no, val);
-    if (val == 0x888DU) {
-        priv->mac_if = MESA_PORT_INTERFACE_SGMII;
-        T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u mac_mode is SGMII!\n", priv->port_no);
-    }
-
     //Read STRAPs
     (void) phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, OTP_STRAP_OVERRIDE, &val);
     if ((val & OTP_STRAP_OVERRIDE_EN) != 0U) {
@@ -90,7 +92,7 @@ static void lan8x8x_read_capabilities(mepa_device_t *const dev)
             priv->conf.speed = MESA_SPEED_AUTO;
         } else {
             priv->conf.speed = MESA_SPEED_100M;
-            if (IS_LAN888X(dev->drv->id) &&
+            if ((IS_LAN888X(dev->drv->id) == ONE) &&
                 ((val & OTP_STRAP_SPEED_SEL) != 0U)) {
                 priv->conf.speed = MESA_SPEED_1G;
             }
@@ -105,12 +107,12 @@ static void lan8x8x_read_capabilities(mepa_device_t *const dev)
         if ((val & OTP_STRAP_READ_AUTO_NEG_EN) != 0U) {
             priv->conf.speed = MESA_SPEED_AUTO;
             //FIXME: LAN878X aneg is not working
-            if (IS_LAN878X(dev->drv->id)) {
+            if (IS_LAN878X(dev->drv->id) == ONE) {
                 priv->conf.speed = MESA_SPEED_100M;
             }
         } else {
             priv->conf.speed = MESA_SPEED_100M;
-            if (IS_LAN888X(dev->drv->id) &&
+            if ((IS_LAN888X(dev->drv->id) == ONE) &&
                 ((val & OTP_STRAP_SPEED_SEL) != 0U)) {
                 priv->conf.speed = MESA_SPEED_1G;
             }
@@ -128,33 +130,21 @@ static mepa_rc lan8x8x_setup_lpbk(mepa_device_t *const dev,
 {
     phy_data_t *const data = (phy_data_t *const)dev->data;
     mepa_rc rc = MEPA_RC_OK;
-    uint16_t mask = BMCR_LOOPBACK;
-    uint16_t reg = MDIO_CTRL1;
-    uint32_t val = 0;
+    uint16_t reg = CHIPTOP_H3P_LPBK;
+    // misra_c_2025_rule_2_5_violation
+    uint16_t val = 0U;
 
     (void) memset(&data->loopback, 0, sizeof(mepa_loopback_t));
 
     //if loopback == NULL, it could be during init clear loopback case
     if (loopback != NULL) {
-        rc = MEPA_RC_NOT_IMPLEMENTED;
         if (loopback->near_end_ena == PHY_TRUE) {
-            rc = MEPA_RC_OK;
-            val = BMCR_LOOPBACK;
+            reg = CHIPTOP_H3P_LPBK;
+            val = H3P_LPBK;
             data->loopback.near_end_ena = PHY_TRUE;
         } else if (loopback->far_end_ena == PHY_TRUE) {
-            rc = MEPA_RC_OK;
-            if (data->conf.speed == MEPA_SPEED_100M) {
-                reg = T1_1G_E100T1_PCS_REMOTE_LPBK;
-                mask = T1_1G_PCS_REMOTE_LPBK;
-                val = T1_1G_PCS_REMOTE_LPBK;
-            } else if (data->conf.speed == MEPA_SPEED_1G) {
-                reg = T1_1G_E1000T1_PCS_REMOTE_LPBK;
-                mask = BMCR_LOOPBACK;
-                val = T1_1G_PCS_REMOTE_LPBK;
-            } else {
-                //misra_c_2023_rule_15_7_violation
-                val = 0;
-            }
+            reg = CHIPTOP_L3P_LPBK;
+            val = L3P_LPBK;
             data->loopback.far_end_ena = PHY_TRUE;
         } else {
             //misra_c_2023_rule_15_7_violation
@@ -162,175 +152,140 @@ static mepa_rc lan8x8x_setup_lpbk(mepa_device_t *const dev,
         }
     }
 
-    // Enable/Disable loopback
-    MEPA_RC(rc, phy_mmd_reg_mod32(dev, MDIO_MMD_PCS, reg, mask, val));
+    if (val == 0U) {
+        // Disable loopback
+        rc =  phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, CHIPTOP_H3P_LPBK, val);
+        if (rc == MEPA_RC_OK) {
+            rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, CHIPTOP_L3P_LPBK, val);
+        }
+    } else {
+        // Enable loopback
+        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, reg, val);
+    }
+    return rc;
+}
+
+struct lan8x8x_regwr_map {
+    u8  mmd;
+    u16 reg;
+    u32 val;
+    u8 is32;
+    u8 isrd;
+};
+
+static mepa_rc lan8x8x_phy_regsetup(mepa_device_t *dev,
+                                    const struct lan8x8x_regwr_map *reg_map, u8 cnt)
+{
+    mepa_rc rc = MEPA_RC_OK;
+
+    for (u8 i = 0; i < cnt; i++) {
+        if (reg_map[i].is32 == 1U) {
+            uint32_t val;
+
+            if (reg_map[i].isrd == 1U) {
+                rc = phy_mmd_reg_rd32(dev, reg_map[i].mmd,
+                                      reg_map[i].reg, &val);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
+            } else {
+                rc = phy_mmd_reg_wr32(dev, reg_map[i].mmd,
+                                      reg_map[i].reg, reg_map[i].val);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
+            }
+        } else {
+            uint16_t val;
+
+            if (reg_map[i].isrd == 1U) {
+                rc = phy_mmd_reg_rd(dev, reg_map[i].mmd,
+                                    reg_map[i].reg, &val);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
+            } else {
+                val = (uint16_t)reg_map[i].val;
+
+                rc = phy_mmd_reg_wr(dev, reg_map[i].mmd,
+                                    reg_map[i].reg, val);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
+            }
+        }
+    }
 
     return rc;
 }
 
 static mepa_rc lan8x8x_sgmii_init(mepa_device_t *dev)
 {
-    phy_data_t *const data = (phy_data_t *const)dev->data;
-    mepa_rc rc;
-    //uint16_t val;
+    mepa_rc rc = MEPA_RC_OK;
+    const phy_data_t *const data = (const phy_data_t *const)dev->data;
 
-    MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                 SERDES_CLOCK_CONTROL,
-                                 SERDES_CLOCK_CTL_EN));
-
-    MEPA_RC(rc, phy_mmd_reg_set_bits(dev, MDIO_MMD_VEND1,
-                                     XGMII_GMII_BYPASS,
-                                     XGMII_BYPASS_SEL));
-
-    MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
-                               QSGMII_PCS1G_CONFIG,
-                               QSGMII_PCS1G_CFG_EN));
-
-    LAN8X8X_NSLEEP(100U);
-
-    if (data->conf.mac_if_aneg_ena == PHY_TRUE) {
-        MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
-                                   QSGMII_ANEG_EN_REG,
-                                   QSGMII_ANEG_CFG | QSGMII_ANEG_CFG));
-
-        MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
-                                   QSGMII_PCS1G_ANEG_CONFIG,
-                                   QSGMII_PCS1G_ANEG_SET));
-    } else {
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_REFCLK_CTRL_0,
-                                     0x18U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_CONTROL_0,
-                                     0xB9E0U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DATAPATH_0,
-                                     0x82422U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_DIVIDER_0,
-                                     0x7014014U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_DIVIDER_1,
-                                     0x19U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_DIVIDER_2,
-                                     0x1000000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_DIVIDER_0,
-                                     0x6011002U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_CONTROL_0,
-                                     0x9800));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_TRIM_0, 0xCB3U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DRIVER_0, 0x25555000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DRIVER_1, 0x7FFFU));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DRIVER_0, 0x20155000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXA_DRVR_FSM_0, 0x1F804U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DATAPATH_0, 0x82422U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_TEST3_0, 0x0U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DATAPATH_0, 0x82422U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_TXPWR_CTRL_0, 0x0U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_TXPWR_CTRL_0, 0x1U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_CONTROL_0, 0x9000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TXPLL_CONTROL_0, 0x8000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_CDR_DIVIDERS_0, 0x8019U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_FREQUENCY_DET_0, 0x4000U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_DESCAL_OVR_0, 0x104007U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_TRIM_0, 0xCB3U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_CTLE_CTRL_0, 0x7EU));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_DFEEM_CTRL_0, 0xFC));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_POWERDOWN_0, 0x37U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DATAPATH_0, 0x82422U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_CTLE_CTRL_0, 0x7EU));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_DFEEM_CTRL_0, 0x0U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_DESCAL_OVR_0, 0x104007U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_RXA_PHCTRL_0, 0x0U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_DATAPATH_0, 0x82422U));
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_LANEA_POWERDOWN_0, 0x7U));
-
-        LAN8X8X_NSLEEP(100U);
-
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
-                                     SERDES_TOP_PD_RST_0, 0x0U));
-
-        LAN8X8X_NSLEEP(500U);
-
-        MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
-                                   QSGMII_ANEG_EN_REG,
-                                   QSGMII_ANEG_CFG));
-
-        MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
-                                   QSGMII_PCS1G_ANEG_CONFIG,
-                                   QSGMII_PCS1G_SW_RESOLVE_PRIORITY));
-
-        LAN8X8X_NSLEEP(500U);
-#if 0
-        (void) phy_mmd_reg_poll(dev, MDIO_MMD_VEND1,
-                                QSGMII_PCS1G_CONFIG, 0xAF8U, 0xAFFU,
-                                0x1U, 4000U, &val);
-#endif
+    //Setup QSGMII
+    rc = phy_mmd_reg_mod32(dev, MDIO_MMD_VEND1,
+                           SERDES_TXPLL_REFCLK_CTRL_0,
+                           0x0U, SERDES_TXPLL_REFCLK_SET);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
-    return rc;
+    rc = phy_mmd_reg_mod32(dev, MDIO_MMD_VEND1,
+                           SERDES_TXPLL_CONTROL_0,
+                           SERDES_TXPLL_CTL_TXPLL_PD, 0x0U);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1,
+                          SERDES_LANEA_TXPWR_CTRL_0,
+                          SERDES_LANEA_TXPWR_CTRL_TXPCLK_ENA);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_mod32(dev, MDIO_MMD_VEND1,
+                           SERDES_LANEA_POWERDOWN_0,
+                           SERDES_LANEA_POWERDOWN_SET, 0x0U);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, MDIO_MMD_VEND1, SERDES_TOP_PD_RST_0, 0x0U);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    if (data->conf.mac_if_aneg_ena) {
+        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, QSGMII_ANEG_EN_REG,
+                            (QSGMII_ANEG_CFG | QSGMII_AUTO_ANEG_EN));
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, QSGMII_PCS1G_ANEG_CONFIG,
+                            (QSGMII_PCS1G_ANEG_CFG_EN | QSGMII_PCS1G_ANEG_ENA));
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+    } else {
+        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, QSGMII_ANEG_EN_REG,
+                            QSGMII_ANEG_CFG);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, QSGMII_PCS1G_ANEG_CONFIG,
+                            QSGMII_PCS1G_ANEG_CFG_EN);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+    }
+
+    return phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, QSGMII_PCS1G_CONFIG,
+                          QSGMII_PCS1G_CFG_EN);
 }
 
 static mepa_rc lan8x8x_rgmii_init(mepa_device_t *dev)
@@ -364,13 +319,19 @@ static mepa_rc lan8x8x_rgmii_init(mepa_device_t *dev)
 
     if (rc == MEPA_RC_OK) {
         // Set RX DELAY
-        MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_VEND1,
-                                       LAN8X8X_RGMII_RX_DLL_CFG,
-                                       LAN8X8X_RGMII_DLL_CONF, rxc));
+        rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1,
+                                LAN8X8X_RGMII_RX_DLL_CFG,
+                                LAN8X8X_RGMII_DLL_CONF, rxc);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
         // Set TX DELAY
-        MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_VEND1,
-                                       LAN8X8X_RGMII_TX_DLL_CFG,
-                                       LAN8X8X_RGMII_DLL_CONF, txc));
+        rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1,
+                                LAN8X8X_RGMII_TX_DLL_CFG,
+                                LAN8X8X_RGMII_DLL_CONF, txc);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
     }
 
     return rc;
@@ -379,49 +340,48 @@ static mepa_rc lan8x8x_rgmii_init(mepa_device_t *dev)
 static mepa_rc lan8x8x_config_mac(mepa_device_t *dev)
 {
     const phy_data_t *const data = (const phy_data_t *const)dev->data;
-    uint16_t val = 0U;
-    uint16_t val1 = 0U;
+    uint16_t clk = 0U;
     mepa_rc rc;
 
     if (data->mac_if == MESA_PORT_INTERFACE_SGMII) {
-        rc = lan8x8x_sgmii_init(dev);
-        val1 = QSGMII_PCS1G_RA_ENA;
-        if (((data->conf.speed == MESA_SPEED_AUTO)
-             && (data->conf.aneg.speed_1g_fdx == PHY_TRUE)) ||
-            (data->conf.speed == MESA_SPEED_1G)) {
-            val = MAC_NE_LPBK_ENA;
+        if (!data->t1_cap.is_sgmii) {
+            return MEPA_RC_INV_STATE;
         }
+        rc = lan8x8x_sgmii_init(dev);
+        clk = 0xc0U;
     } else {
+        if (data->t1_cap.is_sgmii) {
+            return MEPA_RC_INV_STATE;
+        }
         rc = lan8x8x_rgmii_init(dev);
     }
-
-    if (rc == MEPA_RC_OK) {
-        //UNG_EWOOD-599: set/clear MAC_NE & RA_ENA for SGMII
-        MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, MAC_NE_LPBK, val));
-
-        MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, QSGMII_PCS1G_DEBUG,
-                                       QSGMII_PCS1G_RA_ENA, val1));
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
-    return rc;
+    //UNG_EWOOD-599: clock source setting as workaround for SGMII issue
+    return phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, SPARE_REG_1, clk);
 }
 
 static mepa_rc lan8x8x_phy_init(mepa_device_t *const dev)
 {
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
 
-    if (IS_LAN888X(dev->drv->id)) {
-        MEPA_RC(rc, phy_mmd_reg_mod32(dev, MDIO_MMD_PCS,
-                                      T1_1G_E1000T1_PCS_EN,
-                                      T1_1G_E1000T1_PCS_EN_,
-                                      T1_1G_E1000T1_PCS_EN_));
+    if (IS_LAN888X(dev->drv->id) == ONE) {
+        rc = phy_mmd_reg_mod32(dev, MDIO_MMD_PCS, T1_1G_E1000T1_PCS_EN_REG,
+                               T1_1G_E1000T1_PCS_EN_, T1_1G_E1000T1_PCS_EN_);
     } else {
-        MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_PCS,
-                                     T1_1G_E1000T1_PCS_EN, 0));
+        rc = phy_mmd_reg_wr32(dev, MDIO_MMD_PCS, T1_1G_E1000T1_PCS_EN_REG, 0);
+    }
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     //MAC Setup
-    MEPA_RC(rc, lan8x8x_config_mac(dev));
+    rc = lan8x8x_config_mac(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     T_I(MEPA_TRACE_GRP_GEN, "phy_init complete!!\r\n");
 
@@ -437,7 +397,7 @@ static mepa_rc lan8x8x_check_media(const mepa_device_t *const dev,
 
     if (((media_if == MESA_PHY_MEDIA_IF_T1_100FX) && (!data->t1_cap.dis_100)) ||
         (((media_if == MESA_PHY_MEDIA_IF_T1_1000FX) && (!data->t1_cap.dis_1000)) &&
-         IS_LAN888X(dev->drv->id))) {
+         (IS_LAN888X(dev->drv->id) == ONE))) {
 
         rc = MEPA_RC_OK;
         // speed selection based on media type
@@ -452,7 +412,7 @@ static mepa_rc lan8x8x_check_media(const mepa_device_t *const dev,
     }
 
     T_I(MEPA_TRACE_GRP_GEN,   "phy_id=0x%x: media=%d, speed=%d, rc=%d\n",
-          dev->drv->id, media_if, speed, rc);
+        dev->drv->id, media_if, speed, rc);
     return rc;
 }
 
@@ -484,6 +444,18 @@ static mepa_rc lan8x8x_int_events_set(mepa_device_t *dev,
             int_mask |= LAN8X8X_INT_MS_TRAINING_COMP;
             en0_mask |= LAN8X8X_INT_EN0_T1_DATA_FAULT;
             break;
+        case MESA_PHY_LINK_EXT_TC10_SLEEP_FAIL:
+            tmp_evt &= ~mask;
+            int_mask |= LAN8X8X_INT_SLEEP_FAIL;
+            en0_mask |= (LAN8X8X_INT_EN0_T1_DATA_FAULT |
+                         LAN8X8X_INT_EN0_TC10_PRT);
+            break;
+        case MESA_PHY_LINK_EXT_TC10_SLEEP_MODE:
+            tmp_evt &= ~mask;
+            int_mask |= LAN8X8X_INT_SLEEP_MODE;
+            en0_mask |= (LAN8X8X_INT_EN0_T1_DATA_FAULT |
+                         LAN8X8X_INT_EN0_TC10_PRT);
+            break;
         case MESA_PHY_LINK_TX_FIFO_OVERFLOW_INT_EV:
         case MESA_PHY_LINK_RX_FIFO_OVERFLOW_INT_EV:
             tmp_evt &= ~mask;
@@ -503,25 +475,25 @@ static mepa_rc lan8x8x_int_events_set(mepa_device_t *dev,
     //Enable T1 top level interrupts
     rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
                         LAN8X8X_INT_EN0_SC, en0_mask);
-    if (rc < 0) {
+    if (rc != MEPA_RC_OK) {
         return rc;
     }
 
     //Enable IRQ interrupts
     rc = phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
                           LAN8X8X_INT_IRQ_FUNC_MSK, int_mask);
-    if (rc < 0) {
+    if (rc != MEPA_RC_OK) {
         return rc;
     }
 
     rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1,
                         LAN8X8X_INT_EN1_SC, macsec_mask | en1_mask);
-    if (rc < 0) {
+    if (rc != MEPA_RC_OK) {
         return rc;
     }
 
-    T_D(MEPA_TRACE_GRP_GEN,   "set events=0x%x, int_mask=0x%x! rc=%d\r\n",
-          data->events, int_mask, rc);
+    T_D(MEPA_TRACE_GRP_GEN, "set events=0x%x, int_mask=0x%x! rc=%d\r\n",
+        data->events, int_mask, rc);
 
     return MEPA_RC_OK;
 }
@@ -531,6 +503,7 @@ static mepa_rc lan8x8x_config_led(mepa_device_t *const dev,
 {
     mepa_rc rc = MEPA_RC_OK;
     uint16_t reg_offset = 0;
+    uint16_t reg_mask;
     uint16_t reg_val = LAN8X8X_LED_LINK_ACT_ANY_SPEED;
 
     switch (conf->mode) {
@@ -583,19 +556,30 @@ static mepa_rc lan8x8x_config_led(mepa_device_t *const dev,
         rc = MEPA_RC_ERR_KR_CONF_NOT_SUPPORTED;
         break;
     }
-    if ((conf->led_num == MEPA_LED0) || (conf->led_num == MEPA_LED1)) {
-        reg_offset = LAN8X8X_COMM_LED1_LED0;
-    } else if ((conf->led_num == MEPA_LED2) || (conf->led_num == MEPA_LED3)) {
-        reg_offset = LAN8X8X_COMM_LED3_LED2;
-    } else {
-        rc = MEPA_RC_ERR_KR_CONF_NOT_SUPPORTED;
-    }
 
     if (rc == MEPA_RC_OK) {
-        if ((conf->led_num == MEPA_LED1) || (conf->led_num == MEPA_LED3)) {
-            reg_val <<= 8;
+        if ((conf->led_num == MEPA_LED0) || (conf->led_num == MEPA_LED1)) {
+            reg_offset = LAN8X8X_COMM_LED1_LED0;
+        } else if ((conf->led_num == MEPA_LED2) || (conf->led_num == MEPA_LED3)) {
+            reg_offset = LAN8X8X_COMM_LED3_LED2;
+        } else {
+            rc = MEPA_RC_ERR_KR_CONF_NOT_SUPPORTED;
         }
-        rc = phy_mmd_reg_wr(dev, MDIO_MMD_VEND1, reg_offset, reg_val);
+
+        if (rc == MEPA_RC_OK) {
+            reg_mask = LAN8X8X_COMM_LED1_LED3_M;
+            if ((conf->led_num == MEPA_LED1) || (conf->led_num == MEPA_LED3)) {
+                reg_val <<= 8U;
+                reg_mask = LAN8X8X_COMM_LED2_LED4_M;
+            }
+            rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_COMMON_LED,
+                                    LED_REG_COMMON_LED_BUF_TYPE_M,
+                                    LED_REG_COMMON_LED_BUF_TYPE((uint8_t)conf->led_num));
+            if (rc == MEPA_RC_OK) {
+                rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, reg_offset,
+                                        reg_mask, reg_val);
+            }
+        }
     }
 
     return rc;
@@ -605,8 +589,8 @@ static mepa_rc lan8x8x_config_leds(mepa_device_t *const dev, mepa_bool_t isolate
 {
     phy_data_t *data = (phy_data_t *) dev->data;
     mepa_gpio_conf_t conf[4];
-    mepa_rc rc = MEPA_RC_OK;
-    int i;
+    mepa_rc rc;
+    int32_t i;
 
     for (i = 0; i < 4; i ++) {
         if ((data->led_conf[i].mode >= MEPA_GPIO_MODE_LED_LINK_ACTIVITY) &&
@@ -617,46 +601,73 @@ static mepa_rc lan8x8x_config_leds(mepa_device_t *const dev, mepa_bool_t isolate
             } else {
                 conf[i].mode = data->led_conf[i].mode;
             }
-            MEPA_RC(rc, lan8x8x_config_led(dev, &conf[i]));
+            rc = lan8x8x_config_led(dev, &conf[i]);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
         }
     }
 
-    return rc;
+    return MEPA_RC_OK;
+}
+
+static mepa_rc lan8x8x_isolate_mode_int(struct mepa_device *dev, mepa_bool_t const en)
+{
+    mepa_rc rc;
+
+    if (en) {
+        rc = phy_reg_set_bits(dev, MII_BMCR, BMCR_ISOLATE);
+    } else {
+        rc = phy_reg_clear_bits(dev, MII_BMCR, BMCR_ISOLATE);
+    }
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //LED setup after isolate mode disabled
+    return lan8x8x_config_leds(dev, en);
 }
 
 static mepa_rc lan8x8x_phy_cfg_clr(mepa_device_t *const dev)
 {
     phy_data_t *data = (phy_data_t *) dev->data;
     uint16_t reg_val = 0;
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
 
     //clear tc10 interrupt register
-    MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, 0xc22U, &reg_val));
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, 0xc22U, &reg_val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     //clear isolate bit
-    MEPA_RC(rc, phy_reg_clear_bits(dev, MII_BMCR, BMCR_ISOLATE));
-
-    //LED setup after isolate mode disabled
-    MEPA_RC(rc, lan8x8x_config_leds(dev, PHY_FALSE));
+    rc = lan8x8x_isolate_mode_int(dev, PHY_FALSE);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     //clear loopback if it is setup in prev. config
-    MEPA_RC(rc, lan8x8x_setup_lpbk(dev, NULL));
+    rc = lan8x8x_setup_lpbk(dev, NULL);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     //Setup events
-    MEPA_RC(rc, lan8x8x_int_events_set(dev, data->events, PHY_TRUE));
-
-    return rc;
+    return lan8x8x_int_events_set(dev, data->events, PHY_TRUE);
 }
 
 static mepa_rc lan8x8x_phy_reset(mepa_device_t *dev)
 {
     phy_data_t *const data = (phy_data_t *const)dev->data;
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
     uint16_t val;
     uint32_t v32;
 
     // CL22 soft-reset to let the link re-train
-    MEPA_RC(rc, phy_reg_set_bits(dev, MII_BMCR, BMCR_RESET));
+    rc = phy_reg_set_bits(dev, MII_BMCR, BMCR_RESET);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     rc = phy_mmd_reg_poll(dev, 0U, MII_BMCR,
                           BMCR_RESET, BMCR_RESET,
@@ -666,30 +677,37 @@ static mepa_rc lan8x8x_phy_reset(mepa_device_t *dev)
     }
 
     //clear config
-    MEPA_RC(rc, lan8x8x_phy_cfg_clr(dev));
-
-    //LED setup
-    MEPA_RC(rc, lan8x8x_config_leds(dev, PHY_FALSE));
+    rc = lan8x8x_phy_cfg_clr(dev);
+    if (rc != MEPA_RC_OK) {
+        T_D(MEPA_TRACE_GRP_GEN, "config clear failed! rc=%d\r\n", rc);
+    }
 
     // disable aneg
-    MEPA_RC(rc, phy_mmd_reg_clear_bits(dev, MDIO_MMD_AN, MDIO_AN_T1_CTRL,
-                                       MDIO_AN_CTRL1_ENABLE | MDIO_AN_CTRL1_RESTART));
+    rc = phy_mmd_reg_clear_bits(dev, MDIO_MMD_AN, MDIO_AN_T1_CTRL,
+                                MDIO_AN_CTRL1_ENABLE | MDIO_AN_CTRL1_RESTART);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    /* Clear LINK_CONTROL and PHY_CONFIG_DONE */
-    MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
-                                 T1_1G_TOP_CTRL_CONFIG, 0U));
+    // Clear LINK_CONTROL and PHY_CONFIG_DONE
+    rc = phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD, T1_1G_TOP_CTRL_CONFIG, 0U);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    /* Set SYSTEM_CONTROL_SOFT_RESET */
-    MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
-                                 T1_1G_TOP_CTRL_CONFIG,
-                                 T1_1G_TOP_CTRL_SOFT_RESET));
+    // Set SYSTEM_CONTROL_SOFT_RESET
+    rc = phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD, T1_1G_TOP_CTRL_CONFIG,
+                          T1_1G_TOP_CTRL_SOFT_RESET);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    /* Wait for RESET done */
+    // Wait for RESET done
     rc = phy_mmd_reg_poll32(dev, MDIO_MMD_PMAPMD,
                             T1_1G_TOP_CTRL_CONFIG,
                             T1_1G_TOP_CTRL_SOFT_RESET,
                             T1_1G_TOP_CTRL_SOFT_RESET,
-                            0U, 4000U, &v32);
+                            ZERO, 4000U, &v32);
     if (rc != MEPA_RC_OK) {
         T_D(MEPA_TRACE_GRP_GEN, "CHIP reset failed(0x%x! rc=%d\r\n", v32, rc);
     }
@@ -704,7 +722,7 @@ static mepa_rc lan8x8x_phy_reset(mepa_device_t *dev)
 static mepa_rc lan8x8x_gpio_mode_set_private(mepa_device_t *dev,
                                              const mepa_gpio_conf_t *const gpio_conf)
 {
-    mepa_rc rc = MEPA_RC_ERROR;
+    mepa_rc rc;
     uint16_t dir, val = 0, gpio_no = gpio_conf->gpio_no;
     mepa_bool_t clk_en = PHY_FALSE, gpio_en = PHY_FALSE;
     mepa_gpio_mode_t mode = gpio_conf->mode;
@@ -715,7 +733,11 @@ static mepa_rc lan8x8x_gpio_mode_set_private(mepa_device_t *dev,
     } else if ((mode >= MEPA_GPIO_MODE_LED_LINK_ACTIVITY) &&
                (mode <= MEPA_GPIO_MODE_LED_DISABLE_EXTENDED)) {
         phy_data_t *const data = (phy_data_t *const)dev->data;
-        MEPA_RC(rc, lan8x8x_config_led(dev, gpio_conf));
+        rc = lan8x8x_config_led(dev, gpio_conf);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
         //updata metadata
         (void) memcpy(&data->led_conf[gpio_conf->led_num], gpio_conf, sizeof(mepa_gpio_conf_t));
     } else if ((mode == MEPA_GPIO_MODE_PTP_REF_CLK) ||
@@ -723,25 +745,186 @@ static mepa_rc lan8x8x_gpio_mode_set_private(mepa_device_t *dev,
         clk_en = PHY_TRUE;
         gpio_no = ((mode == MEPA_GPIO_MODE_PTP_REF_CLK) ? 1U : 2U);
     } else {
-        /* Event misra_c_2012_rule_15_7_violation:  No non-empty terminating "else" statement. */
+        // Event misra_c_2012_rule_15_7_violation:  No non-empty terminating "else" statement.
     }
     if (gpio_no < 3U) {
         if (gpio_en) {
             val = ((uint16_t)1U << (4U + gpio_no));
             dir = dir << gpio_no;
-            MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_GPIO_DIR, dir, dir));
+            rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_GPIO_DIR, dir, dir);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
         } else if (clk_en) {
             val = ((uint16_t)1U << (8U + gpio_no));
         } else {
-            /*  Event misra_c_2012_rule_15_7_violation: No non-empty terminating "else" statement. */
+            // Event misra_c_2012_rule_15_7_violation: No non-empty terminating "else" statement.
         }
-        MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_REG_CONTROL1,
-                                       ((gpio_en || clk_en) ? val : 0U), val));
+        rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_REG_CONTROL1,
+                                ((gpio_en || clk_en) ? val : 0U), val);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
     } else {
         rc = MEPA_RC_NOT_IMPLEMENTED;
     }
 
     return rc;
+}
+
+static void lan8x8x_macsec_disable(mepa_device_t *const dev)
+{
+    static const struct lan8x8x_regwr_map mac_dis[] = {
+        // Bypass Egress
+        {0x9U, 0x1880U, 0x103U, 1U, 0U},
+        {0x9U, 0x1880U, 0x101U, 1U, 0U},
+        // Bypass Ingress
+        {0x8U, 0x1880U, 0x103U, 1U, 0U},
+        {0x8U, 0x1880U, 0x101U, 1U, 0U},
+        // Bypass MACsec mega block
+        {MDIO_MMD_VEND1, XGMII_GMII_BYPASS, 0x1U, 0U, 0U},
+    };
+
+    (void) lan8x8x_phy_regsetup(dev, mac_dis, (sizeof(mac_dis) / sizeof((mac_dis)[0])));
+}
+
+static mepa_rc lan8x8x_mac_init(mepa_device_t *dev, mepa_bool_t is_host, uint32_t base)
+{
+    uint8_t mmd = MMD_LINE_HOST;
+    mepa_rc rc = MEPA_RC_ERROR;
+    uint32_t val;
+
+    //Host or Line MACSec block clock enable and sw_rst
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_ENA_CFG(base),
+                          MCHP_LH_MAC_MAC_ENA_CFG_MS_RST);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //Host or Line MACSec block clock enable and out of sw_rst
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_ENA_CFG(base),
+                          MCHP_LH_MAC_MAC_ENA_CFG_MS_EN);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //adv_chk
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_ADV_CHK_CFG(base),
+                          MCHP_LH_MAC_MAC_ADV_CHK_INIT);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //LFS Config
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_LFS_CFG(base), 0);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //mac_maxlen
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_MAXLEN_CFG(base),
+                          (MCHP_LH_MAC_MAXLEN_TAG_CHK |
+                           (0xFF00U)));
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //packet interface
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_PKTINF_CFG(base),
+                          ((is_host) ?
+                           (MCHP_LH_MAC_PKTINF_CFG_INIT |
+                            MCHP_LH_MAC_PKTINF_CFG_ENABLE_TX_PADDING) :
+                           MCHP_LH_MAC_PKTINF_CFG_INIT));
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //Setup pause_cfg
+    val = ((is_host) ? 0x34C6U : 0x2429U);
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_PAUSE_TX_FRAME_CTL(base),
+                          MCHP_LH_MAC_TX_PAUSE_VALUE(val));
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_PAUSE_TX_FRAME_CTL_2(base),
+                          0xffffU);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    //mac_mode enable
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_LH_MAC_MODE_CFG(base),
+                          (MCHP_LH_MAC_MODE_UNDERSIZED_FRAME_DROP_DIS |
+                           MCHP_LH_MAC_MODE_FORCE_CW_UPDATE_INTERVAL(64U) |
+                           MCHP_LH_MAC_MODE_DISABLE_DIC));
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    if (is_host) {
+        rc = phy_mmd_reg_wr32(dev, mmd,
+                              MCHP_LH_MAC_NUM_TAGS_CFG(base),
+                              0U);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+    }
+
+    return MEPA_RC_OK;
+}
+
+static mepa_rc lan8x8x_fc_buff_init(mepa_device_t *dev, uint32_t base)
+{
+    uint8_t mmd = MMD_FCB;
+    mepa_rc rc = MEPA_RC_ERROR;
+    uint32_t val = ZERO;
+
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_MAC_FCB_FC_ENA_CFG(base),
+                          MCHP_FCB_ENA_CFG_TX_ENA |
+                          MCHP_FCB_ENA_CFG_RX_ENA);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_MAC_FCB_FC_MODE_CFG(base),
+                          MCHP_FCB_MODE_CFG_TX_CTRL_QUEUE_ENA);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_MAC_FCB_PPM_RATE_ADAPT_THRESH_CFG(base),
+                          (0x28U |
+                           MCHP_FCB_PPM_RATE_ADAPT_THRESH_CFG_TX_OFFSET(val) |
+                           MCHP_FCB_PPM_RATE_ADAPT_THRESH_CFG_RX_THRESH(0x32U)));
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_wr32(dev, mmd,
+                          MCHP_FCB_FC_STICKY_MASK(base),
+                          MCHP_FCB_STICKY_MASK_SET);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    val = 0x0006U;
+    return phy_mmd_reg_wr32(dev, mmd,
+                            MCHP_MAC_FCB_FC_READ_THRESH_CFG(base),
+                            (MCHP_FCB_FC_READ_THRESH_CFG_TX_THRESH(val) |
+                             MCHP_FCB_FC_READ_THRESH_CFG_RX_THRESH(val)));
 }
 
 //one-time configuration to be done after CONFIG_DONE
@@ -751,11 +934,28 @@ static mepa_rc lan8x8x_onetime_post_config_done(mepa_device_t *const dev)
     mepa_rc rc;
 
     if (!data->init_done) {
+        rc = lan8x8x_mac_init(dev, PHY_TRUE, T1_BASE_HOST);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
 
-        /* Bypass MACsec mega block */
-        MEPA_RC(rc, phy_mmd_reg_set_bits(dev, MDIO_MMD_VEND1,
-                                         XGMII_GMII_BYPASS,
-                                         XGMII_BYPASS_SEL));
+        rc = lan8x8x_mac_init(dev, PHY_FALSE, T1_BASE_LINE);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = lan8x8x_fc_buff_init(dev, T1_BASE_FCB);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        lan8x8x_macsec_disable(dev);
+
+        //MAC Setup - SGMII-aneg must be initiated post T1 link-up
+        rc = lan8x8x_config_mac(dev);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
 
         data->init_done = PHY_TRUE;
     }
@@ -765,15 +965,20 @@ static mepa_rc lan8x8x_onetime_post_config_done(mepa_device_t *const dev)
 
 static mepa_rc lan8x8x_config_done(mepa_device_t *const dev, mepa_bool_t skip_config)
 {
-    mepa_rc rc = MEPA_RC_ERROR;
+    mepa_rc rc;
 
-    /* Enable LINK_CONTROL + CONFIG_DONE */
-    MEPA_RC(rc, phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
-                                 T1_1G_TOP_CTRL_CONFIG,
-                                 T1_1G_TOP_CTRL_CONFIG_SET));
+    // Enable LINK_CONTROL + CONFIG_DONE
+    rc = phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD, T1_1G_TOP_CTRL_CONFIG,
+                          T1_1G_TOP_CTRL_CONFIG_SET);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     if (!skip_config) {
-        return lan8x8x_onetime_post_config_done(dev);
+        rc = lan8x8x_onetime_post_config_done(dev);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
     }
 
     return MEPA_RC_OK;
@@ -787,7 +992,7 @@ static mepa_bool_t lan8x8x_speed_config(mepa_device_t *const dev, mesa_port_spee
         (void) phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
                                 T1_1G_E100T1_PMD_ADPLL_CFG_0, 0x600E2804U);
 
-        /* AFE Config */
+        // AFE Config
         (void) phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
                                 T1_1G_E100T1_PMA_ADFE_CFG2, 0x14F4040CU);
 
@@ -818,30 +1023,26 @@ static mepa_rc lan8x8x_phy_config(mepa_device_t *const dev, mesa_port_speed_t sp
 static mepa_rc lan8x8x_pma_baset1_setup_forced(mepa_device_t *const dev)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
-    mepa_rc rc = MEPA_RC_OK;
     uint16_t reg_val = 0;
 
-    /* mode configuration */
+    // mode configuration
     if (data->conf.man_neg == MEPA_MANUAL_NEG_REF) {
         reg_val |= MDIO_PMA_PMD_BT1_CTRL_CFG_MST;
     }
 
-    /* speed configuration */
+    // speed configuration
     if ((data->media_intf != MESA_PHY_MEDIA_IF_T1_100FX) &&
         (data->conf.speed == MESA_SPEED_1G)) {
         reg_val |= LAN8X8X_PMA_COMM_100T1_CTL_T1_TYPE_1000;
     }
 
-    MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_PMAPMD,
-                               MDIO_PMA_PMD_BT1_CTRL, reg_val));
-
-    return MEPA_RC_OK;
+    return phy_mmd_reg_wr(dev, MDIO_MMD_PMAPMD, MDIO_PMA_PMD_BT1_CTRL, reg_val);
 }
 
 static mepa_rc lan8x8x_pma_baset1_setup_aneg(mepa_device_t *const dev)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
     u16 adv_r1 = 0;
     u16 adv_r2_mask = 0;
     u16 adv_r2 = 0;
@@ -863,40 +1064,65 @@ static mepa_rc lan8x8x_pma_baset1_setup_aneg(mepa_device_t *const dev)
         adv_r2 |= MDIO_AN_T1_ADV_M_B100;
     }
 
-    MEPA_RC(rc, phy_mmd_reg_modify(dev, MDIO_MMD_AN, MDIO_AN_T1_ADV_M,
-                                   adv_r2_mask, adv_r2));
+    rc = phy_mmd_reg_modify(dev, MDIO_MMD_AN, MDIO_AN_T1_ADV_M,
+                            adv_r2_mask, adv_r2);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     /* NOTE:
      *  The Base Page value is transferred to mr_adv_ability when register 7.514 is written.
      *  Therefore, registers 7.515 and 7.516 should be written before 7.514.
      */
-    MEPA_RC(rc, phy_mmd_reg_wr(dev, MDIO_MMD_AN, MDIO_AN_T1_ADV_L,
-                               adv_r1));
+    rc = phy_mmd_reg_wr(dev, MDIO_MMD_AN, MDIO_AN_T1_ADV_L, adv_r1);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    MEPA_RC(rc, phy_mmd_reg_set_bits(dev, MDIO_MMD_AN, MDIO_AN_T1_CTRL,
-                                     MDIO_AN_CTRL1_ENABLE |
-                                     MDIO_AN_CTRL1_RESTART));
-
-    return MEPA_RC_OK;
+    return phy_mmd_reg_set_bits(dev, MDIO_MMD_AN, MDIO_AN_T1_CTRL,
+                                MDIO_AN_CTRL1_ENABLE | MDIO_AN_CTRL1_RESTART);
 }
 
 static mepa_rc lan8x8x_phy_setup(mepa_device_t *const dev)
 {
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
     phy_data_t *const data = (phy_data_t *const)dev->data;
 
-    MEPA_RC(rc, phy_get_device_info(dev));
+    rc = phy_get_device_info(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    MEPA_RC(rc, lan8x8x_phy_reset(dev));
+    rc = lan8x8x_phy_reset(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    MEPA_RC(rc, lan8x8x_phy_init(dev));
+    rc = lan8x8x_phy_init(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     if (data->conf.speed == MESA_SPEED_AUTO) {
-        MEPA_RC(rc, lan8x8x_pma_baset1_setup_aneg(dev));
-        MEPA_RC(rc, lan8x8x_config_done(dev, PHY_FALSE));
+        rc = lan8x8x_pma_baset1_setup_aneg(dev);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = lan8x8x_config_done(dev, PHY_FALSE);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
     } else {
-        MEPA_RC(rc, lan8x8x_pma_baset1_setup_forced(dev));
-        MEPA_RC(rc, lan8x8x_phy_config(dev, data->conf.speed, PHY_FALSE));
+        rc = lan8x8x_pma_baset1_setup_forced(dev);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = lan8x8x_phy_config(dev, data->conf.speed, PHY_FALSE);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
     }
 
     T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u setup complete!\n", data->port_no);
@@ -906,10 +1132,11 @@ static mepa_rc lan8x8x_phy_setup(mepa_device_t *const dev)
 
 static mepa_rc lan8x8x_config_set(mepa_device_t *dev, const mepa_conf_t *config)
 {
-    mepa_rc rc = MEPA_RC_OK;
+    mepa_rc rc;
     phy_data_t *const data = (phy_data_t *const)dev->data;
     mepa_bool_t re_config = PHY_FALSE;
 
+    T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u config_set start!\n", data->port_no);
     if (((config->man_neg != MEPA_MANUAL_NEG_CLIENT) &&
          (config->man_neg != MEPA_MANUAL_NEG_REF)) ||
         (config->fdx != PHY_TRUE) ||
@@ -929,7 +1156,11 @@ static mepa_rc lan8x8x_config_set(mepa_device_t *dev, const mepa_conf_t *config)
         // Setup Speed
         if (data->conf.speed != speed) {
             //check media/speed/aneg capabilities
-            MEPA_RC(rc, lan8x8x_check_media(dev, data->media_intf, speed));
+            rc = lan8x8x_check_media(dev, data->media_intf, speed);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
+
             re_config = PHY_TRUE;
             data->conf.speed = speed;
         }
@@ -950,21 +1181,31 @@ static mepa_rc lan8x8x_config_set(mepa_device_t *dev, const mepa_conf_t *config)
             //config change and admin enable
             if (data->conf.admin.enable == PHY_TRUE) {
                 //clear power down bit
-                MEPA_RC(rc, phy_mmd_reg_clear_bits(dev, MDIO_MMD_PMAPMD,
-                                                   MDIO_CTRL1, BMCR_PDOWN));
+                rc = phy_mmd_reg_clear_bits(dev, MDIO_MMD_PMAPMD,
+                                            MDIO_CTRL1, BMCR_PDOWN);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
+
                 //Setup PHY
-                MEPA_RC(rc, lan8x8x_phy_setup(dev));
+                rc = lan8x8x_phy_setup(dev);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
             } else {
                 //Power down
-                MEPA_RC(rc, phy_mmd_reg_set_bits(dev, MDIO_MMD_PMAPMD,
-                                                 MDIO_CTRL1, BMCR_PDOWN));
+                rc = phy_mmd_reg_set_bits(dev, MDIO_MMD_PMAPMD,
+                                          MDIO_CTRL1, BMCR_PDOWN);
+                if (rc != MEPA_RC_OK) {
+                    return rc;
+                }
             }
         }
 
         rc = MEPA_RC_OK;
     }
 
-    T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u config_set complete!\n", data->port_no);
+    T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u config_set complete! rc=%d\n", data->port_no, rc);
 
     return rc;
 }
@@ -975,8 +1216,10 @@ static mepa_rc lan8x8x_aneg_resolve_master_slave(mepa_device_t *dev,
     uint32_t val;
     mepa_rc rc;
 
-    MEPA_RC(rc, phy_mmd_reg_rd32(dev, MDIO_MMD_AN,
-                                 T1_AUTONEG_STATUS, &val));
+    rc = phy_mmd_reg_rd32(dev, MDIO_MMD_AN, T1_AUTONEG_STATUS, &val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     *mode = MASTER_SLAVE_STATE_SLAVE;
     if ((val & T1_AUTONEG_MS_CONFIG_FAULT) != 0U) {
@@ -993,8 +1236,7 @@ static mepa_rc lan8x8x_aneg_resolve_master_slave(mepa_device_t *dev,
 static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
                                         mepa_status_t *status)
 {
-    mepa_rc rc = MEPA_RC_INCOMPLETE;
-    //mepa_bool_t lp_sym_pause, lp_asym_pause;
+    mepa_rc rc;
     uint16_t val = 0, lp_l = 0, lp_m = 0;
     phy_data_t *data = (phy_data_t *)dev->data;
 
@@ -1003,17 +1245,24 @@ static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
     status->link = PHY_FALSE;
     status->speed = MESA_SPEED_UNDEFINED;
 
-    MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val));
-    if ((val & MDIO_AN_STAT1_COMPLETE) == ZERO) {
-        T_D(MEPA_TRACE_GRP_GEN, "aneg is not completed \r\n");
-    } else {
-        rc = MEPA_RC_OK;
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
+    if ((val & MDIO_AN_STAT1_COMPLETE) == ZERO) {
+        T_D(MEPA_TRACE_GRP_GEN, "aneg is not completed(0x%x)\r\n", val);
+    } else {
         T_I(MEPA_TRACE_GRP_GEN, "aneg is complete!\r\n");
-        MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN,
-                                   MDIO_AN_T1_LP_L, &lp_l));
-        MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN,
-                                   MDIO_AN_T1_LP_M, &lp_m));
+        rc = phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_LP_L, &lp_l);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_LP_M, &lp_m);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
 
         T_I(MEPA_TRACE_GRP_GEN, "aneg lp_l=0x%x, lp_m=0x%x\r\n", lp_l, lp_m);
         if (((lp_m & T1_LPA_1000FULL) == T1_LPA_1000FULL) &&
@@ -1025,7 +1274,6 @@ static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
         } else {
             status->speed = MESA_SPEED_UNDEFINED;
         }
-        //T_D(MEPA_TRACE_GRP_GEN,  MEPA_TRACE_GRP_GEN, "aneg link resolved \r\n");
     }
 
     return rc;
@@ -1052,7 +1300,7 @@ static void lan8x8x_fill_probe_data(mepa_driver_t *drv,
     data->conf.admin.enable = PHY_TRUE;
     data->conf.fdx = PHY_TRUE;
     //mac-if aneg must be enabled always
-    data->conf.mac_if_aneg_ena = PHY_FALSE;
+    data->conf.mac_if_aneg_ena = PHY_TRUE;
 
     //Read OTP capabilities
     lan8x8x_read_capabilities(dev);
@@ -1060,17 +1308,24 @@ static void lan8x8x_fill_probe_data(mepa_driver_t *drv,
     //phy aneg
     data->conf.aneg.speed_1g_fdx = PHY_FALSE;
     data->conf.aneg.speed_100m_fdx = PHY_FALSE;
-    if (IS_LAN878X(dev->drv->id) || !data->t1_cap.dis_100) {
+    if ((IS_LAN878X(dev->drv->id) == ONE) || !data->t1_cap.dis_100) {
         data->conf.aneg.speed_100m_fdx = PHY_TRUE;
         data->media_intf = MESA_PHY_MEDIA_IF_T1_100FX;
     }
-    if (IS_LAN888X(dev->drv->id) && !data->t1_cap.dis_1000) {
+    if ((IS_LAN888X(dev->drv->id) == ONE) && !data->t1_cap.dis_1000) {
         data->media_intf = MESA_PHY_MEDIA_IF_T1_1000FX;
         data->conf.aneg.speed_1g_fdx = PHY_TRUE;
     }
 
+    //Default LED settings
+    data->led_conf[MEPA_LED0].led_num = MEPA_LED0;
+    data->led_conf[MEPA_LED0].mode = MEPA_GPIO_MODE_LED_LINK1000_ACTIVITY;
+    data->led_conf[MEPA_LED1].led_num = MEPA_LED1;
+    data->led_conf[MEPA_LED1].mode = MEPA_GPIO_MODE_LED_LINK100_ACTIVITY;
     data->led_conf[MEPA_LED2].led_num = MEPA_LED2;
-    data->led_conf[MEPA_LED2].mode = MEPA_GPIO_MODE_LED_LINK_ACTIVITY;
+    data->led_conf[MEPA_LED2].mode = MEPA_GPIO_MODE_LED_MASTER_SLAVE_MODE;
+    data->led_conf[MEPA_LED3].led_num = MEPA_LED3;
+    data->led_conf[MEPA_LED3].mode = MEPA_GPIO_MODE_LED_PCS_RX_ERR_STATUS;
 
     //Cable diag data reset
     data->cd_res.link = PHY_LINKDOWN;
@@ -1080,7 +1335,28 @@ static void lan8x8x_fill_probe_data(mepa_driver_t *drv,
     (void) lan8x8x_phy_setup(dev);
 
     T_I(MEPA_TRACE_GRP_GEN,   "phy probe port=%u probed phy_id=0x%x\n",
-          data->port_no, dev->drv->id);
+        data->port_no, dev->drv->id);
+}
+
+static mepa_rc lan8x8x_delete(mepa_device_t *dev)
+{
+    mepa_rc rc = MEPA_RC_ERROR;
+
+    if (dev != NULL) {
+
+        //cleanup
+#ifdef MEPA_lan8x8x_static_mem
+        T_D(MEPA_TRACE_GRP_GEN,   "static driver cleanup!!\n");
+        (void) memset(dev->data, 0, sizeof(phy_data_t));
+        (void) memset(dev, 0, sizeof(mepa_device_t));
+        rc = MEPA_RC_OK;
+#else
+        T_D(MEPA_TRACE_GRP_GEN,   "dynamic driver cleanup!!\n");
+        rc = mepa_delete_int(dev);
+#endif
+    }
+
+    return rc;
 }
 
 /**********************************
@@ -1089,7 +1365,6 @@ static void lan8x8x_fill_probe_data(mepa_driver_t *drv,
 
 /**********************************
  * External driver callbacks
- * MEPA_RC must be used to unlock and return!
  *********************************/
 static mepa_rc lan8x8x_sqi_read(mepa_device_t *dev, uint32_t *const value)
 {
@@ -1111,26 +1386,6 @@ static mepa_rc lan8x8x_sqi_read(mepa_device_t *dev, uint32_t *const value)
             *value = LAN8X8X_SQI_GET(sqi_val);
         }
         MEPA_EXIT(dev);
-    }
-
-    return rc;
-}
-
-static mepa_rc lan8x8x_delete(mepa_device_t *dev)
-{
-    mepa_rc rc = MEPA_RC_ERROR;
-
-    if (dev != NULL) {
-        //cleanup
-#ifdef MEPA_lan8x8x_static_mem
-        T_D(MEPA_TRACE_GRP_GEN,   "static driver cleanup!!\n");
-        (void) memset(dev->data, 0, sizeof(phy_data_t));
-        (void) memset(dev, 0, sizeof(mepa_device_t));
-        rc = MEPA_RC_OK;
-#else
-        T_D(MEPA_TRACE_GRP_GEN,   "dynamic driver cleanup!!\n");
-        rc = mepa_delete_int(dev);
-#endif
     }
 
     return rc;
@@ -1262,7 +1517,7 @@ static mepa_rc lan8x8x_reg_read(mepa_device_t *dev, uint32_t addr, uint16_t *con
 
     if ((dev != NULL) && (value != NULL)) {
         MEPA_ENTER(dev);
-        rc = phy_reg_rd(dev, LAN8X8X_PHY_REG_ADDR(addr), value);
+        rc = phy_reg_rd(dev, PHY_REG_ADDR(addr), value);
         MEPA_EXIT(dev);
     }
 
@@ -1276,7 +1531,7 @@ static mepa_rc lan8x8x_reg_write(mepa_device_t *dev, uint32_t addr, uint16_t val
 
     if (dev != NULL) {
         MEPA_ENTER(dev);
-        rc = phy_reg_wr(dev, LAN8X8X_PHY_REG_ADDR(addr), value);
+        rc = phy_reg_wr(dev, PHY_REG_ADDR(addr), value);
         MEPA_EXIT(dev);
     }
 
@@ -1325,6 +1580,12 @@ static mepa_rc lan8x8x_if_set(mepa_device_t *dev, mepa_port_interface_t mac_if)
             (mac_if == MESA_PORT_INTERFACE_SGMII)) {
             phy_data_t *const data = (phy_data_t *const)dev->data;
 
+            if (((data->t1_cap.is_sgmii) &&
+                 (mac_if != MESA_PORT_INTERFACE_SGMII)) ||
+                ((!data->t1_cap.is_sgmii) &&
+                 (mac_if == MESA_PORT_INTERFACE_SGMII))) {
+                return rc;
+            }
             rc = MEPA_RC_OK;
             if (data->mac_if != mac_if) {
                 MEPA_ENTER(dev);
@@ -1420,7 +1681,7 @@ static mepa_rc lan8x8x_media_get(mepa_device_t *dev,
     return rc;
 }
 
-/* Set gpio mode to input, output or alternate function */
+// Set gpio mode to input, output or alternate function
 static mepa_rc lan8x8x_gpio_mode_set(mepa_device_t *dev, const mepa_gpio_conf_t *gpio_conf)
 {
     mepa_rc rc = MEPA_RC_ERROR;
@@ -1464,7 +1725,7 @@ static mepa_rc lan8x8x_gpio_in_get(mepa_device_t *dev, uint8_t gpio_no, mepa_boo
             rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_GPIO_DATA, &val);
             *value = ((((val >> gpio_no) & ONE) != ZERO) ? PHY_TRUE : PHY_FALSE);
         } else {
-            T_W(MEPA_TRACE_GRP_GEN,  "Not valid gpio on LAN8x8x phy");
+            T_E(MEPA_TRACE_GRP_GEN, "Not valid gpio on LAN8x8x phy");
         }
         MEPA_EXIT(dev);
     }
@@ -1546,34 +1807,34 @@ static mepa_rc lan8x8x_event_status_poll_int(mepa_device_t *dev,
                                              mepa_event_t *const status)
 {
     const phy_data_t *const data = (const phy_data_t *const)dev->data;
-    uint32_t int_sts = 0, int_mask = 0, i;
+    uint32_t int_sts = 0, int_mask = 0;
     uint16_t en0_sts = 0, en0_mask = 0;
     uint16_t en1_sts = 0, en1_mask = 0;
-    mepa_rc rc = MEPA_RC_ERROR;
-    uint16_t event_set = 0;
+    mepa_rc rc;
+    uint16_t event_set = 0, i;
     *status = 0;
 
-    MEPA_RC(rc,
-            phy_mmd_reg_rd(dev, MDIO_MMD_VEND1,
-                           LAN8X8X_INT_EN0_SC,
-                           &en0_mask));
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_INT_EN0_SC, &en0_mask);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    MEPA_RC(rc,
-            phy_mmd_reg_rd(dev, MDIO_MMD_VEND1,
-                           LAN8X8X_INT_STS0_SC,
-                           &en0_sts));
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_INT_STS0_SC, &en0_sts);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     en0_sts = en0_sts & en0_mask;
 
-    MEPA_RC(rc,
-            phy_mmd_reg_rd(dev, MDIO_MMD_VEND1,
-                           LAN8X8X_INT_EN1_SC,
-                           &en1_mask));
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_INT_EN1_SC, &en1_mask);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
-    MEPA_RC(rc,
-            phy_mmd_reg_rd(dev, MDIO_MMD_VEND1,
-                           LAN8X8X_INT_STS1_SC,
-                           &en1_sts));
+    rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_INT_STS1_SC, &en1_sts);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
 
     en1_sts = en1_sts & en1_mask;
 
@@ -1583,37 +1844,29 @@ static mepa_rc lan8x8x_event_status_poll_int(mepa_device_t *dev,
 
     if (en1_sts != ZERO) {
         for (i = ZERO; i < 9U; i++) {
-            uint16_t mask = BIT(i);
+            uint16_t mask = (ONE << i);
 
-            switch (en1_sts & mask) {
-            case LAN8X8X_INT_EN1_PTP_PRT:
+            if ((en1_sts & mask) == LAN8X8X_INT_EN1_PTP_PRT) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_TX_FIFO_OVERFLOW_INT_EV;
-                break;
-            case LAN8X8X_INT_EN1_MS_HMAC_EN:
+            } else if ((en1_sts & mask) == LAN8X8X_INT_EN1_MS_HMAC_EN) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_EXT_MACSEC_HOST_MAC_EV;
-                break;
-            case LAN8X8X_INT_EN1_MS_LMAC_EN:
+            } else if ((en1_sts & mask) == LAN8X8X_INT_EN1_MS_LMAC_EN) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_EXT_MACSEC_LINE_MAC_EV;
-                break;
-            case LAN8X8X_INT_EN1_MS_FCB_EN:
+            } else if ((en1_sts & mask) == LAN8X8X_INT_EN1_MS_FCB_EN) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_EXT_MACSEC_FC_BUFF_EV;
-                break;
-            case LAN8X8X_INT_EN1_MS_IG_EN:
+            } else if ((en1_sts & mask) == LAN8X8X_INT_EN1_MS_IG_EN) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_EXT_MACSEC_INGRESS_EV;
-                break;
-            case LAN8X8X_INT_EN1_MS_EG_EN:
+            } else if ((en1_sts & mask) == LAN8X8X_INT_EN1_MS_EG_EN) {
                 en1_sts &= ~mask;
                 *status |= MESA_PHY_LINK_EXT_MACSEC_EGRESS_EV;
-                break;
-            default:
+            } else {
                 //Not implemented
                 en1_sts &= ~mask;
-                break;
             }
 
             if (en1_sts == ZERO) {
@@ -1625,14 +1878,17 @@ static mepa_rc lan8x8x_event_status_poll_int(mepa_device_t *dev,
 
     event_set = (en0_sts & LAN8X8X_INT_EN0_T1_DATA_FAULT);
     if (event_set == LAN8X8X_INT_EN0_T1_DATA_FAULT) {
-        MEPA_RC(rc,
-                phy_mmd_reg_rd32(dev, MDIO_MMD_PMAPMD,
-                                 LAN8X8X_INT_IRQ_FUNC_MSK,
-                                 &int_mask));
-        MEPA_RC(rc,
-                phy_mmd_reg_rd32(dev, MDIO_MMD_PMAPMD,
-                                 LAN8X8X_INT_IRQ_FUNC_STS,
-                                 &int_sts));
+        rc = phy_mmd_reg_rd32(dev, MDIO_MMD_PMAPMD, LAN8X8X_INT_IRQ_FUNC_MSK,
+                              &int_mask);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        rc = phy_mmd_reg_rd32(dev, MDIO_MMD_PMAPMD, LAN8X8X_INT_IRQ_FUNC_STS,
+                              &int_sts);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
 
         //Clear interrupts that are set in status
         (void) phy_mmd_reg_wr32(dev, MDIO_MMD_PMAPMD,
@@ -1644,22 +1900,24 @@ static mepa_rc lan8x8x_event_status_poll_int(mepa_device_t *dev,
 
     if (int_sts != ZERO) {
         for (i = ONE; i < 9U; i++) {
-            uint16_t mask = BIT(i);
+            uint32_t mask = BIT32(i);
 
-            switch (int_sts & mask) {
-            case LAN8X8X_INT_LINK_CHANGE_1G:
-            case LAN8X8X_INT_LINK_CHANGE:
+            if (((int_sts & mask) == LAN8X8X_INT_LINK_CHANGE_1G) ||
+                ((int_sts & mask) == LAN8X8X_INT_LINK_CHANGE)) {
                 int_sts &= ~mask;
                 *status |= MESA_PHY_LINK_SPEED_STATE_CHANGE_EV;
-                break;
-            case LAN8X8X_INT_MS_TRAINING_COMP:
+            } else if ((int_sts & mask) == LAN8X8X_INT_MS_TRAINING_COMP) {
                 int_sts &= ~mask;
                 *status |= MESA_PHY_LINK_AUTO_NEG_COMPLETE_EV;
-                break;
-            default:
+            } else if ((int_sts & mask) == LAN8X8X_INT_SLEEP_FAIL) {
+                int_sts &= ~mask;
+                *status |= MESA_PHY_LINK_EXT_TC10_SLEEP_FAIL;
+            } else if ((int_sts & mask) == LAN8X8X_INT_SLEEP_MODE) {
+                int_sts &= ~mask;
+                *status |= MESA_PHY_LINK_EXT_TC10_SLEEP_MODE;
+            } else {
                 //Not implemented
                 int_sts &= ~mask;
-                break;
             }
 
             if (int_sts == ZERO) {
@@ -1693,13 +1951,7 @@ static mepa_rc lan8x8x_isolate_mode_set(mepa_device_t *dev, mepa_bool_t const va
     if (dev != NULL) {
 
         MEPA_ENTER(dev);
-
-        if (val) {
-            rc = phy_reg_set_bits(dev, MII_BMCR, BMCR_ISOLATE);
-        } else {
-            rc = phy_reg_clear_bits(dev, MII_BMCR, BMCR_ISOLATE);
-        }
-
+        rc = lan8x8x_isolate_mode_int(dev, val);
         MEPA_EXIT(dev);
     }
 
@@ -1711,16 +1963,13 @@ static uint32_t lan8x8x_capability_priv(mepa_device_t *dev, uint32_t capability)
     phy_data_t *data = (phy_data_t *)(dev->data);
     uint32_t c;
 
-    switch (capability) {
-    case MEPA_CAP_SPEED_1G:
-        c = data->conf.speed == MESA_SPEED_1G;
-        break;
-    case MEPA_CAP_TS_NONE:
-        c = data->conf.speed != MESA_SPEED_1G;
-        break;
-    default:
-        c = 0;
-        break;
+    if ((capability == (uint32_t)MEPA_CAP_SPEED_1G) &&
+        (data->t1_cap.dis_1000 == PHY_FALSE)) {
+        c = ONE;
+    } else if (capability == (uint32_t)MEPA_CAP_TS_NONE) {
+        c = ONE;
+    } else {
+        c = ZERO;
     }
 
     return c;
@@ -1741,25 +1990,36 @@ static mepa_rc lan8x8x_info_get(mepa_device_t *dev,
                                 mepa_phy_info_t *const phy_info)
 {
     mepa_rc rc = MEPA_RC_ERROR;
+    uint32_t cap = 0;
 
     if ((dev != NULL) && (phy_info != NULL)) {
         const phy_data_t *const data = (const phy_data_t *const)dev->data;
 
         MEPA_ENTER(dev);
-        phy_info->part_number = data->dev.model;
+        phy_info->part_number = data->dev.part_id;
         phy_info->revision = data->dev.rev;
-        phy_info->cap = 0;
-        if (lan8x8x_capability_priv(dev, MEPA_CAP_SPEED_1G)) {
-            phy_info->cap |= MEPA_CAP_SPEED_MASK_1G;
+
+        if ((lan8x8x_capability_priv(dev, (uint32_t)MEPA_CAP_SPEED_1G) > 0U) &&
+            (data->t1_cap.dis_1000 == PHY_FALSE)) {
+            cap |= (uint32_t)MEPA_CAP_SPEED_MASK_1G;
         }
 
-        if (lan8x8x_capability_priv(dev, MEPA_CAP_TS_NONE)) {
-            phy_info->cap |= MEPA_CAP_TS_MASK_NONE;
+        if (lan8x8x_capability_priv(dev, (uint32_t)MEPA_CAP_TS_NONE) > 0U) {
+            cap |= (uint32_t)MEPA_CAP_TS_MASK_NONE;
         }
+        phy_info->cap = cap;
 
         phy_info->manufactor_name = "Microchip";
-        phy_info->model_name = "LAN8X8X";
-
+        if (data->dev.id == PHY_ID_LAN878X) {
+            phy_info->model_name = "LAN878X";
+        } else {
+            if ((data->dev.part_id == 0x8782U) ||
+                (data->dev.part_id == 0x878BU)) {
+                phy_info->model_name = "LAN878X";
+            } else {
+                phy_info->model_name = "LAN888X";
+            }
+        }
         rc = MEPA_RC_OK;
         MEPA_EXIT(dev);
     }
@@ -1772,50 +2032,24 @@ static mepa_rc lan8x8x_debug_info(mepa_device_t *dev,
                                   const mepa_debug_print_t pr,
                                   const mepa_debug_info_t   *const info)
 {
-    struct phy_reg_dbg lan8x8x_regs[] = {
-        {"CL22 Control",                0U, 0U, 0U, 0U, 0U},
-        {"CL22 Status",                 0U, 1U, 0U, 0U, 0U},
-        {"CHIPTOP:MACSEC_STATUS",       MDIO_MMD_VEND1, (CHIPTOP + 0x2U), 0U, 0U, 0U},
-        {"CHIPTOP:MAC_NE_LPBK",         MDIO_MMD_VEND1, (CHIPTOP + 0x1FU), 0U, 0U, 0U},
-        {"CHIPTOP:T1_PHY_RES_CAL",      MDIO_MMD_VEND1, (CHIPTOP + 0x28U), 0U, 0U, 0U},
-        {"CHIPTOP:T1_PHY_COMM_READY",   MDIO_MMD_VEND1, (CHIPTOP + 0x2DU), 0U, 0U, 0U},
-        {"CHIPTOP:STRAP_READ_REG",      MDIO_MMD_VEND1, (CHIPTOP + 0x36U), 0U, 0U, 0U},
-        {"CHIPTOP:CLKOUT_CONFIG",       MDIO_MMD_VEND1, (CHIPTOP + 0x37U), 0U, 0U, 0U},
+    static const struct phy_reg_dbg lan8x8x_regs[] = {
+        {"CL22 Control",              0U, 0U, 0U, 0U, 0U},
+        {"CL22 Status",           0U, 1U, 0U, 0U, 0U},
+        {"CHIPTOP:MACSEC_STATUS",     MDIO_MMD_VEND1, (CHIPTOP + 0x2U), 0U, 0U, 0U},
+        {"CHIPTOP:T1_PHY_COMM_READY", MDIO_MMD_VEND1, (CHIPTOP + 0x2DU), 0U, 0U, 0U},
+        {"CHIPTOP:STRAP_READ_REG",  MDIO_MMD_VEND1, (CHIPTOP + 0x36U), 0U, 0U, 0U},
         {"CHIPTOP:OTP_STRAP_REG",   MDIO_MMD_VEND1, (OTP_STRAP_READ_REG), 0U, 0U, 0U},
-        {"T1_1G_TOP_CTRL_CONFIG",   MDIO_MMD_PMAPMD, T1_1G_TOP_CTRL_CONFIG, 0U, 0U, 0U},
-        {"T1_1G_E1000T1_PCS_EN",    MDIO_MMD_PCS, T1_1G_E1000T1_PCS_EN, 0U, 0U, 1U},
-        {"CLK_RST_RGMII_RX_DLL_CFG",    MDIO_MMD_VEND1, LAN8X8X_RGMII_RX_DLL_CFG, 0U, 0U, 0U},
-        {"CLK_RST_RGMII_TX_DLL_CFG",    MDIO_MMD_VEND1, LAN8X8X_RGMII_TX_DLL_CFG, 0U, 0U, 0U},
-        {"OTP:OTP_PRG",         MDIO_MMD_VEND1, (T1_OTP_RO + 0x10), 0U, 0U, 0U},
-        {"OTP:EMU_CONTROL",     MDIO_MMD_VEND1, (T1_OTP_RO + 0x11), 0U, 0U, 0U},
-        {"OTP:PART_ID",         MDIO_MMD_VEND1, (T1_OTP_RO + 0x13), 0U, 0U, 0U},
-        {"OTP:MODEL_REV",       MDIO_MMD_VEND1, (T1_OTP_RO + 0x14), 0U, 0U, 0U},
-        {
-            "OTP:STRAP_OVERRIDE",      MDIO_MMD_VEND1, (T1_OTP_RO + 0x15), 0U, 0U,
-            0U
-        },
-        {"OTP:RGMII0",          MDIO_MMD_VEND1, (T1_OTP_RO + 0x16), 0U, 0U, 0U},
-        {"OTP:RGMII1",          MDIO_MMD_VEND1, (T1_OTP_RO + 0x17), 0U, 0U, 0U},
-        {"OTP:RGMII2",          MDIO_MMD_VEND1, (T1_OTP_RO + 0x18), 0U, 0U, 0U},
-        {"AN:MDIO_AN_T1_ADV_L",   MDIO_MMD_AN, MDIO_AN_T1_ADV_L, 0U, 0U, 0U},
-        {"AN:MDIO_AN_T1_ADV_M",   MDIO_MMD_AN, MDIO_AN_T1_ADV_M, 0U, 0U, 0U},
-        {"AN:MDIO_AN_T1_LP_L",   MDIO_MMD_AN, MDIO_AN_T1_LP_L, 0U, 0U, 0U},
-        {"AN:MDIO_AN_T1_LP_M",   MDIO_MMD_AN, MDIO_AN_T1_LP_M, 0U, 0U, 0U},
-        {"AN:BASE_T1_AN_CONTROL",   MDIO_MMD_AN, MDIO_AN_T1_CTRL, 0U, 0U, 0U},
-        {"AN:BASE_T1_AN_STATUS",    MDIO_MMD_AN, MDIO_AN_T1_STAT, 0U, 0U, 0U},
-        {"AN:AUTONEG_STATUS",       MDIO_MMD_AN, 0x8002, 0U, 0U, 1U},
-        {"SERDES_CLOCK_CONTROL",    MDIO_MMD_VEND1, SERDES_CLOCK_CONTROL, 0U, 0U, 1U},
-        {"QSGMII_PCS1G_CONFIG",     MDIO_MMD_VEND1, QSGMII_PCS1G_CONFIG, 0U, 0U, 0U},
-        {"QSGMII_PCS1G_ANEG_CONFIG",    MDIO_MMD_VEND1, QSGMII_PCS1G_ANEG_CONFIG, 0U, 0U, 0U},
+        {"AN:MDIO_AN_T1_ADV_L", MDIO_MMD_AN, MDIO_AN_T1_ADV_L, 0U, 0U, 0U},
+        {"AN:MDIO_AN_T1_ADV_M", MDIO_MMD_AN, MDIO_AN_T1_ADV_M, 0U, 0U, 0U},
+        {"AN:MDIO_AN_T1_LP_L",  MDIO_MMD_AN, MDIO_AN_T1_LP_L, 0U, 0U, 0U},
+        {"AN:MDIO_AN_T1_LP_M",  MDIO_MMD_AN, MDIO_AN_T1_LP_M, 0U, 0U, 0U},
+        {"AN:BASE_T1_AN_CONTROL", MDIO_MMD_AN, MDIO_AN_T1_CTRL, 0U, 0U, 0U},
+        {"AN:BASE_T1_AN_STATUS",  MDIO_MMD_AN, MDIO_AN_T1_STAT, 0U, 0U, 0U},
+        {"AN:AUTONEG_STATUS",     MDIO_MMD_AN, 0x8002U, 0U, 0U, 1U},
+        {"SERDES_CLOCK_CONTROL",  MDIO_MMD_VEND1, SERDES_CLOCK_CONTROL, 0U, 0U, 0U},
+        {"QSGMII_PCS1G_CONFIG",   MDIO_MMD_VEND1, QSGMII_PCS1G_CONFIG, 0U, 0U, 0U},
+        {"QSGMII_PCS1G_ANEG_CONFIG", MDIO_MMD_VEND1, QSGMII_PCS1G_ANEG_CONFIG, 0U, 0U, 0U},
         {"QSGMII_ANEG_EN_REG",      MDIO_MMD_VEND1, QSGMII_ANEG_EN_REG, 0U, 0U, 0U},
-        {"RX_FIFO_LW_WRCNT",            MDIO_MMD_VEND1, 0xF0AF, 0U, 0U, 0U},
-        {"RX_FIFO_UW_WRCNT",            MDIO_MMD_VEND1, 0xF0B0, 0U, 0U, 0U},
-        {"RX_FIFO_LW_RDCNT",            MDIO_MMD_VEND1, 0xF0B1, 0U, 0U, 0U},
-        {"RX_FIFO_UW_RDCNT",            MDIO_MMD_VEND1, 0xF0B2, 0U, 0U, 0U},
-        {"TX_FIFO_LW_WRCNT",            MDIO_MMD_VEND1, 0xF0B3, 0U, 0U, 0U},
-        {"TX_FIFO_UW_WRCNT",            MDIO_MMD_VEND1, 0xF0B4, 0U, 0U, 0U},
-        {"TX_FIFO_LW_RDCNT",            MDIO_MMD_VEND1, 0xF0B5, 0U, 0U, 0U},
-        {"TX_FIFO_UW_RDCNT",            MDIO_MMD_VEND1, 0xF0B6, 0U, 0U, 0U},
         {"T1_1G_RF_CRC:STATUS",         MDIO_MMD_PMAPMD, 0x8400, 0U, 0U, 1U},
         {"T1_1G_RF_CRC:EXPECTED",       MDIO_MMD_PMAPMD, 0x8402, 0U, 0U, 1U},
         {"T1_1G_RF_CRC:CURRENT",    MDIO_MMD_PMAPMD, 0x8404, 0U, 0U, 1U},
@@ -1823,166 +2057,25 @@ static mepa_rc lan8x8x_debug_info(mepa_device_t *dev,
         {"T1_1G_PRBS_CTL",      MDIO_MMD_PCS, 0x8A00, 0U, 0U, 1U},
         {"T1_1G_PRBS_STS1:CRC_CNT_OVF", MDIO_MMD_PCS, 0x8A08, 0U, 0U, 1U},
         {"T1_1G_PRBS_STS2:CRC_ERRORS",  MDIO_MMD_PCS, 0x8A0A, 0U, 0U, 1U},
-        {"HMAC:RX_XGMII_PROT_ERR_CNT",  0x3, 0xF132, 0U, 0U, 1U},
-        {"HMAC:RX_SYMBOL_ERR_CNT",  0x3, 0xF134, 0U, 0U, 1U},
-        {"HMAC:RX_PAUSE_CNT",       0x3, 0xF136, 0U, 0U, 1U},
-        {"HMAC:RX_UNSUP_OPCODE",    0x3, 0xF138, 0U, 0U, 1U},
-        {"HMAC:RX_UC_CNT",      0x3, 0xF13A, 0U, 0U, 1U},
-        {"HMAC:RX_MC_CNT",      0x3, 0xF13C, 0U, 0U, 1U},
-        {"HMAC:RX_BC_CNT",      0x3, 0xF13E, 0U, 0U, 1U},
-        {"HMAC:RX_CRC_ERR_CNT",     0x3, 0xF140, 0U, 0U, 1U},
-        {"HMAC:RX_UNDERSIZE_CNT",   0x3, 0xF142, 0U, 0U, 1U},
-        {"HMAC:RX_FRAGMENTS_CNT",   0x3, 0xF144, 0U, 0U, 1U},
-        {"HMAC:RX_IN_RANGE_LEN_ERR",    0x3, 0xF146, 0U, 0U, 1U},
-        {"HMAC:RX_OUT_RANGE_LEN_ERR",   0x3, 0xF148, 0U, 0U, 1U},
-        {"HMAC:RX_OVERSIZE_CNT",    0x3, 0xF14A, 0U, 0U, 1U},
-        {"HMAC:RX_JABBERS_CNT",     0x3, 0xF14C, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE64_CNT",      0x3, 0xF14E, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE65TO127_CNT", 0x3, 0xF150, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE128TO255_CNT",    0x3, 0xF152, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE256TO511_CNT",    0x3, 0xF154, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE512TO1023_CNT",   0x3, 0xF156, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE1024TO1518_CNT",  0x3, 0xF158, 0U, 0U, 1U},
-        {"HMAC:RX_SIZE1519TOMAX",   0x3, 0xF15A, 0U, 0U, 1U},
-        {"HMAC:RX_IPG_SHRINK_CNT",  0x3, 0xF15C, 0U, 0U, 1U},
-        {"HMAC:TX_PAUSE_CNT",       0x3, 0xF15E, 0U, 0U, 1U},
-        {"HMAC:TX_UC_CNT",      0x3, 0xF160, 0U, 0U, 1U},
-        {"HMAC:TX_MC_CNT",      0x3, 0xF162, 0U, 0U, 1U},
-        {"HMAC:TX_BC_CNT",      0x3, 0xF164, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE64_CNT",      0x3, 0xF166, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE65TO127_CNT", 0x3, 0xF168, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE128TO255_CNT",    0x3, 0xF16A, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE256TO511_CNT",    0x3, 0xF16C, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE512TO1023_CNT",   0x3, 0xF16E, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE1024TO1518_CNT",  0x3, 0xF170, 0U, 0U, 1U},
-        {"HMAC:TX_SIZE1519TOMAX_CNT",   0x3, 0xF172, 0U, 0U, 1U},
-        {"HMAC:RX_ALIGN_LOST",      0x3, 0xF174, 0U, 0U, 1U},
+        {"EPG:TX_CRCERR_CNTR",  MDIO_MMD_VEND1,  0xF10A, 0U, 0U, 0U},
+        {"EPG:RX_CRCERR_CNTR",  MDIO_MMD_VEND1,  0xF10B, 0U, 0U, 0U},
+        {"RX_FIFO_LW_WRCNT",    MDIO_MMD_VEND1, 0xF0AF, 0U, 0U, 0U},
+        {"RX_FIFO_UW_WRCNT",    MDIO_MMD_VEND1, 0xF0B0, 0U, 0U, 0U},
+        {"RX_FIFO_LW_RDCNT",    MDIO_MMD_VEND1, 0xF0B1, 0U, 0U, 0U},
+        {"RX_FIFO_UW_RDCNT",    MDIO_MMD_VEND1, 0xF0B2, 0U, 0U, 0U},
+        {"TX_FIFO_LW_WRCNT",    MDIO_MMD_VEND1, 0xF0B3, 0U, 0U, 0U},
+        {"TX_FIFO_UW_WRCNT",    MDIO_MMD_VEND1, 0xF0B4, 0U, 0U, 0U},
+        {"TX_FIFO_LW_RDCNT",    MDIO_MMD_VEND1, 0xF0B5, 0U, 0U, 0U},
+        {"TX_FIFO_UW_RDCNT",    MDIO_MMD_VEND1, 0xF0B6, 0U, 0U, 0U},
         {"HMAC:RX_TAGGED_FRAME",    0x3, 0xF176, 0U, 0U, 1U},
         {"HMAC:RX_UNTAGGED_FRAME",  0x3, 0xF178, 0U, 0U, 1U},
         {"HMAC:TX_TAGGED_FRAME",    0x3, 0xF17A, 0U, 0U, 1U},
         {"HMAC:TX_UNTAGGED_FRAME",  0x3, 0xF17C, 0U, 0U, 1U},
-        {"HMAC:PMAC_RX_XGMII_PROT_ERR", 0x3, 0xF17E, 0U, 0U, 1U},
-        {"HMAC:PMAC_RX_SYMB_ERR",   0x3, 0xF180, 0U, 0U, 1U},
-        {"HMAC:PMAC_RX_PAUSE_CNT",  0x3, 0xF182, 0U, 0U, 1U},
-        {"HMAC:PMACRX_UNSUP_OPCODE",    0x3, 0xF184, 0U, 0U, 1U},
-        {"HMAC:PMACRX_UC_CNT",      0x3, 0xF186, 0U, 0U, 1U},
-        {"HMAC:PMACRX_MC_CNT",      0x3, 0xF188, 0U, 0U, 1U},
-        {"HMAC:PMACRX_BC_CNT",      0x3, 0xF18A, 0U, 0U, 1U},
-        {"HMAC:PMACRX_CRC_ERR_CNT", 0x3, 0xF18C, 0U, 0U, 1U},
-        {"HMAC:PMACRX_UNDERSIZE_CNT",   0x3, 0xF18E, 0U, 0U, 1U},
-        {"HMAC:PMACRX_FRAGMENTS_CNT",   0x3, 0xF190, 0U, 0U, 1U},
-        {"HMAC:PMACRX_IN_RANGE_LEN_ERR", 0x3, 0xF192, 0U, 0U, 1U},
-        {"HMAC:PMACRX_OUT_RANGE_LEN_ERR", 0x3, 0xF194, 0U, 0U, 1U},
-        {"HMAC:PMACRX_OVERSIZE_CNT",    0x3, 0xF196, 0U, 0U, 1U},
-        {"HMAC:PMACRX_JABBERS_CNT", 0x3, 0xF198, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE64_CNT",  0x3, 0xF19A, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE65TO127_CNT", 0x3, 0xF19C, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE128TO255_CNT", 0x3, 0xF19E, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE256TO511_CNT", 0x3, 0xF1A0, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE512TO1023_CNT", 0x3, 0xF1A2, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE1024TO1518_CNT", 0x3, 0xF1A4, 0U, 0U, 1U},
-        {"HMAC:PMACRX_SIZE1519TOMAX",   0x3, 0xF1A6, 0U, 0U, 1U},
-        {"HMAC:PMACTX_PAUSE_CNT",   0x3, 0xF1A8, 0U, 0U, 1U},
-        {"HMAC:PMACTX_UC_CNT",      0x3, 0xF1AA, 0U, 0U, 1U},
-        {"HMAC:PMACTX_MC_CNT",      0x3, 0xF1AC, 0U, 0U, 1U},
-        {"HMAC:PMACTX_BC_CNT",      0x3, 0xF1AE, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE64_CNT",  0x3, 0xF1B0, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE65TO127_CNT", 0x3, 0xF1B2, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE128TO255_CNT", 0x3, 0xF1B4, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE256TO511_CNT", 0x3, 0xF1B6, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE512TO1023_CNT", 0x3, 0xF1B8, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE1024TO1518_CNT", 0x3, 0xF1BA, 0U, 0U, 1U},
-        {"HMAC:PMACTX_SIZE1519TOMAX_CNT", 0x3, 0xF1BC, 0U, 0U, 1U},
-        {"HMAC:PMACRX_ALIGN_LOST", 0x3, 0xF1BE, 0U, 0U, 1U},
-        {"HMAC:RX_ASSEMBLY_ERR",    0x3, 0xF1C0, 0U, 0U, 1U},
-        {"HMAC:RX_SMD_ERR", 0x3, 0xF1C2, 0U, 0U, 1U},
-        {"HMAC:RX_ASSEMBLY_OK", 0x3, 0xF1C4, 0U, 0U, 1U},
-        {"HMAC:RX_MERGE_FRAG_CNT",  0x3, 0xF1C6, 0U, 0U, 1U},
-        {"HMAC:TX_FRAG_CNT",    0x3, 0xF1C8, 0U, 0U, 1U},
-        {"LINE:RX_XGMII_PROT_ERR_CNT",  0x3, 0xF332, 0U, 0U, 1U},
-        {"LINE:RX_SYMBOL_ERR_CNT",  0x3, 0xF334, 0U, 0U, 1U},
-        {"LINE:RX_PAUSE_CNT",       0x3, 0xF336, 0U, 0U, 1U},
-        {"LINE:RX_UNSUP_OPCODE",    0x3, 0xF338, 0U, 0U, 1U},
-        {"LINE:RX_UC_CNT",      0x3, 0xF33A, 0U, 0U, 1U},
-        {"LINE:RX_MC_CNT",      0x3, 0xF33C, 0U, 0U, 1U},
-        {"LINE:RX_BC_CNT",      0x3, 0xF33E, 0U, 0U, 1U},
-        {"LINE:RX_CRC_ERR_CNT",     0x3, 0xF340, 0U, 0U, 1U},
-        {"LINE:RX_UNDERSIZE_CNT",   0x3, 0xF342, 0U, 0U, 1U},
-        {"LINE:RX_FRAGMENTS_CNT",   0x3, 0xF344, 0U, 0U, 1U},
-        {"LINE:RX_IN_RANGE_LEN_ERR",    0x3, 0xF346, 0U, 0U, 1U},
-        {"LINE:RX_OUT_RANGE_LEN_ERR",   0x3, 0xF348, 0U, 0U, 1U},
-        {"LINE:RX_OVERSIZE_CNT",    0x3, 0xF34A, 0U, 0U, 1U},
-        {"LINE:RX_JABBERS_CNT",     0x3, 0xF34C, 0U, 0U, 1U},
-        {"LINE:RX_SIZE64_CNT",      0x3, 0xF34E, 0U, 0U, 1U},
-        {"LINE:RX_SIZE65TO127_CNT", 0x3, 0xF350, 0U, 0U, 1U},
-        {"LINE:RX_SIZE128TO255_CNT",    0x3, 0xF352, 0U, 0U, 1U},
-        {"LINE:RX_SIZE256TO511_CNT",    0x3, 0xF354, 0U, 0U, 1U},
-        {"LINE:RX_SIZE512TO1023_CNT",   0x3, 0xF356, 0U, 0U, 1U},
-        {"LINE:RX_SIZE1024TO1518_CNT",  0x3, 0xF358, 0U, 0U, 1U},
-        {"LINE:RX_SIZE1519TOMAX",   0x3, 0xF35A, 0U, 0U, 1U},
-        {"LINE:RX_IPG_SHRINK_CNT",  0x3, 0xF35C, 0U, 0U, 1U},
-        {"LINE:TX_PAUSE_CNT",       0x3, 0xF35E, 0U, 0U, 1U},
-        {"LINE:TX_UC_CNT",      0x3, 0xF360, 0U, 0U, 1U},
-        {"LINE:TX_MC_CNT",      0x3, 0xF362, 0U, 0U, 1U},
-        {"LINE:TX_BC_CNT",      0x3, 0xF364, 0U, 0U, 1U},
-        {"LINE:TX_SIZE64_CNT",      0x3, 0xF366, 0U, 0U, 1U},
-        {"LINE:TX_SIZE65TO127_CNT", 0x3, 0xF368, 0U, 0U, 1U},
-        {"LINE:TX_SIZE128TO255_CNT",    0x3, 0xF36A, 0U, 0U, 1U},
-        {"LINE:TX_SIZE256TO511_CNT",    0x3, 0xF36C, 0U, 0U, 1U},
-        {"LINE:TX_SIZE512TO1023_CNT",   0x3, 0xF36E, 0U, 0U, 1U},
-        {"LINE:TX_SIZE1024TO1518_CNT",  0x3, 0xF370, 0U, 0U, 1U},
-        {"LINE:TX_SIZE1519TOMAX_CNT",   0x3, 0xF372, 0U, 0U, 1U},
-        {"LINE:RX_ALIGN_LOST",      0x3, 0xF374, 0U, 0U, 1U},
         {"LINE:RX_TAGGED_FRAME",    0x3, 0xF376, 0U, 0U, 1U},
         {"LINE:RX_UNTAGGED_FRAME",  0x3, 0xF378, 0U, 0U, 1U},
         {"LINE:TX_TAGGED_FRAME",    0x3, 0xF37A, 0U, 0U, 1U},
         {"LINE:TX_UNTAGGED_FRAME",  0x3, 0xF37C, 0U, 0U, 1U},
-        {"LINE:PMAC_RX_XGMII_PROT_ERR", 0x3, 0xF37E, 0U, 0U, 1U},
-        {"LINE:PMAC_RX_SYMB_ERR",   0x3, 0xF380, 0U, 0U, 1U},
-        {"LINE:PMAC_RX_PAUSE_CNT",  0x3, 0xF382, 0U, 0U, 1U},
-        {"LINE:PMACRX_UNSUP_OPCODE",    0x3, 0xF384, 0U, 0U, 1U},
-        {"LINE:PMACRX_UC_CNT",      0x3, 0xF386, 0U, 0U, 1U},
-        {"LINE:PMACRX_MC_CNT",      0x3, 0xF388, 0U, 0U, 1U},
-        {"LINE:PMACRX_BC_CNT",      0x3, 0xF38A, 0U, 0U, 1U},
-        {"LINE:PMACRX_CRC_ERR_CNT", 0x3, 0xF38C, 0U, 0U, 1U},
-        {"LINE:PMACRX_UNDERSIZE_CNT",   0x3, 0xF38E, 0U, 0U, 1U},
-        {"LINE:PMACRX_FRAGMENTS_CNT",   0x3, 0xF390, 0U, 0U, 1U},
-        {"LINE:PMACRX_IN_RANGE_LEN_ERR", 0x3, 0xF392, 0U, 0U, 1U},
-        {"LINE:PMACRX_OUT_RANGE_LEN_ERR", 0x3, 0xF394, 0U, 0U, 1U},
-        {"LINE:PMACRX_OVERSIZE_CNT",    0x3, 0xF396, 0U, 0U, 1U},
-        {"LINE:PMACRX_JABBERS_CNT", 0x3, 0xF398, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE64_CNT",  0x3, 0xF39A, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE65TO127_CNT", 0x3, 0xF39C, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE128TO255_CNT", 0x3, 0xF39E, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE256TO511_CNT", 0x3, 0xF3A0, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE512TO1023_CNT", 0x3, 0xF3A2, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE1024TO1518_CNT", 0x3, 0xF3A4, 0U, 0U, 1U},
-        {"LINE:PMACRX_SIZE1519TOMAX",   0x3, 0xF3A6, 0U, 0U, 1U},
-        {"LINE:PMACTX_PAUSE_CNT",   0x3, 0xF3A8, 0U, 0U, 1U},
-        {"LINE:PMACTX_UC_CNT",      0x3, 0xF3AA, 0U, 0U, 1U},
-        {"LINE:PMACTX_MC_CNT",      0x3, 0xF3AC, 0U, 0U, 1U},
-        {"LINE:PMACTX_BC_CNT",      0x3, 0xF3AE, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE64_CNT",  0x3, 0xF3B0, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE65TO127_CNT", 0x3, 0xF3B2, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE128TO255_CNT", 0x3, 0xF3B4, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE256TO511_CNT", 0x3, 0xF3B6, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE512TO1023_CNT", 0x3, 0xF3B8, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE1024TO1518_CNT", 0x3, 0xF3BA, 0U, 0U, 1U},
-        {"LINE:PMACTX_SIZE1519TOMAX_CNT", 0x3, 0xF3BC, 0U, 0U, 1U},
-        {"LINE:PMACRX_ALIGN_LOST", 0x3, 0xF3BE, 0U, 0U, 1U},
-        {"LINE:RX_ASSEMBLY_ERR",    0x3, 0xF3C0, 0U, 0U, 1U},
-        {"LINE:RX_SMD_ERR", 0x3, 0xF3C2, 0U, 0U, 1U},
-        {"LINE:RX_ASSEMBLY_OK", 0x3, 0xF3C4, 0U, 0U, 1U},
-        {"LINE:RX_MERGE_FRAG_CNT",  0x3, 0xF3C6, 0U, 0U, 1U},
-        {"LINE:TX_FRAG_CNT",    0x3, 0xF3C8, 0U, 0U, 1U},
-        {"EPG:TX_CRCERR_CNTR",      MDIO_MMD_VEND1,  0xF10A, 0U, 0U, 0U},
-        {"EPG:RX_CRCERR_CNTR",      MDIO_MMD_VEND1,  0xF10B, 0U, 0U, 0U},
-        {"T1_1G_RF_CRC:STATUS",         MDIO_MMD_PMAPMD, 0x8400, 0U, 0U, 1U},
-        {"T1_1G_RF_CRC:EXPECTED",       MDIO_MMD_PMAPMD, 0x8402, 0U, 0U, 1U},
-        {"T1_1G_RF_CRC:CURRENT",    MDIO_MMD_PMAPMD, 0x8404, 0U, 0U, 1U},
-        {"T1_1G_RF_CRC:AUTO_CTRL",  MDIO_MMD_PMAPMD, 0x8406, 0U, 0U, 1U},
     };
-
     mepa_rc rc = MEPA_RC_ERROR;
 
     if ((dev != NULL) && (pr != NULL) && (info != NULL)) {
@@ -1992,7 +2085,7 @@ static mepa_rc lan8x8x_debug_info(mepa_device_t *dev,
         case MEPA_DEBUG_GROUP_PHY: {
             MEPA_ENTER(dev);
             phy_reg_dump(dev, pr, lan8x8x_regs,
-                         ARRAY_SIZE(lan8x8x_regs), 0U);
+                         (sizeof(lan8x8x_regs) / sizeof((lan8x8x_regs)[0])), 0U);
             rc = MEPA_RC_OK;
             MEPA_EXIT(dev);
         }
@@ -2009,7 +2102,7 @@ static mepa_rc lan8x8x_poll_int(mepa_device_t *dev, mepa_status_t *status)
 {
     phy_data_t *const data = (phy_data_t *const)dev->data;
     mepa_port_speed_t old_speed = status->speed;
-    mepa_rc rc = MEPA_RC_ERROR;
+    mepa_rc rc;
     uint8_t master_slave;
     uint16_t val;
 
@@ -2019,13 +2112,29 @@ static mepa_rc lan8x8x_poll_int(mepa_device_t *dev, mepa_status_t *status)
     if (data->conf.speed != MESA_SPEED_AUTO) {
         if (data->conf.speed == MESA_SPEED_100M) {
             //Latch-low register
-            MEPA_RC(rc, phy_reg_rd(dev, MII_BMSR, &val));
-            MEPA_RC(rc, phy_reg_rd(dev, MII_BMSR, &val));
-            status->link = ((val & BMSR_LSTATUS) != ZERO);
-        } else {
-            MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_PCS, MDIO_PCS_1000BT1_STAT, &val));
-            MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_PCS, MDIO_PCS_1000BT1_STAT, &val));
+            rc = phy_mmd_reg_rd(dev, MDIO_MMD_PMAPMD, MDIO_STAT1, &val);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
+
+            rc = phy_mmd_reg_rd(dev, MDIO_MMD_PMAPMD, MDIO_STAT1, &val);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
+
             status->link = ((val & MDIO_STAT1_LSTATUS) != ZERO);
+        } else {
+            rc = phy_mmd_reg_rd(dev, MDIO_MMD_PMAPMD, MDIO_PMA_PMD_BT1_STAT, &val);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
+
+            rc = phy_mmd_reg_rd(dev, MDIO_MMD_PMAPMD, MDIO_PMA_PMD_BT1_STAT, &val);
+            if (rc != MEPA_RC_OK) {
+                return rc;
+            }
+
+            status->link = ((val & MDIO_PMA_PMD_BT1_LINK_STS) != ZERO);
             data->link_status = status->link;
         }
         status->master = ((data->conf.man_neg == MEPA_MANUAL_NEG_REF) ?
@@ -2033,44 +2142,44 @@ static mepa_rc lan8x8x_poll_int(mepa_device_t *dev, mepa_status_t *status)
         status->speed = data->conf.speed;
     } else {
         //Resolve mode
-        MEPA_RC(rc, lan8x8x_aneg_resolve_master_slave(dev, &master_slave));
+        rc = lan8x8x_aneg_resolve_master_slave(dev, &master_slave);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
         status->master = (master_slave == MASTER_SLAVE_STATE_MASTER) ?
                          PHY_TRUE : PHY_FALSE;
 
         //Resolve speed from lp_adv
-        MEPA_RC(rc, lan8x8x_aneg_read_status(dev, status));
+        rc = lan8x8x_aneg_read_status(dev, status);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
 
-        if (IS_LAN888X(dev->drv->id)) {
+        if (IS_LAN888X(dev->drv->id) == ONE) {
             if ((status->speed != old_speed) && (old_speed != MESA_SPEED_UNDEFINED)) {
                 (void) lan8x8x_speed_config(dev, status->speed);
             }
         }
 
         //Resolve link status
-        if (IS_LAN878X(dev->drv->id)) {
-            //Latch-low register
-            MEPA_RC(rc, phy_reg_rd(dev, MII_BMSR, &val));
-            MEPA_RC(rc, phy_reg_rd(dev, MII_BMSR, &val));
-            status->link = ((val & BMSR_LSTATUS) != ZERO);
-        } else {
-            MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val));
-            MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val));
-            status->link = ((val & MDIO_STAT1_LSTATUS) != ZERO);
+        rc = phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val);
+        if (rc != MEPA_RC_OK) {
+            return rc;
         }
+
+        rc = phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val);
+        if (rc != MEPA_RC_OK) {
+            return rc;
+        }
+
+        status->link = ((val & MDIO_STAT1_LSTATUS) != ZERO);
     }
 
     //T1 PHY supports only Full Duplex
     status->fdx = PHY_TRUE;
     data->link_status =  status->link;
     data->dev.is_master = status->master;
-
-    T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u Link=%s, speed=%d, mode=%s!\n",
-        data->port_no,
-        (status->link ? "up" : "down"),
-        (status->speed == MESA_SPEED_100M ? "100" :
-         (status->speed == MESA_SPEED_1G ? "1000" :
-          (status->speed == MESA_SPEED_AUTO ? "auto" : "unknown"))),
-        (status->master ? "master" : "slave"));
 
     return rc;
 }
@@ -2117,10 +2226,10 @@ static mepa_rc lan8x8x_poll(mepa_device_t *dev, mepa_status_t *status)
 static void fill_driver_info(uint32_t id, uint32_t mask, mepa_driver_t *drv_inst)
 {
     T_D(MEPA_TRACE_GRP_GEN,   "Fill driver info for phy_id=0x%x\n", id);
-    /* Device ID & Mask */
+    // Device ID & Mask
     drv_inst->id             = id;
     drv_inst->mask           = mask;
-    /* LAN8X8X Driver APIs */
+    // LAN8X8X Driver APIs
     drv_inst->mepa_driver_delete             = &lan8x8x_delete;
     drv_inst->mepa_driver_reset              = &lan8x8x_reset;
     drv_inst->mepa_driver_poll               = &lan8x8x_poll;
@@ -2158,13 +2267,12 @@ mepa_drivers_t mepa_lan8x8x_driver_init(void)
     mepa_drivers_t result;
     uint8_t idx = 0;
 
-    for (idx = 0; idx < ARRAY_SIZE(lan8x8x_driver); idx++) {
+    for (idx = 0; idx < (sizeof(lan8x8x_driver) / sizeof((lan8x8x_driver)[0])); idx++) {
         fill_driver_info(lan8x8x_ids[idx], PHY_ID_MASK, &lan8x8x_driver[idx]);
     }
 
     result.phy_drv = &lan8x8x_driver[0];
-    result.count = ARRAY_SIZE(lan8x8x_driver);
+    result.count = (sizeof(lan8x8x_driver) / sizeof((lan8x8x_driver)[0]));
 
     return result;
 }
-#endif // MEPA_HAS_LAN8X8X
