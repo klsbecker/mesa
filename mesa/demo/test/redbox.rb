@@ -2155,6 +2155,12 @@ if $rb_chain != nil and sel == nil
         t_i("  A   +------+   +------+   B")
         t_i("")
 
+        if ($ts.dut.pcb == "8422")
+            t_i("skipping for now, MESA-1054")
+            test_skip
+            break
+        end
+
         # Port A is in VLAN 1 (isolated)
         vlan_conf_set(1, [port_a])
 
