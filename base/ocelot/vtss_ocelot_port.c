@@ -1655,6 +1655,14 @@ static vtss_rc srvl_serdes_cfg(vtss_state_t        *vtss_state,
         /* No SerDes setup */
     } else if (serdes6g) {
 #if defined(VTSS_FEATURE_SERDES_MACRO_SETTINGS)
+        if (mode == VTSS_SERDES_MODE_100FX) {
+            // 100FX on SerDes6G requires a prior 1000BaseX init cycle to leave
+            // the IB analog state in a condition where the 100FX configuration
+            // can establish a link.  Configure 1000BaseX first, then 100FX.
+            vtss_state->port.serdes_mode[port_no] = VTSS_SERDES_MODE_1000BaseX;
+            VTSS_RC(srvl_sd6g_cfg(vtss_state, port_no, addr));
+            vtss_state->port.serdes_mode[port_no] = VTSS_SERDES_MODE_100FX;
+        }
         VTSS_RC(srvl_sd6g_cfg(vtss_state, port_no, addr));
 #endif
     } else {
