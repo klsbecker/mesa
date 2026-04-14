@@ -529,7 +529,7 @@ mepa_rc meba_port_status_get(meba_inst_t               inst,
 
     /* Checking the Port Status for 25G PHY */
     if ((inst->api.meba_port_entry_get(inst, port_no, &entry) == MESA_RC_OK) &&
-        ((entry.cap & MEBA_PORT_CAP_25G_FDX) != 0)) {
+        ((entry.cap & MEBA_PORT_CAP_25G_PHY) != 0)) {
         if (meba_phy_status_poll(inst, port_no, &status_mepa) == MESA_RC_OK) {
             status->link = status_mepa.link;
             status->speed = status_mepa.speed;

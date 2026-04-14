@@ -1910,7 +1910,7 @@ static void phy_25g_slot1_scan(meba_inst_t        inst,
         /* 25G Capable Quad-PHYs */
         entry->mac_if = MESA_PORT_INTERFACE_SFI;
         entry->map.miim_controller = MESA_MIIM_CONTROLLER_0;
-        entry->cap = (MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
+        entry->cap = (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
                       MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |
                       MEBA_PORT_CAP_SFP_DETECT);
         entry->phy_base_port = base_port;
@@ -1930,7 +1930,7 @@ static void phy_25g_slot1_scan(meba_inst_t        inst,
         /* 25G Capable Dual-PHYs */
         entry->mac_if = MESA_PORT_INTERFACE_SFI;
         entry->map.miim_controller = MESA_MIIM_CONTROLLER_0;
-        entry->cap = (MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
+        entry->cap = (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
                       MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |
                       MEBA_PORT_CAP_SFP_DETECT);
         entry->phy_base_port = (base_port + 2);
@@ -2001,7 +2001,7 @@ static void phy_25g_slot2_scan(meba_inst_t        inst,
         /* 25G Capable Quad-PHYs */
         entry->mac_if = MESA_PORT_INTERFACE_SFI;
         entry->map.miim_controller = MESA_MIIM_CONTROLLER_0;
-        entry->cap = (MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
+        entry->cap = (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
                       MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |
                       MEBA_PORT_CAP_SFP_DETECT);
         entry->phy_base_port = base_port;
@@ -2021,7 +2021,7 @@ static void phy_25g_slot2_scan(meba_inst_t        inst,
         /* 25G Capable Dual-PHYs */
         entry->mac_if = MESA_PORT_INTERFACE_SFI;
         entry->map.miim_controller = MESA_MIIM_CONTROLLER_0;
-        entry->cap = (MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
+        entry->cap = (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |
                       MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |
                       MEBA_PORT_CAP_SFP_DETECT);
         entry->phy_base_port = (base_port + 2);

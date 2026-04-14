@@ -110,6 +110,9 @@ typedef mesa_port_admin_state_t meba_port_admin_state_t;
 // application, and no attempts to read any SFP via I2C will be made.
 #define MEBA_PORT_CAP_CU_BP 0x8000000000
 
+// Connect to a PHY which can run at 25G
+#define MEBA_PORT_CAP_25G_PHY 0x10000000000
+
 #define MEBA_PORT_CAP_HDX (MEBA_PORT_CAP_10M_HDX | MEBA_PORT_CAP_100M_HDX)
 
 // Tri-speed port full duplex only
