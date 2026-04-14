@@ -44,7 +44,7 @@ test "test_run" do
     t_i("Time Stamp transparent clock test")
 
     t_i("Measure the lowest correction value")
-    lowest_corr_none,range = nano_corr_lowest_measure
+    lowest_corr_none,range = nano_corr_lowest_measure(port0: $port0, port1: $port1)
 
     if ($cap_core_clock != 0)
         misc = $ts.dut.call("mesa_misc_get")
@@ -93,7 +93,7 @@ test "test_run" do
     $ts.dut.run("mesa-cmd example init transparent_clock ing-port #{$ts.dut.p[ig]+1} eg-port #{$ts.dut.p[eg]+1} delay_mode 1 asymmetry #{asymmetry}")
 
     t_i("Measure the lowest correction value with added asymmetry delay")
-    lowest_corr_add,range1 = nano_corr_lowest_measure
+    lowest_corr_add,range1 = nano_corr_lowest_measure(port0: $port0, port1: $port1)
     range = (range1 > range) ? range1 : range
     range += range / 6
     diff_max = (range / 2) + 7
