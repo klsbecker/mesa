@@ -99,8 +99,6 @@
                                                       */
 #define VTSS_FEATURE_IPV4_MC_SIP                     /**< Source specific IPv4 multicast */
 #define VTSS_FEATURE_IPV6_MC_SIP                     /**< Source specific IPv6 multicast */
-#define VTSS_FEATURE_AFI_SWC                       /**< Switch-core-based Automatic Frame Injection */
-#define VTSS_AFI_V2                                /**< AFI API version 2 */
 #if !VTSS_OPT_LIGHT
 #define VTSS_FEATURE_QCL                           /**< QoS: QoS Control Lists */
 #define VTSS_FEATURE_QCL_DMAC_DIP                  /**< QoS: QoS Control Lists, match on either    \
@@ -127,6 +125,8 @@
 #define VTSS_FEATURE_VOP                           /**< Y.1731/IEEE802.1ag OAM */
 #define VTSS_FEATURE_MRP                           /**< IEC 62439-2 MRP */
 #define VTSS_FEATURE_MRP_V0                        /**< Version 0 MRP implementation. */
+#define VTSS_FEATURE_AFI_SWC                       /**< Switch-core-based Automatic Frame Injection */
+#define VTSS_AFI_V2                                /**< AFI API version 2 */
 #define VTSS_FEATURE_RCL                           /**< Real-time Control List */
 #define VTSS_FEATURE_VOP_V0                        /**< Version 0 OAM implementation. VOP is       \
                                                       inheritet from Serval-1 (version 1) platform \
@@ -258,9 +258,6 @@
 #define VTSS_FEATURE_IPV4_MC_SIP /**< Source specific IPv4 multicast */
 #define VTSS_FEATURE_IPV6_MC_SIP /**< Source specific IPv6 multicast */
 
-#define VTSS_FEATURE_AFI_SWC                     /**< AFI */
-#define VTSS_AFI_V2                              /**< AFI API version 2 */
-
 #if !VTSS_OPT_LIGHT
 #if !defined(VTSS_OPT_FPGA) && !defined(VTSS_ARCH_LAIKA)
 #define VTSS_FEATURE_PORT_KR_IRQ    /**< 10G/25GBase KR, 802.3ap clause 72                         \
@@ -337,6 +334,8 @@
 #define VTSS_FEATURE_MIRROR_CPU                  /**< CPU mirroring */
 #define VTSS_FEATURE_SERDES_MACRO_SETTINGS       /**< Hooks for Serdes Macro                       \
                                                     configuration */
+#define VTSS_FEATURE_AFI_SWC                     /**< AFI */
+#define VTSS_AFI_V2                              /**< AFI API version 2 */
 #define VTSS_FEATURE_VOP                         /**< Y.1731/IEEE802.1ag OAM */
 #define VTSS_FEATURE_QOS_EGRESS_QUEUE_SHAPERS    /**< QoS: Has Egress Queue                        \
                                                     Shapers */
