@@ -83,8 +83,7 @@ static void cli_cmd_packet_tx(cli_req_t *req)
         if (req->port_list[uport] == 0 || mesa_packet_tx_info_init(NULL, &tx_info) != MESA_RC_OK) {
             continue;
         }
-        if (!mreq->forced &&
-            (mesa_port_state_get(NULL, iport, &state) != MESA_RC_OK || !state)) {
+        if (!mreq->forced && (mesa_port_state_get(NULL, iport, &state) != MESA_RC_OK || !state)) {
             continue;
         }
 
@@ -103,7 +102,7 @@ static void cli_cmd_packet_tx(cli_req_t *req)
 }
 
 static cli_cmd_t cli_cmd_table[] = {
-    {"Packet Forward [<queue_list>] [<port_no>]",    "Set or show packet forwarding",
+    {"Packet Forward [<queue_list>] [<port_no>]",         "Set or show packet forwarding",
      cli_cmd_packet_forward},
     {"Packet Tx [<port_list>] [<length>] [<count>] [-f]", "Send broadcast frame to ports",
      cli_cmd_packet_tx     },
@@ -151,7 +150,7 @@ static cli_parm_t cli_parm_table[] = {
     {"<length>",     "Frame length including FCS (64 - 1518), default: 64 bytes",
      CLI_PARM_FLAG_NONE | CLI_PARM_FLAG_SET,                                                          cli_parm_length},
     {"<count>",      "Frame count (1 - 1000), default: 1",                        CLI_PARM_FLAG_NONE, cli_parm_count },
-    {"-f",           "Force transmit regardless of port link state",               CLI_PARM_FLAG_NONE, cli_parm_forced},
+    {"-f",           "Force transmit regardless of port link state",              CLI_PARM_FLAG_NONE, cli_parm_forced},
 };
 
 static void packet_cli_init(void)
