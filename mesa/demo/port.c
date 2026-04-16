@@ -1033,21 +1033,25 @@ static void cli_cmd_phy_id(cli_req_t *req)
     mepa_phy_info_t       phy_id;
     mesa_rc               rc;
     char                  spd[80];
+    char                  part_str[20], rev_str[20];
 
-    cli_printf("Port       part-id   Rev    Max speed      Host IF\n");
-    cli_printf("---------------------------------------------------\n");
+    cli_printf("%-10s %-16s %-14s %-10s %s\n", "Port", "Part-ID", "Rev", "Speed", "Host IF");
+    cli_printf("---------------------------------------------------------------\n");
 
     for (uint32_t port_no = 0; port_no < mesa_port_cnt(NULL); port_no++) {
         if ((rc = meba_phy_info_get(meba_global_inst, port_no, &phy_id)) == MESA_RC_OK) {
             meba_phy_if_get(meba_global_inst, port_no, 1, &mac_if);
             sprintf(spd, "%s",
-                      phy_id.cap & MEPA_CAP_SPEED_MASK_2G5   ? "2G5"
-                      : phy_id.cap & MEPA_CAP_SPEED_MASK_10G ? "10G"
-                      : phy_id.cap & MEPA_CAP_SPEED_MASK_25G ? "25G"
-                                                             : "1G");
+                    phy_id.cap & MEPA_CAP_SPEED_MASK_2G5   ? "2G5"
+                    : phy_id.cap & MEPA_CAP_SPEED_MASK_10G ? "10G"
+                    : phy_id.cap & MEPA_CAP_SPEED_MASK_25G ? "25G"
+                                                           : "1G");
 
-            cli_printf("%-10d %-10d %-10d %-10s %s\n", port_no, phy_id.part_number, phy_id.revision,
-                       spd, mesa_port_if2txt(mac_if));
+            snprintf(part_str, sizeof(part_str), "%u(0x%04x)", phy_id.part_number,
+                     phy_id.part_number);
+            snprintf(rev_str, sizeof(rev_str), "%u(0x%02x)", phy_id.revision, phy_id.revision);
+            cli_printf("%-10u %-16s %-14s %-10s %s\n", port_no, part_str, rev_str, spd,
+                       mesa_port_if2txt(mac_if));
         }
     }
 }
