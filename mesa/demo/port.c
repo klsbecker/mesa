@@ -1050,7 +1050,7 @@ static void cli_cmd_phy_id(cli_req_t *req)
             snprintf(part_str, sizeof(part_str), "%u(0x%04x)", phy_id.part_number,
                      phy_id.part_number);
             snprintf(rev_str, sizeof(rev_str), "%u(0x%02x)", phy_id.revision, phy_id.revision);
-            cli_printf("%-10u %-16s %-14s %-10s %s\n", port_no, part_str, rev_str, spd,
+            cli_printf("%-10u %-16s %-14s %-10s %s\n", (port_no + 1), part_str, rev_str, spd,
                        mesa_port_if2txt(mac_if));
         }
     }
