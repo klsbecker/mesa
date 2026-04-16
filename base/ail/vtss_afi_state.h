@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _VTSS_AFI_STATE_H_
-#define _VTSS_AFI_STATE_H_
+#ifndef VTSS_AFI_STATE_H
+#define VTSS_AFI_STATE_H
 
 #if defined(VTSS_FEATURE_AFI_SWC)
 
@@ -47,15 +47,15 @@ typedef struct {
 // Internal intra-API call to pass link state of a given port to the AFI
 // module. On entry, link_up contains the new value. On exit, it holds the
 // old value (so it's an INOUT).
-vtss_rc vtss_cil_afi_link_state_change(struct vtss_state_s *const vtss_state,
-                                       vtss_port_no_t             port_no,
-                                       BOOL                      *link_up);
+vtss_rc vtss_cil_afi_link_state_change(struct vtss_state_s *vtss_state,
+                                       vtss_port_no_t       port_no,
+                                       BOOL                *link_up);
 
 // Internal intra-API call to get the AFI to update queue numbers, which may
 // have changed as a result of changing HQoS mode. It is guaranteed that
 // flows on that port are stopped prior to invoking it.
 // This may be NULL on platforms not requiring it.
-vtss_rc vtss_cil_afi_qu_ref_update(struct vtss_state_s *const vtss_state, vtss_port_no_t port_no);
+vtss_rc vtss_cil_afi_qu_ref_update(struct vtss_state_s *vtss_state, vtss_port_no_t port_no);
 
 vtss_rc vtss_cil_afi_alloc(struct vtss_state_s       *vtss_state,
                            vtss_afi_frm_dscr_t *const dscr,
@@ -124,57 +124,59 @@ typedef struct {
 // ----------------------------------------
 #if defined(VTSS_ARCH_FA)
 #if defined(VTSS_ARCH_SPARX5)
-#define VTSS_AFI_FRM_CNT 4096
+#define VTSS_AFI_FRM_CNT  4096U
+#define VTSS_AFI_FP_WID   15U
+#define VTSS_AFI_DSTP_WID 7U
 #else
-#define VTSS_AFI_FRM_CNT 512
+#define VTSS_AFI_FRM_CNT  512U
+#define VTSS_AFI_FP_WID   14U
+#define VTSS_AFI_DSTP_WID 6U
 #endif
-#define VTSS_AFI_FP_WID   (FA_TGT ? 15 : 14)
-#define VTSS_AFI_DSTP_WID (FA_TGT ? 7 : 6)
 
 // Layout of AFI:MISC:NEW_FRM_INFO.FRM_INFO
-#define VTSS_AFI_FRM_INFO_FP_POS    0
+#define VTSS_AFI_FRM_INFO_FP_POS    0U
 #define VTSS_AFI_FRM_INFO_FP_WID    VTSS_AFI_FP_WID
 #define VTSS_AFI_FRM_INFO_DSTP_POS  (VTSS_AFI_FRM_INFO_FP_POS + VTSS_AFI_FRM_INFO_FP_WID)
 #define VTSS_AFI_FRM_INFO_DSTP_WID  VTSS_AFI_DSTP_WID
 #define VTSS_AFI_FRM_INFO_EPRIO_POS (VTSS_AFI_FRM_INFO_DSTP_POS + VTSS_AFI_FRM_INFO_DSTP_WID)
-#define VTSS_AFI_FRM_INFO_EPRIO_WID 3
+#define VTSS_AFI_FRM_INFO_EPRIO_WID 3U
 #define VTSS_AFI_FRM_INFO_SHORT_POS (VTSS_AFI_FRM_INFO_EPRIO_POS + VTSS_AFI_FRM_INFO_EPRIO_WID)
-#define VTSS_AFI_FRM_INFO_SHORT_WID 1
+#define VTSS_AFI_FRM_INFO_SHORT_WID 1U
 
 // Layout of AFI:FRM_TBL:FRM_ENTRY_PART0.PART0
-#define VTSS_AFI_FRM_TBL_PART0_FP_POS 0
+#define VTSS_AFI_FRM_TBL_PART0_FP_POS 0U
 #define VTSS_AFI_FRM_TBL_PART0_FP_WID VTSS_AFI_FP_WID
 #define VTSS_AFI_FRM_TBL_PART0_DSTP_POS                                                            \
     (VTSS_AFI_FRM_TBL_PART0_FP_POS + VTSS_AFI_FRM_TBL_PART0_FP_WID)
 #define VTSS_AFI_FRM_TBL_PART0_DSTP_WID VTSS_AFI_DSTP_WID
 #define VTSS_AFI_FRM_TBL_PART0_INJ_CNT_POS                                                         \
     (VTSS_AFI_FRM_TBL_PART0_DSTP_POS + VTSS_AFI_FRM_TBL_PART0_DSTP_WID)
-#define VTSS_AFI_FRM_TBL_PART0_INJ_CNT_WID 8
+#define VTSS_AFI_FRM_TBL_PART0_INJ_CNT_WID 8U
 
 // Layout of AFI:FRM_TBL:FRM_ENTRY_PART1.PART1
-#define VTSS_AFI_FRM_TBL_PART1_SHORT_POS 0
-#define VTSS_AFI_FRM_TBL_PART1_SHORT_WID 1
-#define VTSS_AFI_FRM_TBL_PART1_EPRIO_POS 1
-#define VTSS_AFI_FRM_TBL_PART1_EPRIO_WID 3
-#define VTSS_AFI_FRM_TBL_PART1_RM_POS    4
-#define VTSS_AFI_FRM_TBL_PART1_RM_WID    1
-#define VTSS_AFI_FRM_TBL_PART1_GONE_POS  5
-#define VTSS_AFI_FRM_TBL_PART1_GONE_WID  1
+#define VTSS_AFI_FRM_TBL_PART1_SHORT_POS 0U
+#define VTSS_AFI_FRM_TBL_PART1_SHORT_WID 1U
+#define VTSS_AFI_FRM_TBL_PART1_EPRIO_POS 1U
+#define VTSS_AFI_FRM_TBL_PART1_EPRIO_WID 3U
+#define VTSS_AFI_FRM_TBL_PART1_RM_POS    4U
+#define VTSS_AFI_FRM_TBL_PART1_RM_WID    1U
+#define VTSS_AFI_FRM_TBL_PART1_GONE_POS  5U
+#define VTSS_AFI_FRM_TBL_PART1_GONE_WID  1U
 
-#define VTSS_AFI_FRM_TBL_PART0_DELAY_POS 0
-#define VTSS_AFI_FRM_TBL_PART0_DELAY_WID 30
+#define VTSS_AFI_FRM_TBL_PART0_DELAY_POS 0U
+#define VTSS_AFI_FRM_TBL_PART0_DELAY_WID 30U
 
 // Threshold for when BW shall be set to 1
 #define VTSS_AFI_DTI_BW1_THRES_BPS 5000000000ULL
 
 // Width of AFI:TTI_TBL:TTI_TIMER.TIMER_LEN
-#define VTSS_AFI_TTI_TBL_TIMER_LEN_WID 9
+#define VTSS_AFI_TTI_TBL_TIMER_LEN_WID 9U
 
 // Maximum value of TRAILING_DELAY_SEQ_CNT
-#define VTSS_AFI_TRAILING_DELAY_SEQ_CNT_MAX 63
+#define VTSS_AFI_TRAILING_DELAY_SEQ_CNT_MAX 63U
 
 // Default values
-#define VTSS_AFI_FRM_OUT_MAX_DEF 16
+#define VTSS_AFI_FRM_OUT_MAX_DEF 16U
 #endif
 
 // ========================================
@@ -423,45 +425,40 @@ typedef struct {
 } vtss_afi_port_t;
 
 // CIL function pointers
-vtss_rc vtss_cil_afi_enable(struct vtss_state_s *const vtss_state);
-vtss_rc vtss_cil_afi_ttis_enable(struct vtss_state_s *const vtss_state);
+vtss_rc vtss_cil_afi_enable(struct vtss_state_s *vtss_state);
+vtss_rc vtss_cil_afi_ttis_enable(struct vtss_state_s *vtss_state);
 
-vtss_rc vtss_cil_afi_tti_start(struct vtss_state_s *const vtss_state, u32 tti_idx, BOOL do_config);
-vtss_rc vtss_cil_afi_tti_stop(struct vtss_state_s *const vtss_state, u32 tti_idx);
-vtss_rc vtss_cil_afi_tti_frm_hijack(struct vtss_state_s *const vtss_state, u32 tti_idx);
-vtss_rc vtss_cil_afi_tti_frm_rm_inj(struct vtss_state_s *const vtss_state, u32 tti_idx);
+vtss_rc vtss_cil_afi_tti_start(struct vtss_state_s *vtss_state, u32 tti_idx, BOOL do_config);
+vtss_rc vtss_cil_afi_tti_stop(struct vtss_state_s *vtss_state, u32 tti_idx);
+vtss_rc vtss_cil_afi_tti_frm_hijack(struct vtss_state_s *vtss_state, u32 tti_idx);
+vtss_rc vtss_cil_afi_tti_frm_rm_inj(struct vtss_state_s *vtss_state, u32 tti_idx);
 
-vtss_rc vtss_cil_afi_dti_start(struct vtss_state_s *const vtss_state,
-                               u32                        dti_idx,
-                               BOOL                       do_frm_delay_config,
-                               BOOL                       do_dti_config,
-                               BOOL                       start_flow);
-vtss_rc vtss_cil_afi_dti_stop(struct vtss_state_s *const vtss_state, u32 dti_idx);
-vtss_rc vtss_cil_afi_dti_frm_hijack(struct vtss_state_s *const vtss_state,
-                                    u32                        dti_idx,
-                                    u32                        frm_size);
-vtss_rc vtss_cil_afi_dti_frm_rm_inj(struct vtss_state_s *const vtss_state, u32 dti_idx);
-vtss_rc vtss_cil_afi_dti_cnt_get(struct vtss_state_s *const vtss_state,
-                                 u32                        dti_idx,
-                                 u32 *const                 cnt);
+vtss_rc vtss_cil_afi_dti_start(struct vtss_state_s *vtss_state,
+                               u32                  dti_idx,
+                               BOOL                 do_frm_delay_config,
+                               BOOL                 do_dti_config,
+                               BOOL                 start_flow);
+vtss_rc vtss_cil_afi_dti_stop(struct vtss_state_s *vtss_state, u32 dti_idx);
+vtss_rc vtss_cil_afi_dti_frm_hijack(struct vtss_state_s *vtss_state, u32 dti_idx, u32 frm_size);
+vtss_rc vtss_cil_afi_dti_frm_rm_inj(struct vtss_state_s *vtss_state, u32 dti_idx);
+vtss_rc vtss_cil_afi_dti_cnt_get(struct vtss_state_s *vtss_state, u32 dti_idx, u32 *const cnt);
 
 // Administrative port start/stop
-vtss_rc vtss_cil_afi_port_admin_start(struct vtss_state_s *const vtss_state,
-                                      vtss_port_no_t             port_no);
-vtss_rc vtss_cil_afi_port_admin_stop(struct vtss_state_s *const vtss_state, vtss_port_no_t port_no);
+vtss_rc vtss_cil_afi_port_admin_start(struct vtss_state_s *vtss_state, vtss_port_no_t port_no);
+vtss_rc vtss_cil_afi_port_admin_stop(struct vtss_state_s *vtss_state, vtss_port_no_t port_no);
 
 // Internal intra-API call to pass link state of a given port to the AFI
 // module. On entry, link_up contains the new value. On exit, it holds the
 // old value (so it's an INOUT).
-vtss_rc vtss_cil_afi_link_state_change(struct vtss_state_s *const vtss_state,
-                                       vtss_port_no_t             port_no,
-                                       BOOL                      *link_up);
+vtss_rc vtss_cil_afi_link_state_change(struct vtss_state_s *vtss_state,
+                                       vtss_port_no_t       port_no,
+                                       BOOL                *link_up);
 
 // Internal intra-API call to get the AFI to update queue numbers, which may
 // have changed as a result of changing HQoS mode. It is guaranteed that
 // flows on that port are stopped prior to invoking it.
 // This may be NULL on platforms not requiring it.
-vtss_rc vtss_cil_afi_qu_ref_update(struct vtss_state_s *const vtss_state, vtss_port_no_t port_no);
+vtss_rc vtss_cil_afi_qu_ref_update(struct vtss_state_s *vtss_state, vtss_port_no_t port_no);
 
 typedef struct {
     // FRM_TBL/DTI_TBL/TTI_TBL allocation. One bit per entry.
@@ -520,4 +517,4 @@ vtss_rc afi_frm_idx_chk(struct vtss_state_s *vtss_state, i32 frm_idx);
 
 #endif // VTSS_AFI_V2
 #endif // VTSS_FEATURE_AFI_SWC
-#endif // _VTSS_AFI_STATE_H_
+#endif // VTSS_AFI_STATE_H

@@ -7,8 +7,8 @@
  * \details This header file describes Automatic Frame Injector functions.
  */
 
-#ifndef _VTSS_AFI_API_H_
-#define _VTSS_AFI_API_H_
+#ifndef VTSS_AFI_API_H
+#define VTSS_AFI_API_H
 
 #include <vtss/api/options.h>
 
@@ -35,7 +35,7 @@ extern "C" {
  */
 typedef u32 vtss_afi_id_t;
 
-#define VTSS_AFI_ID_NONE (0xFFFFFFFF) /**< Use this to encode Tx headers for non-AFI frame */
+#define VTSS_AFI_ID_NONE (0xFFFFFFFFU) /**< Use this to encode Tx headers for non-AFI frame */
 
 #if defined(VTSS_AFI_V1)
 #define VTSS_AFI_SLOT_CNT 1024U /**< Maximum number of AFI flows */
@@ -643,4 +643,4 @@ vtss_rc vtss_afi_port_stop(const vtss_inst_t inst, vtss_port_no_t port_no);
 #endif
 
 #endif // VTSS_FEATURE_AFI_SWC
-#endif // _VTSS_AFI_API_H_
+#endif // VTSS_AFI_API_H

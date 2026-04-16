@@ -2709,13 +2709,22 @@ static vtss_rc fa_port_flush_poll(vtss_state_t *vtss_state, vtss_phys_port_no_t 
         for (resource = 0U; resource < poll_cnt; resource++) {
             // Start with DST-MEM (base == 2048) and if enabled, also check
             // SRC-MEM (base == 0).
-            u32 base = (resource == 0U ? 2048U : 0U) + VTSS_PRIOS * port;
+#if defined(VTSS_FEATURE_AFI_SWC)
+            u32 base = 2048U;
+#else
+            u32 base = (resource == 0U ? 2048U : 0U);
+#endif
+            base += (VTSS_PRIOS * port);
 
             for (prio = 0U; prio < VTSS_PRIOS; prio++) {
                 REG_RD(VTSS_QRES_RES_STAT(base + prio), &value);
                 if (value > 0U) {
 #if VTSS_OPT_TRACE_ERROR
-                    failing_mem = resource == 0 ? "DST-MEM" : "SRC-MEM";
+#if defined(VTSS_FEATURE_AFI_SWC)
+                    failing_mem = "DST-MEM";
+#else
+                    failing_mem = resource == 0U ? "DST-MEM" : "SRC-MEM";
+#endif
 #endif
                     empty = FALSE;
 
