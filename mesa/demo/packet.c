@@ -29,6 +29,7 @@ typedef struct {
     mesa_bool_t queue_list[MESA_PACKET_RX_QUEUE_CNT];
     uint32_t    len;
     uint32_t    cnt;
+    mesa_bool_t forced;
 } packet_cli_req_t;
 
 typedef struct {
@@ -79,8 +80,11 @@ static void cli_cmd_packet_tx(cli_req_t *req)
 
     for (iport = 0; iport < mesa_port_cnt(NULL); iport++) {
         uport = iport2uport(iport);
-        if (req->port_list[uport] == 0 || mesa_port_state_get(NULL, iport, &state) != MESA_RC_OK ||
-            state == 0 || mesa_packet_tx_info_init(NULL, &tx_info) != MESA_RC_OK) {
+        if (req->port_list[uport] == 0 || mesa_packet_tx_info_init(NULL, &tx_info) != MESA_RC_OK) {
+            continue;
+        }
+        if (!mreq->forced &&
+            (mesa_port_state_get(NULL, iport, &state) != MESA_RC_OK || !state)) {
             continue;
         }
 
@@ -101,7 +105,7 @@ static void cli_cmd_packet_tx(cli_req_t *req)
 static cli_cmd_t cli_cmd_table[] = {
     {"Packet Forward [<queue_list>] [<port_no>]",    "Set or show packet forwarding",
      cli_cmd_packet_forward},
-    {"Packet Tx [<port_list>] [<length>] [<count>]", "Send broadcast frame to ports",
+    {"Packet Tx [<port_list>] [<length>] [<count>] [-f]", "Send broadcast frame to ports",
      cli_cmd_packet_tx     },
 };
 
@@ -131,12 +135,23 @@ static int cli_parm_count(cli_req_t *req)
     return cli_parm_u32(req, &mreq->cnt, 1, 1000);
 }
 
+static int cli_parm_forced(cli_req_t *req)
+{
+    packet_cli_req_t *mreq = req->module_req;
+
+    if (cli_parse_find(req->cmd, req->stx) == NULL)
+        return 1;
+    mreq->forced = 1;
+    return 0;
+}
+
 static cli_parm_t cli_parm_table[] = {
     {"<queue_list>", "Queue list, default: All queues (0-7)",                     CLI_PARM_FLAG_NONE,
      cli_parm_queue_list                                                                                             },
     {"<length>",     "Frame length including FCS (64 - 1518), default: 64 bytes",
      CLI_PARM_FLAG_NONE | CLI_PARM_FLAG_SET,                                                          cli_parm_length},
     {"<count>",      "Frame count (1 - 1000), default: 1",                        CLI_PARM_FLAG_NONE, cli_parm_count },
+    {"-f",           "Force transmit regardless of port link state",               CLI_PARM_FLAG_NONE, cli_parm_forced},
 };
 
 static void packet_cli_init(void)
