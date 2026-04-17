@@ -128,7 +128,11 @@ typedef struct {
 #define VTSS_AFI_FP_WID   15U
 #define VTSS_AFI_DSTP_WID 7U
 #else
-#define VTSS_AFI_FRM_CNT  512U
+#if VTSS_OPT_LIGHT
+#define VTSS_AFI_FRM_CNT 8U
+#else
+#define VTSS_AFI_FRM_CNT 512U
+#endif
 #define VTSS_AFI_FP_WID   14U
 #define VTSS_AFI_DSTP_WID 6U
 #endif

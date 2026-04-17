@@ -209,6 +209,8 @@ vtss_rc vtss_afi_hijack(const vtss_inst_t inst, vtss_afi_id_t id);
 #if defined(VTSS_ARCH_FA)
 #if defined(VTSS_ARCH_SPARX5)
 #define VTSS_AFI_SLOW_INJ_CNT 4096U /**< Maximum number of simultaneous slow injections */
+#elif VTSS_OPT_LIGHT
+#define VTSS_AFI_SLOW_INJ_CNT 16U
 #else
 #define VTSS_AFI_SLOW_INJ_CNT 512U /**< Maximum number of simultaneous slow injections */
 #endif
@@ -299,6 +301,8 @@ vtss_rc vtss_afi_hijack(const vtss_inst_t inst, vtss_afi_id_t id);
 
 #if defined(VTSS_ARCH_JAGUAR_2_B) || defined(VTSS_ARCH_JAGUAR_2_C) || defined(VTSS_ARCH_SPARX5)
 #define VTSS_AFI_FAST_INJ_CNT 32U /**< Maximum number of simultaneous fast injections */
+#elif VTSS_OPT_LIGHT
+#define VTSS_AFI_FAST_INJ_CNT 16U
 #elif defined(VTSS_ARCH_SERVAL_T) || defined(VTSS_ARCH_LAN966X) || defined(VTSS_ARCH_LAN969X) ||   \
     defined(VTSS_ARCH_LAIKA)
 #define VTSS_AFI_FAST_INJ_CNT 16U /**< Maximum number of simultaneous fast injections */
