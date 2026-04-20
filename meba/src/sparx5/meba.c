@@ -18,10 +18,33 @@
 #define INDY_COMA_GPIO        16
 #define VTSS_TS_IO_ARRAY_SIZE 4
 
+static mesa_rc fa_sfp_i2c_xfer(meba_inst_t    inst,
+                               mesa_port_no_t port_no,
+                               mesa_bool_t    write,
+                               uint8_t        i2c_addr,
+                               uint8_t        addr,
+                               uint8_t       *data,
+                               uint8_t        cnt,
+                               mesa_bool_t    word_access);
+
 /* LED colors */
 typedef enum { LED_GREEN, LED_YELLOW, LED_MAX } led_color_t;
 
 typedef enum { SFP_DETECT, SFP_FAULT, SFP_LOS } sfp_signal_t;
+
+/* Local mapping table */
+typedef struct {
+    int32_t                chip_port;
+    uint8_t                miim_addr;
+    mesa_miim_controller_t miim_controller;
+    mesa_port_interface_t  mac_if;
+    mesa_internal_bw_t     max_bw;
+    meba_port_cap_t        cap;
+    mesa_port_no_t         phy_base_port;
+    uint8_t                board_port;
+    uint8_t                sgpio_port;
+    mesa_bool_t            npi_port;
+} port_map_t;
 
 #define VTSS_MSLEEP(m) usleep((m) * 1000)
 
@@ -141,6 +164,10 @@ static const fa_malibu_gpio_port_map_t malibu_gpio_map[] = {
          (1 << VTSS_10G_GPIO_AGGR_INTRPT_GPIO_INTR_EN)),
      },
 };
+
+/* EDSX/PCB8415 daughter cards */
+const char *ev57u68a = "EV57U68A";
+const char *ev96d59a = "EV96D59A";
 
 /* EDSx/PCB8415 SFP Slot Port Mapping table */
 static edsx_slot_port_t slot_map[] = {
@@ -386,6 +413,128 @@ static void update_entry(meba_inst_t           inst,
     entry->cap &= ~MEBA_PORT_CAP_SD_INTERNAL; // Signal detect (LOS) comes from SFP module
                                               // (and not from Serdes)
     entry->cap &= ~MEBA_PORT_CAP_SD_HIGH;     // The polarity is inversed
+}
+
+static void fa_init_port_table(meba_inst_t inst,
+                               int         start_port,
+                               int         port_cnt,
+                               port_map_t *map,
+                               mesa_bool_t lan80xx)
+{
+    meba_board_state_t *board = INST2BOARD(inst);
+    mesa_port_no_t      port_no;
+
+    // Fill out port mapping table
+    for (port_no = 0; port_no < port_cnt; port_no++) {
+        board->port[port_no + start_port].map.map.chip_port = map[port_no].chip_port;
+        board->port[port_no + start_port].map.map.miim_addr = map[port_no].miim_addr;
+        board->port[port_no + start_port].map.map.miim_controller = map[port_no].miim_controller;
+        board->port[port_no + start_port].map.map.max_bw = map[port_no].max_bw;
+        board->port[port_no + start_port].map.mac_if = map[port_no].mac_if;
+        board->port[port_no + start_port].map.cap = map[port_no].cap;
+        board->port[port_no + start_port].map.phy_base_port = map[port_no].phy_base_port;
+        if (map->npi_port) {
+            board->port[port_no + start_port].board_port = 20;
+            board->port[port_no + start_port].sgpio_port = 32;
+        } else {
+            board->port[port_no + start_port].board_port = start_port + port_no + 12;
+            board->port[port_no + start_port].sgpio_port = start_port + port_no + 24;
+        }
+        board->port[port_no + start_port].activity = true;
+
+        // Work-arround for LAN80XX EVB Board
+        // MCP9902 I2C Slave device in EVB board is always generating "ALERT" signal due to fault
+        // condition detected by thremal diode of Malibu25G As "ALERT" signal is high, it is holding
+        // the SFP_IRQ line To demostrate LAN80XX Agregate interrupt, the ALERT signal from MCP9902
+        // device is masked by writing address 0x3 with value 0x80 I2C slave address of MCP9902 is
+        // 0x4C
+        if (lan80xx) {
+            uint8_t data = 0x80;
+            fa_sfp_i2c_xfer(inst, port_no + start_port, TRUE, 0x4C, 0x3, &data, 1, FALSE);
+        }
+    }
+}
+
+static port_map_t port_table_npi_port[] = {
+    {64, 28, MESA_MIIM_CONTROLLER_3, MESA_PORT_INTERFACE_SGMII, MESA_BW_1G,
+     MEBA_PORT_CAP_TRI_SPEED_COPPER, 0, true},
+};
+
+#define MEBA_CAP_EV57U67A                                                                          \
+    (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |                     \
+     MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |                        \
+     MEBA_PORT_CAP_SFP_DETECT)
+static port_map_t port_table_ev57u67a_slot_1[] = {
+    {56, 27, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
+     false},
+    {57, 26, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
+     false},
+    {58, 25, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
+     false},
+    {59, 24, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
+     false},
+};
+
+static port_map_t port_table_ev57u67a_slot_2[] = {
+    {60, 31, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
+     false},
+    {61, 30, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
+     false},
+    {62, 29, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
+     false},
+    {63, 28, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
+     false},
+};
+
+#define MEBA_CAP_EV96D59A                                                                          \
+    (MEBA_PORT_CAP_VTSS_10G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |                \
+     MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_AUTONEG | MEBA_PORT_CAP_SFP_DETECT)
+static port_map_t port_table_ev96d59a_slot_1[] = {
+    {56, 27, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
+     false},
+    {57, 26, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
+     false},
+    {58, 25, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
+     false},
+    {59, 24, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
+     false},
+};
+
+static port_map_t port_table_ev96d59a_slot_2[] = {
+    {60, 31, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
+     false},
+    {61, 30, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
+     false},
+    {62, 29, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
+     false},
+    {63, 28, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
+     false},
+};
+
+static void fa_pcb8415_init_port(meba_inst_t inst,
+                                 const char *sfp_plugin_module1,
+                                 const char *sfp_plugin_module2)
+{
+    // This counds how many ports were added so far to the port_map_entry;
+    int port_cnt = 0;
+
+    if (sfp_plugin_module1 == ev57u68a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_1, true);
+        port_cnt += 4;
+    } else if (sfp_plugin_module1 == ev96d59a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d59a_slot_1, false);
+        port_cnt += 4;
+    }
+
+    if (sfp_plugin_module2 == ev57u68a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_2, true);
+        port_cnt += 4;
+    } else if (sfp_plugin_module2 == ev96d59a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d59a_slot_2, false);
+        port_cnt += 4;
+    }
+
+    fa_init_port_table(inst, port_cnt, 1, port_table_npi_port, false);
 }
 
 static void fa_pcb134_init_port(meba_inst_t inst, mesa_port_no_t port_no, meba_port_entry_t *entry)
@@ -854,7 +1003,7 @@ static const board_func_t board_funcs[] = {
     [BOARD_TYPE_SPARX5_PCB8415] =
         {
                                     .board_init = fa_pcb134_board_init,
-                                    .init_port = fa_pcb134_init_port,
+                                    .init_port = NULL,
                                     },
 };
 
@@ -2791,6 +2940,70 @@ static meba_api_cpu_port_t fa_ls1046_cpu_ports[] = {
     {21, "eth0"},
 };
 
+mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugin_module)
+{
+    char  eeprom_name[128];
+    char  eeprom[128];
+    char *uboot_env = NULL;
+
+    *plugin_module = NULL; // No plugin module found yet;
+
+    sprintf(eeprom_name, "/sys/bus/i2c/devices/%d-0057/eeprom", address);
+
+    FILE *f = fopen(eeprom_name, "r");
+    if (!f) {
+        return MESA_RC_ERROR;
+    }
+
+    int i;
+    for (i = 0; i < sizeof(eeprom) - 1; ++i) {
+        int c = fgetc(f);
+        if (c < 0) {
+            break;
+        }
+        eeprom[i] = c;
+    }
+    eeprom[i] = 0;
+    fclose(f);
+
+    char *p = eeprom;
+    while (p < eeprom + sizeof(eeprom) - 1) {
+        if (strstr(p, ev57u68a)) {
+            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev57u68a, address);
+            *plugin_module = ev57u68a;
+            return MESA_RC_OK;
+        } else if (strstr(p, ev96d59a)) {
+            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev96d59a, address);
+            *plugin_module = ev96d59a;
+            return MESA_RC_OK;
+        }
+        p += strlen(p) + 1;
+    }
+
+    // Unrecognized pluging module
+    char buf[64];
+    T_W(inst, "Unrecognized plugin module in SFP slot %d\n", address);
+
+    if (address == 1) {
+        uboot_env = "plugin_module";
+    } else {
+        uboot_env = "plugin_module2";
+    }
+
+    if (inst->iface.conf_get(uboot_env, buf, sizeof(buf), NULL) == MESA_RC_OK) {
+        if (strstr(buf, ev57u68a)) {
+            *plugin_module = ev57u68a;
+            T_W(inst, "Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        } else if (strstr(p, ev96d59a)) {
+            *plugin_module = ev96d59a;
+            T_W(inst, "Assume %s\n", *plugin_module);
+            return MESA_RC_OK;
+        }
+    }
+    return MESA_RC_OK;
+}
+
 // Public Initialize
 meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *callouts)
 {
@@ -2801,6 +3014,8 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
     uint32_t            u;
     int                 i, pcb;
     FILE               *fp;
+    const char         *sfp_plugin_module1 = NULL;
+    const char         *sfp_plugin_module2 = NULL;
 
     if (callouts_size < sizeof(*callouts)) {
         fprintf(stderr, "Callouts size problem, expected %zd, got %zd\n", sizeof(*callouts),
@@ -2867,13 +3082,41 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         }
     } else if (strstr(buf, "8415")) {
         board->type = BOARD_TYPE_SPARX5_PCB8415;
-        board->port_cnt = 9;
+
+        read_sfp_plugin_module(inst, 1, &sfp_plugin_module1);
+        read_sfp_plugin_module(inst, 2, &sfp_plugin_module2);
+
+        // We can't configure at this point the meba_port_entry beucase this is
+        // not allocated because this gets allocated at later point. So here we
+        // just figure out how many ports are in used. By default we always use
+        // the NPI port.
+        board->port_cnt = 1;
+        if (sfp_plugin_module1 != NULL) {
+            if (sfp_plugin_module1 == ev57u68a) {
+                board->port_cnt += 4;
+            } else if (sfp_plugin_module1 == ev96d59a) {
+                board->port_cnt += 4;
+            }
+        }
+
+        if (sfp_plugin_module2 != NULL) {
+            if (sfp_plugin_module2 == ev57u68a) {
+                board->port_cnt += 4;
+            } else if (sfp_plugin_module2 == ev96d59a) {
+                board->port_cnt += 4;
+            }
+        }
     }
 
-    // Get the board port count
-    if (meba_conf_get_u32(inst, "pcb_var", &u) == MESA_RC_OK) {
-        T_D(inst, "Board port count is %d", u);
-        board->port_cnt = u;
+    // On the pcb8415 we calculate the number of ports by looking at which
+    // modules are pluged in. So in this case we don't need to try to get the
+    // number of ports from the meba.
+    if (board->type != BOARD_TYPE_SPARX5_PCB8415) {
+        // Get the board port count
+        if (meba_conf_get_u32(inst, "pcb_var", &u) == MESA_RC_OK) {
+            T_D(inst, "Board port count is %d", u);
+            board->port_cnt = u;
+        }
     }
 
     // Check for Beaglbone platform
@@ -2957,12 +3200,16 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
 
     inst->props.board_type = board->type;
 
+    if (board->type == BOARD_TYPE_SPARX5_PCB8415) {
+        fa_pcb8415_init_port(inst, sfp_plugin_module1, sfp_plugin_module2);
+        goto init_done;
+    }
+
     // Fill out port mapping table
     for (port_no = 0; port_no < board->port_cnt; port_no++) {
         board->func->init_port(inst, port_no, &board->port[port_no].map);
         switch (board->type) {
         case BOARD_TYPE_SPARX5_PCB134:
-        case BOARD_TYPE_SPARX5_PCB8415:
             if ((board->port_cfg == VTSS_BOARD_CONF_6x10G_NPI) ||
                 (board->port_cfg == VTSS_BOARD_CONF_9x10G_NPI) ||
                 (board->port_cfg == VTSS_BOARD_CONF_12x10G_NPI) ||
@@ -3108,6 +3355,8 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         }
         board->port[port_no].activity = true; // Force an LED update
     }
+
+init_done:
     board->fan_spec = &fan_spec;
     T_D(inst, "Board: %s, type %d, target %4x, mux %d, %d ports", inst->props.name, board->type,
         inst->props.target, inst->props.mux_mode, board->port_cnt);
