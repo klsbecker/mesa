@@ -52,6 +52,7 @@ typedef struct {
     mesa_bool_t has_dfe;
     mesa_bool_t has_ctle;
     mesa_bool_t has_txeq;
+    mesa_bool_t has_pol;
 
     char pattern[CLI_PATTERN_MAX + 1];
 } debug_cli_req_t;
@@ -304,14 +305,15 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
         if (req->port_list[port] == 0)
             continue;
 
-        if (!mreq->has_dfe && !mreq->has_ctle && !mreq->has_txeq) {
+        if (!mreq->has_dfe && !mreq->has_ctle && !mreq->has_txeq && !mreq->has_pol) {
             cli_printf("Usage:\n");
             cli_printf("dfe:  For 10G: h1,h2,h3,h4,h5,0. For 25G: h1,h2,h3,h4,h5,dlev\n");
-            cli_printf("ctle: eqr,eqc,vga\n");
+            cli_printf("ctle: rx_eq (1 value, LAN966X) or eqr,eqc,vga (3 values)\n");
             cli_printf("txeq: pre (C-1), main (C0), post (C+1)\n");
+            cli_printf("pol:  <tx_inv>,<rx_inv> (two 0/1 values, e.g. 1,0)\n");
             cli_printf("Syntax:\n");
             cli_printf(
-                "mesa-cmd deb serdes <port> dfe|ctle|txeq <h1,h2,h3,h4,h5,dlev> || <eqr,eqc,vga> || <pre,main,post>\n");
+                "mesa-cmd deb serdes <port> dfe|ctle|txeq|pol <h1,h2,h3,h4,h5,dlev> || <eqr,eqc,vga> || <pre,main,post> || <0/1,0/1>\n");
             return;
         }
 
@@ -319,11 +321,14 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
             cli_printf(
                 "Error. Expecting 6 values for dfe (<h1,h2,h3,h4,h5,dlev> or <h1,h2,h3,h4,h5,0>)\n");
             return;
-        } else if (mreq->has_ctle && (mreq->value_cnt != 3)) {
-            cli_printf("Error. Expecting 3 values for ctle (<eqr,eqc,vga>)\n");
+        } else if (mreq->has_ctle && (mreq->value_cnt < 1 || mreq->value_cnt > 3)) {
+            cli_printf("Error. Expecting 1 or 3 values for ctle (<rx_eq> or <eqr,eqc,vga>)\n");
             return;
         } else if (mreq->has_txeq && (mreq->value_cnt != 3)) {
             cli_printf("Error. Expecting 3 values for txeq (<pre,main,post>)\n");
+            return;
+        } else if (mreq->has_pol && (mreq->value_cnt != 2)) {
+            cli_printf("Error. Expecting 2 values for pol (<tx_inv,rx_inv>)\n");
             return;
         }
 
@@ -333,6 +338,8 @@ static void cli_cmd_debug_serdes(cli_req_t *req)
             conf.debug_type = MESA_SERDES_CTLE_PRM;
         } else if (mreq->has_txeq) {
             conf.debug_type = MESA_SERDES_TXEQ_PRM;
+        } else if (mreq->has_pol) {
+            conf.debug_type = MESA_SERDES_POL_INV;
         }
 
         if (mreq->has_txeq) {
@@ -403,10 +410,11 @@ static cli_cmd_t cli_cmd_table[] = {
     {"Debug Sym Write <word128> <value32>", "Write one/many switch register(s)",
      cli_cmd_debug_symreg_write},
     {"Debug Sym Query <word128>", "Display the matched register(s)", cli_cmd_debug_symreg_query},
-    {"Debug serdes <port_list> [dfe] [ctle] [txeq] <value_list>",
+    {"Debug serdes <port_list> [dfe] [ctle] [txeq] [pol] <value_list>",
      "deb serdes <port> dfe h1,h2,h3,h4,h5,0 (10g) or h1,h2,h3,h4,h5,dlev (25g)\n "
      "deb serdes <port> ctle r,c,vga,0 (10g)  or vga_r,vga_c,c,gain (25g)\n "
-     "deb serdes <port> txeq pre,main,post\n ", cli_cmd_debug_serdes, CLI_CMD_FLAG_ALL_PORTS},
+     "deb serdes <port> txeq pre,main,post\n "
+     "deb serdes <port> pol  <tx_inv>,<rx_inv>  (two 0/1 values, e.g. 1,0)\n ", cli_cmd_debug_serdes, CLI_CMD_FLAG_ALL_PORTS},
     {"Debug PHY cls-45 Read <port_list> <page> <addr16>", "Read PHY clause-45 register",
      cli_cmd_debug_phy_clause45_read, CLI_CMD_FLAG_ALL_PORTS},
     {"Debug PHY cls-45 Write <port_list> <page> <addr16> <value>", "Write PHY clause-45 register",
@@ -471,6 +479,8 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->has_ctle = 1;
     else if (!strncmp(found, "txeq", 4))
         mreq->has_txeq = 1;
+    else if (!strncmp(found, "pol", 3))
+        mreq->has_pol = 1;
     else
         cli_printf("no match: %s\n", found);
 
@@ -626,6 +636,8 @@ static cli_parm_t cli_parm_table[] = {
      CLI_PARM_FLAG_NONE, cli_parm_keyword},
     {"txeq", "Tx equalization: deb serdes <port> txeq dly,adv,ampl", CLI_PARM_FLAG_NONE,
      cli_parm_keyword},
+    {"pol",
+     "Tx/Rx polarity inversion: deb serdes <port> pol <tx_inv>,<rx_inv> (two 0/1 values, e.g. 1,0)", CLI_PARM_FLAG_NONE, cli_parm_keyword},
     {"<addr16>", "16-bit address (0-65535)", CLI_PARM_FLAG_NONE, cli_parm_addr_16bit},
 };
 

@@ -949,6 +949,8 @@ typedef enum {
     MESA_SERDES_TXEQ_PRM,   /**< TxEQ prms. in this order: tap_dly, tap_adv,
                                amplitude */
     MESA_SERDES_EYE_HEIGHT, /**< Height of the Eye, get function only */
+    MESA_SERDES_POL_INV,    /**< Tx/Rx polarity inversion. serdes_prm[0]=tx_inv,
+                               serdes_prm[1]=rx_inv (0/1) */
 } mesa_serdes_debug_type_t;
 
 /** \brief Serdes debug configuration structure */
@@ -999,10 +1001,11 @@ typedef struct {
 
 /** \brief SerDes PRBS status structure */
 typedef struct {
-    uint16_t    prbs_err_cnt; /**< PRBS error counter  */
-    mesa_bool_t is_active;    /**< Is the test active? */
-    mesa_bool_t is_sync;      /**< Is in sync?         */
-    mesa_bool_t is_error;     /**< Is in error state?  */
+    uint16_t                        prbs_err_cnt;      /**< PRBS error counter  */
+    mesa_bool_t                     is_active;         /**< Is the test active? */
+    mesa_bool_t                     is_sync;           /**< Is in sync?         */
+    mesa_bool_t                     is_error;          /**< Is in error state?  */
+    mesa_port_serdes_prbs_pattern_t prbs_test_pattern; /**< Active PRBS pattern */
 } mesa_port_serdes_prbs_status_t CAP(SERDES_PRBS_TEST);
 
 /**

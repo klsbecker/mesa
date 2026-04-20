@@ -1137,6 +1137,8 @@ typedef enum {
     VTSS_SERDES_TXEQ_PRM,   /**< TxEQ prms. in this order: tap_dly, tap_adv,
                                amplitude */
     VTSS_SERDES_EYE_HEIGHT, /**< Height of the Eye, get function only */
+    VTSS_SERDES_POL_INV,    /**< Tx/Rx polarity inversion. serdes_prm[0]=tx_inv,
+                               serdes_prm[1]=rx_inv (0/1) */
 } vtss_serdes_debug_type_t;
 
 /** \brief Serdes debug configuration structure */
@@ -1189,10 +1191,11 @@ typedef struct {
 
 /** \brief SerDes PRBS status structure */
 typedef struct {
-    u16  prbs_err_cnt; /**< PRBS error counter  */
-    BOOL is_active;    /**< Is the test active? */
-    BOOL is_sync;      /**< Is in sync?         */
-    BOOL is_error;     /**< Is in error state?  */
+    u16                             prbs_err_cnt;      /**< PRBS error counter  */
+    BOOL                            is_active;         /**< Is the test active? */
+    BOOL                            is_sync;           /**< Is in sync?         */
+    BOOL                            is_error;          /**< Is in error state?  */
+    vtss_port_serdes_prbs_pattern_t prbs_test_pattern; /**< Active PRBS pattern */
 } vtss_port_serdes_prbs_status_t;
 
 /**

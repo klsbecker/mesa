@@ -137,6 +137,7 @@
                                                       configuration of the VOE residence port */
 #define VTSS_FEATURE_TIMESTAMP_PCH                 /**< TS PCH hardware support */
 #endif                                             // !VTSS_OPT_LIGHT
+#define VTSS_FEATURE_SERDES_PRBS_TEST              /**< PRBS test for SerDes */
 #endif                                             /* VTSS_ARCH_LAN966X */
 
 #if defined(VTSS_CHIP_7546) || defined(VTSS_CHIP_7549) || defined(VTSS_CHIP_7552) ||               \
@@ -352,6 +353,9 @@
 #endif
 
 #endif // !VTSS_OPT_LIGHT
+#if !defined(VTSS_ARCH_LAIKA)
+#define VTSS_FEATURE_SERDES_PRBS_TEST /**< PRBS test for SerDes */
+#endif
 #endif // VTSS_ARCH_FA
 
 // VTSS_ARCH_SPARX5 specific features
@@ -589,13 +593,14 @@
 #if !defined(VTSS_OPT_PCIE_ACCESS) && !defined(VTSS_OPT_VRAP_ACCESS)
 #define VTSS_OPT_PCIE_ACCESS /**< PCIe access from external CPU */
 #endif
-#define VTSS_FEATURE_XFLOW       /**< Ingress and egress flows */
-#define VTSS_FEATURE_XSTAT       /**< Ingress and egress statistics */
-#define VTSS_FEATURE_XDLB        /**< DLB policers allocated dynamically */
-#define VTSS_FEATURE_VSCOPE      /**< Virtual Scope for eye signal monitoring                      \
-                                    (debug) */
-#define VTSS_FEATURE_TAG_DISCARD /**< Discard frame based on TAGs */
-#endif                           /* VTSS_ARCH_JAGUAR_2 */
+#define VTSS_FEATURE_XFLOW            /**< Ingress and egress flows */
+#define VTSS_FEATURE_XSTAT            /**< Ingress and egress statistics */
+#define VTSS_FEATURE_XDLB             /**< DLB policers allocated dynamically */
+#define VTSS_FEATURE_VSCOPE           /**< Virtual Scope for eye signal monitoring                 \
+                                         (debug) */
+#define VTSS_FEATURE_TAG_DISCARD      /**< Discard frame based on TAGs */
+#define VTSS_FEATURE_SERDES_PRBS_TEST /**< PRBS test for SerDes */
+#endif                                /* VTSS_ARCH_JAGUAR_2 */
 
 #if defined(VTSS_ARCH_JAGUAR_2_CE)
 #endif /* VTSS_ARCH_JAGUAR_2_CE */

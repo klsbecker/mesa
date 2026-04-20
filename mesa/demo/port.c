@@ -790,10 +790,21 @@ static void cli_cmd_deb_port_prbs(cli_req_t *req)
             if ((rc = mesa_port_serdes_prbs_status_get(NULL, iport, &status)) == MESA_RC_OK) {
                 if (!status_header_printed) {
                     status_header_printed = TRUE;
-                    cli_table_header("Port  Active  Sync    Error   Error Counter");
+                    cli_table_header("Port  Active          Sync    Error   Error Counter");
                 }
 
-                cli_printf("%-6u%-8s%-8s%-8s%-8u\n", uport, status.is_active ? "True" : "False",
+                char active_str[16];
+                if (status.is_active) {
+                    const char *pat =
+                        status.prbs_test_pattern == MESA_PORT_SERDES_PATTERN_PRBS7    ? "prbs7"
+                        : status.prbs_test_pattern == MESA_PORT_SERDES_PATTERN_PRBS15 ? "prbs15"
+                        : status.prbs_test_pattern == MESA_PORT_SERDES_PATTERN_PRBS23 ? "prbs23"
+                                                                                      : "prbs31";
+                    sprintf(active_str, "True(%s)", pat);
+                } else {
+                    sprintf(active_str, "False");
+                }
+                cli_printf("%-6u%-16s%-8s%-8s%-8u\n", uport, active_str,
                            status.is_sync ? "True" : "False", status.is_error ? "True" : "False",
                            status.prbs_err_cnt);
             } else {
@@ -1751,7 +1762,7 @@ static cli_parm_t cli_parm_table[] = {
      "ctrl1      : miim controller 1\n"
      "ctrl2      : miim controller 2\n"
      "ctrl3      : miim controller 3\n"
-     "(default: all controllers)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword}
+     "(default: all controllers)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
 };
 
 static void port_cli_init(void)
