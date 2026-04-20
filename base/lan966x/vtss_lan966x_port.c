@@ -777,7 +777,37 @@ vtss_rc vtss_cil_port_conf_get(vtss_state_t           *vtss_state,
     return VTSS_RC_OK;
 }
 
+/* Apply board-specific TX tap settings from MEBA (mirrors vtss_fa_sd_board_settings) */
+static vtss_rc lan966x_sd_board_settings(vtss_state_t *vtss_state, vtss_port_no_t port_no, u32 idx)
+{
+    vtss_port_speed_t speed = vtss_state->port.conf[port_no].speed;
+    u32               value;
+
+    if (vtss_state->init_conf.serdes_tap_get == NULL) {
+        return VTSS_RC_OK; /* Not available */
+    }
+
+    /* Write each parameter independently — only if provided by MEBA */
+    if (vtss_state->init_conf.serdes_tap_get(NULL, port_no, speed, VTSS_SERDES_MAIN_CURSOR,
+                                             &value) == VTSS_RC_OK) {
+        REG_WRM(HSIO_SD_CFG2(idx), HSIO_SD_CFG2_TX_AMPLITUDE(value), HSIO_SD_CFG2_TX_AMPLITUDE_M);
+    }
+    if (vtss_state->init_conf.serdes_tap_get(NULL, port_no, speed, VTSS_SERDES_PRE_CURSOR,
+                                             &value) == VTSS_RC_OK) {
+        REG_WRM(HSIO_SD_CFG2(idx), HSIO_SD_CFG2_TX_PREEMPH(value), HSIO_SD_CFG2_TX_PREEMPH_M);
+    }
+    if (vtss_state->init_conf.serdes_tap_get(NULL, port_no, speed, VTSS_SERDES_POST_CURSOR,
+                                             &value) == VTSS_RC_OK) {
+        REG_WRM(HSIO_SD_CFG2(idx), HSIO_SD_CFG2_TX_VBOOST_LVL(value), HSIO_SD_CFG2_TX_VBOOST_LVL_M);
+        REG_WRM(HSIO_SD_CFG(idx), HSIO_SD_CFG_TX_VBOOST_EN(value != 0U ? 1 : 0),
+                HSIO_SD_CFG_TX_VBOOST_EN_M);
+    }
+
+    return VTSS_RC_OK;
+}
+
 static vtss_rc lan966x_serdes_conf_set(vtss_state_t            *vtss_state,
+                                       vtss_port_no_t           port_no,
                                        u32                      idx,
                                        vtss_serdes_mode_t       mode,
                                        vtss_port_serdes_conf_t *conf)
@@ -819,6 +849,9 @@ static vtss_rc lan966x_serdes_conf_set(vtss_state_t            *vtss_state,
         // Leave SerDes disabled
         return VTSS_RC_OK;
     }
+
+    /* Apply board-specific TX tap settings while PHY is still in reset */
+    VTSS_RC(lan966x_sd_board_settings(vtss_state, port_no, idx));
 
     REG_WRM(HSIO_SD_CFG(idx), HSIO_SD_CFG_PHY_RESET(0), HSIO_SD_CFG_PHY_RESET_M);
     VTSS_MSLEEP(1);
@@ -878,6 +911,19 @@ static vtss_rc lan966x_serdes_conf_set(vtss_state_t            *vtss_state,
     return VTSS_RC_OK;
 }
 
+static vtss_rc lan966x_sd_pol_update(vtss_state_t  *vtss_state,
+                                     vtss_port_no_t port_no,
+                                     u32            idx,
+                                     BOOL           tx_inv,
+                                     BOOL           rx_inv)
+{
+    REG_WRM(HSIO_SD_CFG(idx),
+            HSIO_SD_CFG_TX_INVERT(tx_inv ? 1 : 0) | HSIO_SD_CFG_RX_INVERT(rx_inv ? 1 : 0),
+            HSIO_SD_CFG_TX_INVERT_M | HSIO_SD_CFG_RX_INVERT_M);
+
+    return VTSS_RC_OK;
+}
+
 static vtss_rc lan966x_serdes_cfg(vtss_state_t      *vtss_state,
                                   vtss_port_no_t     port_no,
                                   vtss_serdes_mode_t mode)
@@ -908,7 +954,7 @@ static vtss_rc lan966x_serdes_cfg(vtss_state_t      *vtss_state,
     }
     if (idx < VTSS_SD6G_40_CNT && vtss_state->port.sd6g40_mode[idx] != mode) {
         vtss_state->port.sd6g40_mode[idx] = mode;
-        rc = lan966x_serdes_conf_set(vtss_state, idx, mode, conf);
+        rc = lan966x_serdes_conf_set(vtss_state, port_no, idx, mode, conf);
     }
     vtss_state->port.serdes_mode[port_no] = mode;
     return rc;
@@ -1672,6 +1718,142 @@ vtss_rc vtss_cil_port_forward_set(vtss_state_t *vtss_state, const vtss_port_no_t
     return VTSS_RC_OK;
 }
 
+/* CR bus write to internal SerDes register */
+static vtss_rc lan966x_cr_wr(vtss_state_t *vtss_state, u32 g, u32 addr, u32 data)
+{
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_CAP_ADDR(1) | HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(data));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_CAP_DATA(1) | HSIO_CR_ACCESS_DATA_IN(data));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(data));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_WRITE(1) | HSIO_CR_ACCESS_DATA_IN(data));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(data));
+    return VTSS_RC_OK;
+}
+
+/* CR bus read from internal SerDes register */
+static vtss_rc lan966x_cr_rd(vtss_state_t *vtss_state, u32 g, u32 addr, u32 *data)
+{
+    u32 val;
+
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_CAP_ADDR(1) | HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_READ(1) | HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_WR(HSIO_CR_ACCESS(g), HSIO_CR_ACCESS_DATA_IN(addr));
+    REG_RD(HSIO_CR_OUTPUT(g), &val);
+    *data = HSIO_CR_OUTPUT_DATA_OUT_X(val);
+    return VTSS_RC_OK;
+}
+
+/* Internal SerDes CR bus register addresses (LANE_N_DIG_TX/RX_LBERT_CTL/ERR).
+ * These are accessed via the HSIO CR bus (HSIO_CR_ACCESS/HSIO_CR_OUTPUT) and are
+ * NOT present in vtss_lan966x_regs.h which only covers AHB-mapped registers. */
+#define LAN966X_CR_PRBS_GEN 0x1015 /**< LANE_N_DIG_TX_LBERT_CTL: bits[3:0]=MODE, bit4=TRIGGER_ERR */
+#define LAN966X_CR_PRBS_CHK 0x1016 /**< LANE_N_DIG_RX_LBERT_CTL: bits[3:0]=MODE, bit4=SYNC */
+#define LAN966X_CR_PRBS_ERR                                                                        \
+    0x1017 /**< LANE_N_DIG_RX_LBERT_ERR: bits[14:0]=ERROR_COUNT, bit15=OVERFLOW */
+
+/* LBERT MODE field encoding (bits[3:0] in both TX and RX LBERT_CTL).
+ * Note: this encoding is inverted relative to the vtss_port_serdes_prbs_pattern_t enum. */
+#define LAN966X_LBERT_MODE_DIS    0 /**< Disabled */
+#define LAN966X_LBERT_MODE_PRBS31 1 /**< PRBS31: X^31 + X^28 + 1 */
+#define LAN966X_LBERT_MODE_PRBS23 2 /**< PRBS23: X^23 + X^18 + 1 */
+#define LAN966X_LBERT_MODE_PRBS15 3 /**< PRBS15: X^15 + X^14 + 1 */
+#define LAN966X_LBERT_MODE_PRBS7  4 /**< PRBS7:  X^7  + X^6  + 1 */
+
+#define LAN966X_CR_PRBS_CHK_SYNC                                                                   \
+    (1 << 4) /**< RX LBERT_CTL bit4: resets error counter and resyncs */
+
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
+                                           const vtss_port_no_t                      port_no,
+                                           const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    port_type_t        port_type;
+    u32                idx;
+    vtss_serdes_mode_t mode_req;
+
+    if (lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode_req) != VTSS_RC_OK ||
+        port_type != PORT_TYPE_SD || idx >= VTSS_SD6G_40_CNT) {
+        return VTSS_RC_ERROR;
+    }
+
+    if (conf->enable) {
+        u32 mode;
+
+        switch (conf->prbs_test_pattern) {
+        case VTSS_PORT_SERDES_PATTERN_PRBS31: mode = LAN966X_LBERT_MODE_PRBS31; break;
+        case VTSS_PORT_SERDES_PATTERN_PRBS23: mode = LAN966X_LBERT_MODE_PRBS23; break;
+        case VTSS_PORT_SERDES_PATTERN_PRBS15: mode = LAN966X_LBERT_MODE_PRBS15; break;
+        default:                              /* PRBS7 is the default, matching Ocelot behaviour */
+        case VTSS_PORT_SERDES_PATTERN_PRBS7:  mode = LAN966X_LBERT_MODE_PRBS7; break;
+        }
+
+        /* Disable checker first to reset error counter, then enable TX and RX */
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_CHK, LAN966X_LBERT_MODE_DIS));
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_GEN, mode));
+        /* Set RX mode, then pulse SYNC to reset error counter and synchronize pattern matcher */
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_CHK, mode));
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_CHK,
+                              mode | LAN966X_CR_PRBS_CHK_SYNC));
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_CHK, mode));
+    } else {
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_GEN, LAN966X_LBERT_MODE_DIS));
+        VTSS_RC(lan966x_cr_wr(vtss_state, idx, LAN966X_CR_PRBS_CHK, LAN966X_LBERT_MODE_DIS));
+    }
+    return VTSS_RC_OK;
+}
+
+vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
+                                             const vtss_port_no_t                  port_no,
+                                             vtss_port_serdes_prbs_status_t *const status)
+{
+    port_type_t        port_type;
+    u32                idx, gen, chk, err;
+    vtss_serdes_mode_t mode_req;
+
+    if (lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode_req) != VTSS_RC_OK ||
+        port_type != PORT_TYPE_SD || idx >= VTSS_SD6G_40_CNT) {
+        return VTSS_RC_ERROR;
+    }
+
+    VTSS_RC(lan966x_cr_rd(vtss_state, idx, LAN966X_CR_PRBS_GEN, &gen));
+    VTSS_RC(lan966x_cr_rd(vtss_state, idx, LAN966X_CR_PRBS_CHK, &chk));
+    VTSS_RC(lan966x_cr_rd(vtss_state, idx, LAN966X_CR_PRBS_ERR, &err));
+
+    /* Bit 15 = OVERFLOW: actual count = (err[14:0] << 7) | err2[6:0], saturate at u16 max */
+    if (err & 0x8000U) {
+        u32 err2, full;
+        VTSS_RC(lan966x_cr_rd(vtss_state, idx, LAN966X_CR_PRBS_ERR, &err2));
+        full = ((err & 0x7FFFU) << 7) | (err2 & 0x7FU);
+        status->prbs_err_cnt = (full > 0xFFFFU) ? (u16)0xFFFFU : (u16)full;
+    } else {
+        status->prbs_err_cnt = (u16)(err & 0x7FFFU);
+    }
+    /* Active when both TX and RX have a non-zero (enabled) MODE */
+    status->is_active = VTSS_BOOL(((gen & 0xFU) != LAN966X_LBERT_MODE_DIS) &&
+                                  ((chk & 0xFU) != LAN966X_LBERT_MODE_DIS));
+    status->is_error = VTSS_BOOL(status->prbs_err_cnt != 0U);
+    status->is_sync = VTSS_BOOL(status->is_active && !status->is_error);
+
+    switch (gen & 0xFU) {
+    case LAN966X_LBERT_MODE_PRBS31:
+        status->prbs_test_pattern = VTSS_PORT_SERDES_PATTERN_PRBS31;
+        break;
+    case LAN966X_LBERT_MODE_PRBS23:
+        status->prbs_test_pattern = VTSS_PORT_SERDES_PATTERN_PRBS23;
+        break;
+    case LAN966X_LBERT_MODE_PRBS15:
+        status->prbs_test_pattern = VTSS_PORT_SERDES_PATTERN_PRBS15;
+        break;
+    default: status->prbs_test_pattern = VTSS_PORT_SERDES_PATTERN_PRBS7; break;
+    }
+    return VTSS_RC_OK;
+}
+#endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
+
 vtss_rc vtss_cil_port_test_conf_set(vtss_state_t *vtss_state, const vtss_port_no_t port_no)
 {
     port_type_t           port_type;
@@ -1706,6 +1888,43 @@ vtss_rc vtss_cil_port_serdes_debug(vtss_state_t                         *vtss_st
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf)
 {
+    port_type_t        port_type;
+    u32                idx;
+    vtss_serdes_mode_t mode_req;
+
+    if (lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode_req) != VTSS_RC_OK ||
+        port_type != PORT_TYPE_SD || idx >= VTSS_SD6G_40_CNT) {
+        return VTSS_RC_OK;
+    }
+
+    if (conf->debug_type == VTSS_SERDES_POL_INV) {
+        /* Direct bit flip via CLI debug path: serdes_prm[0]=tx_inv, [1]=rx_inv */
+        return lan966x_sd_pol_update(vtss_state, port_no, idx, (conf->serdes_prm[0] != 0U),
+                                     (conf->serdes_prm[1] != 0U));
+    }
+
+    /* SD_CFG2 parameters must only be changed while PHY is in reset */
+    REG_WRM(HSIO_SD_CFG(idx), HSIO_SD_CFG_PHY_RESET(1), HSIO_SD_CFG_PHY_RESET_M);
+
+    if (conf->debug_type == VTSS_SERDES_TXEQ_PRM) {
+        /* prm[0]=post->TX_VBOOST_LVL, prm[1]=pre->TX_PREEMPH, prm[2]=main->TX_AMPLITUDE */
+        REG_WRM(HSIO_SD_CFG2(idx),
+                HSIO_SD_CFG2_TX_AMPLITUDE(conf->serdes_prm[2]) |
+                    HSIO_SD_CFG2_TX_PREEMPH(conf->serdes_prm[1]) |
+                    HSIO_SD_CFG2_TX_VBOOST_LVL(conf->serdes_prm[0]),
+                HSIO_SD_CFG2_TX_AMPLITUDE_M | HSIO_SD_CFG2_TX_PREEMPH_M |
+                    HSIO_SD_CFG2_TX_VBOOST_LVL_M);
+        REG_WRM(HSIO_SD_CFG(idx), HSIO_SD_CFG_TX_VBOOST_EN(conf->serdes_prm[0] != 0U ? 1 : 0),
+                HSIO_SD_CFG_TX_VBOOST_EN_M);
+    } else if (conf->debug_type == VTSS_SERDES_CTLE_PRM) {
+        /* prm[0]=rx_eq */
+        REG_WRM(HSIO_SD_CFG2(idx), HSIO_SD_CFG2_RX_EQ(conf->serdes_prm[0]), HSIO_SD_CFG2_RX_EQ_M);
+    }
+
+    REG_WRM(HSIO_SD_CFG(idx), HSIO_SD_CFG_PHY_RESET(0), HSIO_SD_CFG_PHY_RESET_M);
+    /* Allow PHY to re-lock without full status polling */
+    VTSS_MSLEEP(5);
+
     return VTSS_RC_OK;
 }
 
@@ -1713,92 +1932,26 @@ vtss_rc vtss_cil_port_serdes_debug_get(vtss_state_t                   *vtss_stat
                                        const vtss_port_no_t            port_no,
                                        vtss_port_serdes_debug_t *const conf)
 {
-    return VTSS_RC_OK;
-}
-
-#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
-
-// CR bus addresses for internal SerDes BIST registers
-#define LAN966X_SD_CR_BIST_GEN 0x1015U
-#define LAN966X_SD_CR_BIST_CHK 0x1016U
-#define LAN966X_SD_CR_BIST_ERR 0x1017U
-
-static vtss_rc lan966x_sd_cr_wr(vtss_state_t *vtss_state, u32 sd, u32 addr, u32 data)
-{
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_CAP_ADDR(1U) | HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(data));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_CAP_DATA(1U) | HSIO_CR_ACCESS_DATA_IN(data));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(data));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_WRITE(1U) | HSIO_CR_ACCESS_DATA_IN(data));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(data));
-    return VTSS_RC_OK;
-}
-
-static vtss_rc lan966x_sd_cr_rd(vtss_state_t *vtss_state, u32 sd, u32 addr, u32 *data)
-{
-    u32 val;
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_CAP_ADDR(1U) | HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_READ(1U) | HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_WR(HSIO_CR_ACCESS(sd), HSIO_CR_ACCESS_DATA_IN(addr));
-    REG_RD(HSIO_CR_OUTPUT(sd), &val);
-    *data = HSIO_CR_OUTPUT_DATA_OUT_X(val);
-    return VTSS_RC_OK;
-}
-
-vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
-                                           const vtss_port_no_t                      port_no,
-                                           const vtss_port_serdes_prbs_conf_t *const conf)
-{
     port_type_t        port_type;
-    u32                idx;
-    vtss_serdes_mode_t mode;
+    u32                idx, val;
+    vtss_serdes_mode_t mode_req;
 
-    VTSS_RC(lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode));
-    if (port_type != PORT_TYPE_SD) {
-        return VTSS_RC_ERROR;
-    }
-    // CR 0x1015 bit 0: 1 = PRBS31 enabled, 0 = disabled
-    VTSS_RC(lan966x_sd_cr_wr(vtss_state, idx, LAN966X_SD_CR_BIST_GEN,
-                             conf->enable ? 0x0001U : 0x0000U));
-    VTSS_RC(lan966x_sd_cr_wr(vtss_state, idx, LAN966X_SD_CR_BIST_CHK,
-                             conf->enable ? 0x0001U : 0x0000U));
-    return VTSS_RC_OK;
-}
-
-vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
-                                             const vtss_port_no_t                  port_no,
-                                             vtss_port_serdes_prbs_status_t *const status)
-{
-    port_type_t        port_type;
-    u32                idx;
-    vtss_serdes_mode_t mode;
-    u32                chk_val;
-    u32                err_cnt;
-
-    VTSS_RC(lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode));
-    if (port_type != PORT_TYPE_SD) {
-        return VTSS_RC_ERROR;
-    }
-    VTSS_RC(lan966x_sd_cr_rd(vtss_state, idx, LAN966X_SD_CR_BIST_CHK, &chk_val));
-    status->is_active = ((chk_val & 0x0001U) != 0U);
-    if (status->is_active == FALSE) {
-        status->is_sync = FALSE;
-        status->is_error = FALSE;
-        status->prbs_err_cnt = (u16)0U;
+    if (lan966x_port_type_calc(vtss_state, port_no, &port_type, &idx, &mode_req) != VTSS_RC_OK ||
+        port_type != PORT_TYPE_SD || idx >= VTSS_SD6G_40_CNT) {
         return VTSS_RC_OK;
     }
-    VTSS_RC(lan966x_sd_cr_rd(vtss_state, idx, LAN966X_SD_CR_BIST_ERR, &err_cnt));
-    status->is_sync = TRUE;
-    status->is_error = (err_cnt > 0U);
-    status->prbs_err_cnt = (u16)(err_cnt > 0xFFFFU ? 0xFFFFU : err_cnt);
+
+    REG_RD(HSIO_SD_CFG2(idx), &val);
+    if (conf->debug_type == VTSS_SERDES_TXEQ_PRM) {
+        conf->serdes_prm[2] = HSIO_SD_CFG2_TX_AMPLITUDE_X(val);
+        conf->serdes_prm[1] = HSIO_SD_CFG2_TX_PREEMPH_X(val);
+        conf->serdes_prm[0] = HSIO_SD_CFG2_TX_VBOOST_LVL_X(val);
+    } else if (conf->debug_type == VTSS_SERDES_CTLE_PRM) {
+        conf->serdes_prm[0] = HSIO_SD_CFG2_RX_EQ_X(val);
+    }
+
     return VTSS_RC_OK;
 }
-
-#endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
 
 static vtss_rc lan966x_port_buf_conf_set(vtss_state_t *vtss_state)
 {
