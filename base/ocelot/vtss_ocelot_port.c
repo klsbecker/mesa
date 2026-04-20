@@ -281,8 +281,16 @@ static vtss_rc srvl_sd1g_cfg(vtss_state_t *vtss_state, vtss_port_no_t port_no, u
     /* MISC_CFG */
     SRVL_WRM(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG,
              (if_100fx ? VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_DES_100FX_CPMD_ENA : 0) |
+                 (vtss_state->port.conf[port_no].serdes.tx_invert
+                      ? VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA
+                      : 0) |
+                 (vtss_state->port.conf[port_no].serdes.rx_invert
+                      ? VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA
+                      : 0) |
                  VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_LANE_RST,
              VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_DES_100FX_CPMD_ENA |
+                 VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA |
+                 VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA |
                  VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_LANE_RST);
 
     VTSS_RC(srvl_sd1g_write(vtss_state, addr));
@@ -729,6 +737,14 @@ static vtss_rc srvl_sd6g_cfg(vtss_state_t *vtss_state, vtss_port_no_t port_no, u
     SRVL_WRM_CTL(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG, tx_lpi_mode_ena,
                  VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_LPI_MODE_ENA);
 
+    SRVL_WRM_CTL(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG,
+                 vtss_state->port.conf[port_no].serdes.tx_invert,
+                 VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA);
+
+    SRVL_WRM_CTL(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG,
+                 vtss_state->port.conf[port_no].serdes.rx_invert,
+                 VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA);
+
     VTSS_RC(srvl_sd6g_write(vtss_state, addr));
 
     // Step 2: Set pll_fsm_ena=1
@@ -798,6 +814,8 @@ static vtss_rc sd6g_prbs_read_status(vtss_state_t                         *vtss_
     no_sync = SRVL_BF(HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS_BIST_NOSYNC, status_reg_val);
 
     sdxg_prbs_populate_status(active, no_sync, compl_n, err_cnt_reg_val, status);
+    status->prbs_test_pattern = (vtss_port_serdes_prbs_pattern_t)
+        VTSS_X_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0_PRBS_SEL(cfg_reg_val);
     return VTSS_RC_OK;
 }
 
@@ -816,6 +834,8 @@ static vtss_rc sd1g_prbs_read_status(vtss_state_t                         *vtss_
     no_sync = SRVL_BF(HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_NOSYNC, status_reg_val);
 
     sdxg_prbs_populate_status(active, no_sync, compl_n, err_cnt_reg_val, status);
+    status->prbs_test_pattern = (vtss_port_serdes_prbs_pattern_t)
+        VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_PRBS_SEL(cfg_reg_val);
     return VTSS_RC_OK;
 }
 
@@ -1640,6 +1660,44 @@ vtss_rc vtss_cil_port_conf_get(vtss_state_t           *vtss_state,
 static BOOL srvl_port_is_internal_phy(u32 chip_port)
 {
     return (chip_port < 4); // cport 0-3 is internal phy ports
+}
+
+/* Update only the TX/RX polarity inversion bits in MISC_CFG without a full SerDes reconfiguration */
+static vtss_rc srvl_serdes_pol_update(vtss_state_t  *vtss_state,
+                                      vtss_port_no_t port_no,
+                                      BOOL           tx_inv,
+                                      BOOL           rx_inv)
+{
+    u32  inst, addr, port = VTSS_CHIP_PORT(port_no);
+    BOOL serdes6g;
+
+    VTSS_RC(srvl_serdes_inst_get(vtss_state, port, &inst, &serdes6g));
+    if (inst == SRVL_SERDES_INST_NONE)
+        return VTSS_RC_OK;
+
+    addr = (1 << inst);
+
+    if (serdes6g) {
+        VTSS_RC(srvl_sd6g_lock(vtss_state));
+        VTSS_RC(srvl_sd6g_read(vtss_state, addr));
+        SRVL_WRM_CTL(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG, tx_inv,
+                     VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA);
+        SRVL_WRM_CTL(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG, rx_inv,
+                     VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA);
+        VTSS_RC(srvl_sd6g_write(vtss_state, addr));
+        VTSS_RC(srvl_sd6g_unlock(vtss_state));
+    } else {
+        VTSS_RC(srvl_sd1g_lock(vtss_state));
+        VTSS_RC(srvl_sd1g_read(vtss_state, addr));
+        SRVL_WRM_CTL(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG, tx_inv,
+                     VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA);
+        SRVL_WRM_CTL(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG, rx_inv,
+                     VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA);
+        VTSS_RC(srvl_sd1g_write(vtss_state, addr));
+        VTSS_RC(srvl_sd1g_unlock(vtss_state));
+    }
+
+    return VTSS_RC_OK;
 }
 
 static vtss_rc srvl_serdes_cfg(vtss_state_t        *vtss_state,
@@ -2499,6 +2557,11 @@ vtss_rc vtss_cil_port_serdes_debug(vtss_state_t                         *vtss_st
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf)
 {
+    if (conf->debug_type == VTSS_SERDES_POL_INV) {
+        /* Direct bit flip via CLI debug path: serdes_prm[0]=tx_inv, [1]=rx_inv */
+        return srvl_serdes_pol_update(vtss_state, port_no, (conf->serdes_prm[0] != 0U),
+                                      (conf->serdes_prm[1] != 0U));
+    }
     return VTSS_RC_OK;
 }
 
