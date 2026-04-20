@@ -139,8 +139,14 @@ vtss_rc jr2_sd1g_cfg(vtss_state_t      *vtss_state,
     // MISC CFG
     JR2_WRM(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG,
             VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_DES_100FX_CPMD_ENA(if_100fx) |
+                VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA(
+                    vtss_state->port.conf[port_no].serdes.tx_invert ? 1 : 0) |
+                VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA(
+                    vtss_state->port.conf[port_no].serdes.rx_invert ? 1 : 0) |
                 VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_LANE_RST(1),
             VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_DES_100FX_CPMD_ENA |
+                VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA |
+                VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA |
                 VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_LANE_RST);
 
     // PLL CFG
@@ -621,6 +627,17 @@ vtss_rc jr2_sd6g_cfg(vtss_state_t      *vtss_state,
             VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_LPI_MODE_ENA(tx_lpi_mode_ena),
             VTSS_M_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_LPI_MODE_ENA);
 
+    JR2_WRM(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG,
+            VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA(vtss_state->port
+                                                                                   .conf[port_no]
+                                                                                   .serdes.tx_invert
+                                                                               ? 1
+                                                                               : 0) |
+                VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA(
+                    vtss_state->port.conf[port_no].serdes.rx_invert ? 1 : 0),
+            VTSS_M_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA |
+                VTSS_M_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA);
+
     VTSS_RC(jr2_sd6g_write(vtss_state, addr));
     // Step 2:    Set pll_fsm_ena=1
     JR2_WRM(VTSS_HSIO_SERDES6G_ANA_CFG_SERDES6G_PLL_CFG,
@@ -831,5 +848,289 @@ vtss_rc jr2_sd10g_cfg(vtss_state_t           *vtss_state,
 #endif
     return rc;
 }
+
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+
+static u8 jr2_get_prbs_pattern_idx(vtss_port_serdes_prbs_pattern_t pattern)
+{
+    u8 idx;
+    switch (pattern) {
+    case VTSS_PORT_SERDES_PATTERN_PRBS7:
+    case VTSS_PORT_SERDES_PATTERN_PRBS15:
+    case VTSS_PORT_SERDES_PATTERN_PRBS23:
+    case VTSS_PORT_SERDES_PATTERN_PRBS31: idx = (u8)pattern; break;
+    default:                              idx = 0; break;
+    }
+    return idx;
+}
+
+static void jr2_prbs_populate_status(BOOL                                  active,
+                                     BOOL                                  no_sync,
+                                     BOOL                                  compl_n,
+                                     u32                                   err_cnt,
+                                     vtss_port_serdes_prbs_status_t *const status)
+{
+    status->is_active = active;
+    status->is_sync = active && !no_sync;
+    status->is_error = active && !compl_n && (err_cnt != 0U);
+    status->prbs_err_cnt = err_cnt;
+}
+
+static vtss_rc jr2_sd6g_prbs_read_status(vtss_state_t                         *vtss_state,
+                                         vtss_port_serdes_prbs_status_t *const status)
+{
+    u32  cfg_reg, status_reg, err_cnt;
+    BOOL active, no_sync, compl_n;
+
+    JR2_RD(VTSS_HSIO_SERDES6G_DIG_STATUS_SERDES6G_ERR_CNT, &err_cnt);
+    JR2_RD(VTSS_HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS, &status_reg);
+    JR2_RD(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0, &cfg_reg);
+
+    active = (VTSS_X_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0_TEST_MODE(cfg_reg) != 0);
+    compl_n =
+        VTSS_BOOL(VTSS_X_HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS_BIST_COMPLETE_N(status_reg));
+    no_sync =
+        VTSS_BOOL(VTSS_X_HSIO_SERDES6G_DIG_STATUS_SERDES6G_DFT_STATUS_BIST_NOSYNC(status_reg));
+
+    jr2_prbs_populate_status(active, no_sync, compl_n, err_cnt, status);
+    status->prbs_test_pattern = (vtss_port_serdes_prbs_pattern_t)
+        VTSS_X_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0_PRBS_SEL(cfg_reg);
+    return VTSS_RC_OK;
+}
+
+static vtss_rc jr2_sd1g_prbs_read_status(vtss_state_t                         *vtss_state,
+                                         vtss_port_serdes_prbs_status_t *const status)
+{
+    u32  cfg_reg, status_reg;
+    BOOL active, no_sync, compl_n;
+
+    /* SD1G has no error counter */
+    JR2_RD(VTSS_HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS, &status_reg);
+    JR2_RD(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0, &cfg_reg);
+
+    active = (VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_TEST_MODE(cfg_reg) != 0);
+    compl_n =
+        VTSS_BOOL(VTSS_X_HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_COMPLETE_N(status_reg));
+    no_sync =
+        VTSS_BOOL(VTSS_X_HSIO_SERDES1G_DIG_STATUS_SERDES1G_DFT_STATUS_BIST_NOSYNC(status_reg));
+
+    jr2_prbs_populate_status(active, no_sync, compl_n, 0, status);
+    status->prbs_test_pattern = (vtss_port_serdes_prbs_pattern_t)
+        VTSS_X_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0_PRBS_SEL(cfg_reg);
+    return VTSS_RC_OK;
+}
+
+/* Generic SD1G/SD6G helpers using function pointers (no lock/unlock needed in JR2) */
+static vtss_rc jr2_sdxg_prbs_conf_set(vtss_rc (*sd_read)(vtss_state_t *, u32),
+                                      vtss_rc (*sd_write)(vtss_state_t *, u32),
+                                      vtss_state_t *vtss_state,
+                                      u32           addr,
+                                      u32           cfg_reg_addr,
+                                      u32           cfg_reg_val,
+                                      u32           cfg_reg_mask)
+{
+    VTSS_RC(sd_read(vtss_state, addr));
+    JR2_WRM(cfg_reg_addr, cfg_reg_val, cfg_reg_mask);
+    VTSS_RC(sd_write(vtss_state, addr));
+    return VTSS_RC_OK;
+}
+
+static vtss_rc jr2_sdxg_prbs_status_get(vtss_rc (*sd_read)(vtss_state_t *, u32),
+                                        vtss_rc (*sd_read_status)(vtss_state_t *,
+                                                                  vtss_port_serdes_prbs_status_t
+                                                                      *const),
+                                        vtss_state_t                         *vtss_state,
+                                        u32                                   addr,
+                                        vtss_port_serdes_prbs_status_t *const status)
+{
+    VTSS_RC(sd_read(vtss_state, addr));
+    VTSS_RC(sd_read_status(vtss_state, status));
+    return VTSS_RC_OK;
+}
+
+/* Helper macros for building DFT_CFG0 value/mask for SD1G and SD6G */
+#define JR2_SDxG_PRBS_CFG_VAL(x, conf)                                                             \
+    (VTSS_F_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_PRBS_SEL(                              \
+         jr2_get_prbs_pattern_idx((conf)->prbs_test_pattern)) |                                    \
+     VTSS_F_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_TEST_MODE((conf)->enable ? 2U : 0U))
+
+#define JR2_SDxG_PRBS_CFG_MASK(x)                                                                  \
+    (VTSS_M_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_PRBS_SEL |                             \
+     VTSS_M_HSIO_SERDES##x##G_DIG_CFG_SERDES##x##G_DFT_CFG0_TEST_MODE)
+
+vtss_rc jr2_sd1g_prbs_conf_set(vtss_state_t                             *vtss_state,
+                               u32                                       addr,
+                               const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    return jr2_sdxg_prbs_conf_set(jr2_sd1g_read, jr2_sd1g_write, vtss_state, addr,
+                                  VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_DFT_CFG0,
+                                  JR2_SDxG_PRBS_CFG_VAL(1, conf), JR2_SDxG_PRBS_CFG_MASK(1));
+}
+
+vtss_rc jr2_sd6g_prbs_conf_set(vtss_state_t                             *vtss_state,
+                               u32                                       addr,
+                               const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    return jr2_sdxg_prbs_conf_set(jr2_sd6g_read, jr2_sd6g_write, vtss_state, addr,
+                                  VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_DFT_CFG0,
+                                  JR2_SDxG_PRBS_CFG_VAL(6, conf), JR2_SDxG_PRBS_CFG_MASK(6));
+}
+
+vtss_rc jr2_sd1g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                 u32                                   addr,
+                                 vtss_port_serdes_prbs_status_t *const status)
+{
+    return jr2_sdxg_prbs_status_get(jr2_sd1g_read, jr2_sd1g_prbs_read_status, vtss_state, addr,
+                                    status);
+}
+
+vtss_rc jr2_sd6g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                 u32                                   addr,
+                                 vtss_port_serdes_prbs_status_t *const status)
+{
+    return jr2_sdxg_prbs_status_get(jr2_sd6g_read, jr2_sd6g_prbs_read_status, vtss_state, addr,
+                                    status);
+}
+
+/* SD10G65 PRBS: direct register access, separate TX/RX, different pattern encoding */
+/* SD10G65 PRBS_SEL encoding: 0=prbs7, 1=prbs15, 2=prbs23, 3=prbs11, 4=prbs31 */
+static u8 jr2_sd10g65_get_prbs_pattern_idx(vtss_port_serdes_prbs_pattern_t pattern)
+{
+    u8 idx;
+    switch (pattern) {
+    case VTSS_PORT_SERDES_PATTERN_PRBS7:  idx = 0; break;
+    case VTSS_PORT_SERDES_PATTERN_PRBS15: idx = 1; break;
+    case VTSS_PORT_SERDES_PATTERN_PRBS23: idx = 2; break;
+    case VTSS_PORT_SERDES_PATTERN_PRBS31: idx = 4; break;
+    default:                              idx = 4; break;
+    }
+    return idx;
+}
+
+static vtss_port_serdes_prbs_pattern_t jr2_sd10g65_prbs_idx_to_pattern(u8 idx)
+{
+    vtss_port_serdes_prbs_pattern_t pattern;
+    switch (idx) {
+    case 0:  pattern = VTSS_PORT_SERDES_PATTERN_PRBS7; break;
+    case 1:  pattern = VTSS_PORT_SERDES_PATTERN_PRBS15; break;
+    case 2:  pattern = VTSS_PORT_SERDES_PATTERN_PRBS23; break;
+    case 4:  pattern = VTSS_PORT_SERDES_PATTERN_PRBS31; break;
+    default: pattern = VTSS_PORT_SERDES_PATTERN_PRBS31; break;
+    }
+    return pattern;
+}
+
+vtss_rc jr2_sd10g65_prbs_conf_set(vtss_state_t                             *vtss_state,
+                                  vtss_port_no_t                            port_no,
+                                  const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    u32 port = VTSS_CHIP_PORT(port_no);
+    u32 tgt = VTSS_TO_10G_APC_TGT(port);
+    u8  pat_idx = jr2_sd10g65_get_prbs_pattern_idx(conf->prbs_test_pattern);
+    u32 tx_cfg_base, rx_cfg_base;
+    /* Width selection depends on SerDes rate:
+     * 1G  (1000Base-X via 10G SerDes): 10-bit  8b10b  (wid_sel=1)
+     * 2.5G (2G5 via 10G SerDes):       20-bit  8b10b  (wid_sel=3)
+     * 10G (SFI/XAUI/RXAUI):            32-bit  64b66b (wid_sel=4) */
+    u32 wid_sel;
+    switch (vtss_state->port.serdes_mode[port_no]) {
+    case VTSS_SERDES_MODE_1000BaseX: wid_sel = 1U; break;
+    case VTSS_SERDES_MODE_2G5:       wid_sel = 3U; break;
+    default:                         wid_sel = 4U; break;
+    }
+
+    if (!conf->enable) {
+        JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG(tgt), 0);
+        JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt), 0);
+        return VTSS_RC_OK;
+    }
+
+    /* TX: PRBS_SEL, SCRAM_INV=1, RST_ON_STUCK_AT=1, width matches SerDes rate */
+    tx_cfg_base = VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG_RST_ON_STUCK_AT_CFG(1) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG_TX_WID_SEL_CFG(wid_sel) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG_TX_PRBS_SEL_CFG(pat_idx) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG_SCRAM_INV_CFG(1);
+
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG(tgt), tx_cfg_base);
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG(tgt),
+           tx_cfg_base | VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_TX_CFG_DFT_TX_ENA(1));
+
+    /* BIST timing config (values from reference sequence) */
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG3(tgt),
+           VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG3_MAX_STABLE_ATTEMPTS_CFG(10));
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG1(tgt),
+           VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG1_MAX_UNSTABLE_CYC_CFG(20) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG1_STABLE_THRES_CFG(10));
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG0(tgt),
+           VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG0_WAKEUP_DLY_CFG(10) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG0_MAX_BIST_FRAMES_CFG(31249));
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG2(tgt),
+           VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_BIST_CFG2_FRAME_LEN_CFG(999));
+
+    /* RX: PRBS_SEL, INV_ENA=1, LRN_CNT=7, BIST_CNT=2, width matches SerDes rate */
+    rx_cfg_base = VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_BIST_CNT_CFG(2) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_RX_WID_SEL_CFG(wid_sel) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_RX_PRBS_SEL_CFG(pat_idx) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_INV_ENA_CFG(1) |
+                  VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_LRN_CNT_CFG(7);
+
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt), rx_cfg_base);
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+           rx_cfg_base | VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_DFT_RX_ENA(1));
+    /* Set BIST_MODE_CFG=3 (CONT/infinite) to start active checking */
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+           rx_cfg_base | VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_DFT_RX_ENA(1) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_BIST_MODE_CFG(3));
+
+    /* Reset error counter via rising edge on CNT_RST */
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+           rx_cfg_base | VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_DFT_RX_ENA(1) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_BIST_MODE_CFG(3) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_CNT_RST(1));
+    JR2_WR(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+           rx_cfg_base | VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_DFT_RX_ENA(1) |
+               VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_BIST_MODE_CFG(3));
+
+    return VTSS_RC_OK;
+}
+
+vtss_rc jr2_sd10g65_prbs_status_get(vtss_state_t                         *vtss_state,
+                                    u32                                   port,
+                                    vtss_port_serdes_prbs_status_t *const status)
+{
+    u32  tgt = VTSS_TO_10G_APC_TGT(port);
+    u32  rx_cfg, main_stat, err_cnt;
+    BOOL active, no_sync, compl_n;
+
+    /* Latch error counter before reading */
+    JR2_WRM(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+            VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_ERR_CNT_CAPT_CFG(1),
+            VTSS_M_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_ERR_CNT_CAPT_CFG);
+
+    JR2_RD(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_ERR_STAT(tgt), &err_cnt);
+    JR2_RD(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_MAIN_STAT(tgt), &main_stat);
+    JR2_RD(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt), &rx_cfg);
+
+    /* Release latch and reset counter (read-and-clear: counter shows delta since last read) */
+    JR2_WRM(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+            VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_ERR_CNT_CAPT_CFG(0) |
+                VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_CNT_RST(1),
+            VTSS_M_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_ERR_CNT_CAPT_CFG |
+                VTSS_M_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_CNT_RST);
+    JR2_WRM(VTSS_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG(tgt),
+            VTSS_F_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_CNT_RST(0),
+            VTSS_M_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_CNT_RST);
+
+    active = VTSS_BOOL(VTSS_X_SD10G65_DIG_SD10G65_DFT_DFT_MAIN_STAT_ACTIVE(main_stat));
+    no_sync = VTSS_BOOL(VTSS_X_SD10G65_DIG_SD10G65_DFT_DFT_MAIN_STAT_NO_SYNC(main_stat));
+    compl_n = VTSS_BOOL(VTSS_X_SD10G65_DIG_SD10G65_DFT_DFT_MAIN_STAT_INCOMPLETE(main_stat));
+
+    jr2_prbs_populate_status(active, no_sync, compl_n, err_cnt, status);
+    status->prbs_test_pattern = jr2_sd10g65_prbs_idx_to_pattern(
+        (u8)VTSS_X_SD10G65_DIG_SD10G65_DFT_DFT_RX_CFG_RX_PRBS_SEL_CFG(rx_cfg));
+    return VTSS_RC_OK;
+}
+
+#endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
 
 #endif /* VTSS_ARCH_JAGUAR_2 */

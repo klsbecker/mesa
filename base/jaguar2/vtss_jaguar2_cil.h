@@ -526,5 +526,27 @@ vtss_rc jr2_sd10g_cfg(vtss_state_t           *vtss_state,
                       vtss_sd10g_media_type_t media,
                       u32                     port);
 
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+/* PRBS functions */
+vtss_rc jr2_sd1g_prbs_conf_set(vtss_state_t                             *vtss_state,
+                               u32                                       addr,
+                               const vtss_port_serdes_prbs_conf_t *const conf);
+vtss_rc jr2_sd6g_prbs_conf_set(vtss_state_t                             *vtss_state,
+                               u32                                       addr,
+                               const vtss_port_serdes_prbs_conf_t *const conf);
+vtss_rc jr2_sd1g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                 u32                                   addr,
+                                 vtss_port_serdes_prbs_status_t *const status);
+vtss_rc jr2_sd6g_prbs_status_get(vtss_state_t                         *vtss_state,
+                                 u32                                   addr,
+                                 vtss_port_serdes_prbs_status_t *const status);
+vtss_rc jr2_sd10g65_prbs_conf_set(vtss_state_t                             *vtss_state,
+                                  vtss_port_no_t                            port_no,
+                                  const vtss_port_serdes_prbs_conf_t *const conf);
+vtss_rc jr2_sd10g65_prbs_status_get(vtss_state_t                         *vtss_state,
+                                    u32                                   port,
+                                    vtss_port_serdes_prbs_status_t *const status);
+#endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
+
 #endif /* VTSS_ARCH_JAGUAR_2 */
 #endif /* VTSS_JAGUAR2_CIL_H */

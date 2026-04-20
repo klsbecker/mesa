@@ -1123,6 +1123,58 @@ static vtss_rc jr2_sd10g_xfi_mode(vtss_state_t      *vtss_state,
     return VTSS_RC_OK;
 }
 
+static vtss_rc jr2_serdes_pol_update(vtss_state_t  *vtss_state,
+                                     vtss_port_no_t port_no,
+                                     BOOL           tx_inv,
+                                     BOOL           rx_inv)
+{
+    u32 serdes_inst, serdes_type, tgt, addr;
+
+    VTSS_RC(jr2_port_inst_get(vtss_state, port_no, &tgt, &serdes_inst, &serdes_type));
+
+    if (serdes_type == JR2_SERDES_TYPE_1G) {
+        addr = (1 << serdes_inst);
+        VTSS_RC(jr2_sd1g_read(vtss_state, addr));
+        JR2_WRM(VTSS_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG,
+                VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA(tx_inv ? 1 : 0) |
+                    VTSS_F_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA(rx_inv ? 1 : 0),
+                VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_TX_DATA_INV_ENA |
+                    VTSS_M_HSIO_SERDES1G_DIG_CFG_SERDES1G_MISC_CFG_RX_DATA_INV_ENA);
+        VTSS_RC(jr2_sd1g_write(vtss_state, addr));
+    } else if (serdes_type == JR2_SERDES_TYPE_6G) {
+        addr = (1 << serdes_inst);
+        VTSS_RC(jr2_sd6g_read(vtss_state, addr));
+        JR2_WRM(VTSS_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG,
+                VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA(tx_inv ? 1 : 0) |
+                    VTSS_F_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA(rx_inv ? 1 : 0),
+                VTSS_M_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_TX_DATA_INV_ENA |
+                    VTSS_M_HSIO_SERDES6G_DIG_CFG_SERDES6G_MISC_CFG_RX_DATA_INV_ENA);
+        VTSS_RC(jr2_sd6g_write(vtss_state, addr));
+    } else if (serdes_type == JR2_SERDES_TYPE_10G) {
+        /* SD10G65 inversion registers are not hot-writable — full reinit required.
+         * Redo the 10G setup with the new inversion state (causes brief link down). */
+        vtss_serdes_mode_t mode = vtss_state->port.serdes_mode[port_no];
+        u32                chip_port = VTSS_CHIP_PORT(port_no);
+        u32                tgt_ana = VTSS_TO_10G_SRD_TGT(chip_port);
+
+        VTSS_RC(jr2_sd10g_xfi_mode(vtss_state, mode, port_no));
+        VTSS_RC(jr2_sd10g_cfg(vtss_state, mode, vtss_state->port.conf[port_no].serdes.media_type,
+                              chip_port));
+        JR2_WRM(VTSS_SD10G65_SD10G65_OB_SD10G65_OB_CFG0(tgt_ana),
+                VTSS_F_SD10G65_SD10G65_OB_SD10G65_OB_CFG0_SER_INV(tx_inv ? 1U : 0U),
+                VTSS_M_SD10G65_SD10G65_OB_SD10G65_OB_CFG0_SER_INV);
+        JR2_WRM(VTSS_SD10G65_SD10G65_DES_SD10G65_DES_CFG0(tgt_ana),
+                VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_H(rx_inv ? 1U : 0U) |
+                    VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_M(rx_inv ? 1U : 0U) |
+                    VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_L(rx_inv ? 1U : 0U),
+                VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_H |
+                    VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_M |
+                    VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_L);
+    }
+
+    return VTSS_RC_OK;
+}
+
 static vtss_rc jr2_serdes_cfg(vtss_state_t        *vtss_state,
                               const vtss_port_no_t port_no,
                               vtss_serdes_mode_t   mode)
@@ -1131,7 +1183,7 @@ static vtss_rc jr2_serdes_cfg(vtss_state_t        *vtss_state,
     vtss_port_conf_t *conf = &vtss_state->port.conf[port_no];
 
     if (mode == vtss_state->port.serdes_mode[port_no]) {
-        return VTSS_RC_OK; // No change of Serdes
+        return VTSS_RC_OK;
     }
 
     VTSS_RC(jr2_port_inst_get(vtss_state, port_no, &tgt, &serdes_inst, &serdes_type));
@@ -1163,6 +1215,22 @@ static vtss_rc jr2_serdes_cfg(vtss_state_t        *vtss_state,
     case JR2_SERDES_TYPE_10G:
         VTSS_RC(jr2_sd10g_xfi_mode(vtss_state, mode, port_no));
         VTSS_RC(jr2_sd10g_cfg(vtss_state, mode, conf->serdes.media_type, port));
+        /* Apply polarity inversion (must be after full setup, not hot-writable) */
+        JR2_WRM(VTSS_SD10G65_SD10G65_OB_SD10G65_OB_CFG0(VTSS_TO_10G_SRD_TGT(port)),
+                VTSS_F_SD10G65_SD10G65_OB_SD10G65_OB_CFG0_SER_INV(conf->serdes.tx_invert ? 1U : 0U),
+                VTSS_M_SD10G65_SD10G65_OB_SD10G65_OB_CFG0_SER_INV);
+        JR2_WRM(VTSS_SD10G65_SD10G65_DES_SD10G65_DES_CFG0(VTSS_TO_10G_SRD_TGT(port)),
+                VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_H(conf->serdes.rx_invert ? 1U
+                                                                                             : 0U) |
+                    VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_M(conf->serdes.rx_invert
+                                                                              ? 1U
+                                                                              : 0U) |
+                    VTSS_F_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_L(conf->serdes.rx_invert
+                                                                              ? 1U
+                                                                              : 0U),
+                VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_H |
+                    VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_M |
+                    VTSS_M_SD10G65_SD10G65_DES_SD10G65_DES_CFG0_DES_INV_L);
         /* Change to 100FX after Serdes config */
         if (mode == VTSS_SERDES_MODE_100FX) {
             JR2_WRM(VTSS_XFI_SHELL_XFI_CONTROL_XFI_MODE(VTSS_TO_10G_XFI_TGT(port)),
@@ -2870,6 +2938,40 @@ vtss_rc vtss_cil_port_forward_set(vtss_state_t *vtss_state, const vtss_port_no_t
     return VTSS_RC_OK;
 }
 
+#if defined(VTSS_FEATURE_SERDES_PRBS_TEST)
+vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
+                                           const vtss_port_no_t                      port_no,
+                                           const vtss_port_serdes_prbs_conf_t *const conf)
+{
+    u32 tgt, serdes_inst, serdes_type, port = VTSS_CHIP_PORT(port_no);
+
+    VTSS_RC(jr2_port_inst_get(vtss_state, port_no, &tgt, &serdes_inst, &serdes_type));
+
+    switch (serdes_type) {
+    case JR2_SERDES_TYPE_1G:  return jr2_sd1g_prbs_conf_set(vtss_state, 1U << serdes_inst, conf);
+    case JR2_SERDES_TYPE_6G:  return jr2_sd6g_prbs_conf_set(vtss_state, 1U << serdes_inst, conf);
+    case JR2_SERDES_TYPE_10G: return jr2_sd10g65_prbs_conf_set(vtss_state, port_no, conf);
+    default:                  return VTSS_RC_ERROR;
+    }
+}
+
+vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
+                                             const vtss_port_no_t                  port_no,
+                                             vtss_port_serdes_prbs_status_t *const status)
+{
+    u32 tgt, serdes_inst, serdes_type, port = VTSS_CHIP_PORT(port_no);
+
+    VTSS_RC(jr2_port_inst_get(vtss_state, port_no, &tgt, &serdes_inst, &serdes_type));
+
+    switch (serdes_type) {
+    case JR2_SERDES_TYPE_1G:  return jr2_sd1g_prbs_status_get(vtss_state, 1U << serdes_inst, status);
+    case JR2_SERDES_TYPE_6G:  return jr2_sd6g_prbs_status_get(vtss_state, 1U << serdes_inst, status);
+    case JR2_SERDES_TYPE_10G: return jr2_sd10g65_prbs_status_get(vtss_state, port, status);
+    default:                  return VTSS_RC_OK;
+    }
+}
+#endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
+
 vtss_rc vtss_cil_port_test_conf_set(vtss_state_t *vtss_state, const vtss_port_no_t port_no)
 {
     u32                tgt, serdes_inst, serdes_type, port = VTSS_CHIP_PORT(port_no);
@@ -2968,6 +3070,11 @@ vtss_rc vtss_cil_port_serdes_debug(vtss_state_t                         *vtss_st
                                    const vtss_port_no_t                  port_no,
                                    const vtss_port_serdes_debug_t *const conf)
 {
+    if (conf->debug_type == VTSS_SERDES_POL_INV) {
+        /* Direct bit flip via CLI debug path: serdes_prm[0]=tx_inv, [1]=rx_inv */
+        return jr2_serdes_pol_update(vtss_state, port_no, (conf->serdes_prm[0] != 0U),
+                                     (conf->serdes_prm[1] != 0U));
+    }
     return VTSS_RC_OK;
 }
 
