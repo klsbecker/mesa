@@ -3219,6 +3219,44 @@ static vtss_rc fa_serdes_dump(vtss_state_t *vtss_state, lmu_ss_t *ss, vtss_port_
     return VTSS_RC_OK;
 }
 
+static vtss_rc fa_serdes_pol_update(vtss_state_t        *vtss_state,
+                                    const vtss_port_no_t port_no,
+                                    BOOL                 tx_inv,
+                                    BOOL                 rx_inv)
+{
+    u32 sd_indx, sd_type, sd_tgt;
+
+    // Silence unused-var warning on VTSS_ARCH_LAIKA builds without
+    // VTSS_FEATURE_SD_25G — both register blocks below compile out.
+    (void)sd_tgt;
+    (void)tx_inv;
+    (void)rx_inv;
+
+    VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
+    sd_tgt = fa_get_lane_target(vtss_state, sd_type, sd_indx);
+
+#if defined(VTSS_FEATURE_SD_25G)
+    if (sd_type == FA_SERDES_TYPE_25G) {
+        REG_WRM(VTSS_SD25G_TARGET_LANE_40(sd_tgt),
+                VTSS_F_SD25G_TARGET_LANE_40_LN_R_TX_POL_INV(tx_inv) |
+                    VTSS_F_SD25G_TARGET_LANE_40_LN_R_RX_POL_INV(!rx_inv),
+                VTSS_M_SD25G_TARGET_LANE_40_LN_R_TX_POL_INV |
+                    VTSS_M_SD25G_TARGET_LANE_40_LN_R_RX_POL_INV);
+    } else
+#endif
+#if !defined(VTSS_ARCH_LAIKA)
+        if (sd_type == FA_SERDES_TYPE_10G || sd_type == FA_SERDES_TYPE_6G) {
+        /* SD6G shares the SD10G lane register layout; sd_tgt already mapped via fa_get_lane_target */
+        REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
+                VTSS_F_SD10G_LANE_TARGET_LANE_83_R_TX_POL_INV(tx_inv) |
+                    VTSS_F_SD10G_LANE_TARGET_LANE_83_R_RX_POL_INV(!rx_inv),
+                VTSS_M_SD10G_LANE_TARGET_LANE_83_R_TX_POL_INV |
+                    VTSS_M_SD10G_LANE_TARGET_LANE_83_R_RX_POL_INV);
+    }
+#endif
+    return VTSS_RC_OK;
+}
+
 vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
                             const vtss_port_no_t                  port_no,
                             const vtss_port_serdes_debug_t *const conf)
@@ -3293,6 +3331,10 @@ vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
         VTSS_RC(fa_port_kr_tap_set(vtss_state, port_no, (u16)conf->serdes_prm[0],
                                    (u16)conf->serdes_prm[1],
                                    (u16)conf->serdes_prm[2])); // TxEQ set
+    } else if (conf->debug_type == VTSS_SERDES_POL_INV) {
+        /* Direct bit flip: serdes_prm[0]=tx_inv, serdes_prm[1]=rx_inv */
+        VTSS_RC(fa_serdes_pol_update(vtss_state, port_no, (conf->serdes_prm[0] != 0U),
+                                     (conf->serdes_prm[1] != 0U)));
     } else {
         // Empty on purpose
     }
