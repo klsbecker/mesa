@@ -67,12 +67,6 @@ typedef struct meba_board_state {
     mesa_port_status_t     status[MAX_PORTS];
 } meba_board_state_t;
 
-/* EDSx/PCB8415 Port Number Mapping Based on Port Count Config of the Switch */
-typedef struct {
-    int sfp_slot1_port; /*SFP Slot1 Port Number */
-    int sfp_slot2_port; /*SFP Slot2 Port Number */
-} edsx_slot_port_t;
-
 #define PORT_2_BOARD_PORT(board, p) (board->port[p].board_port)
 #define PORT_2_SGPIO_PORT(board, p) (board->port[p].sgpio_port)
 #define PORT_2_SGPIO_BIT(board, p)  (board->port[p].sgpio_bit)
