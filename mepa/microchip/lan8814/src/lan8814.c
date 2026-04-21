@@ -1623,13 +1623,11 @@ static mepa_rc lan8814_delete(mepa_device_t *dev)
     return mepa_delete_int(dev);
 }
 
-static mepa_rc lan8814_poll(mepa_device_t *dev, mepa_status_t *status)
+mepa_rc lan8814_poll_priv(mepa_device_t *dev, mepa_status_t *status)
 {
     uint16_t val, val2, val3 = 0;
     phy_data_t *data = (phy_data_t *) dev->data;
     uint8_t speed;
-
-    MEPA_ENTER(dev);
 
     // MEPA-835: Downshift happens when port is put into power down. Return the link status as slow
     if (!data->conf.admin.enable) {
@@ -1641,7 +1639,6 @@ static mepa_rc lan8814_poll(mepa_device_t *dev, mepa_status_t *status)
         data->loop_cnt = 0;
         data->aneg_flag = 0;
         data->dsh_complete = 0;
-        MEPA_EXIT(dev);
         return MESA_RC_OK;
     }
     RD(dev, LAN8814_BASIC_STATUS, &val);
@@ -1830,9 +1827,19 @@ end:
     data->link_status = status->link;
     data->speed_status = status->speed;
     data->fdx_status   = status->fdx;
-    MEPA_EXIT(dev);
     T_D(MEPA_TRACE_GRP_GEN, "port %d status link %d, speed %d, fdx %d", data->port_no, status->link, status->speed, status->fdx);
     return MEPA_RC_OK;
+}
+
+static mepa_rc lan8814_poll(mepa_device_t *dev, mepa_status_t *status)
+{
+    mepa_rc rc;
+
+    MEPA_ENTER(dev);
+    rc = lan8814_poll_priv(dev, status);
+    MEPA_EXIT(dev);
+
+    return rc;
 }
 
 static mepa_rc lan8814_conf_set(mepa_device_t *dev, const mepa_conf_t *config)

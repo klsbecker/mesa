@@ -181,4 +181,6 @@ typedef struct {
     mepa_bool_t              aneg_flag; //flag to denote ANEG restart is completed.
 } phy_data_t;
 
+mepa_rc lan8814_poll_priv(mepa_device_t *dev, mepa_status_t *status);
+
 #endif
