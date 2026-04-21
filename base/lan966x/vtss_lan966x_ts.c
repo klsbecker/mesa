@@ -456,8 +456,8 @@ vtss_rc vtss_cil_ts_ingress_latency_set(vtss_state_t *vtss_state, vtss_port_no_t
     if (rx_delay > 0xFFFFFF) { /* Register max value is 0xFFFFFF */
         rx_delay = 0xFFFFFF;
     }
-    VTSS_I("rx_delay %i  egress_latency %u  default_igr_latency %u", rx_delay,
-           VTSS_INTERVAL_NS(conf->egress_latency), conf->default_igr_latency);
+    VTSS_I("rx_delay %i  ingress_latency %u  default_igr_latency %u", rx_delay,
+           VTSS_INTERVAL_NS(conf->ingress_latency), conf->default_igr_latency);
 
     REG_WRM(SYS_PTP_RXDLY_CFG(port), SYS_PTP_RXDLY_CFG_PTP_RX_IO_DLY(rx_delay),
             SYS_PTP_RXDLY_CFG_PTP_RX_IO_DLY_M);
