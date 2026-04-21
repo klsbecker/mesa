@@ -99,6 +99,13 @@ if $out_name.nil?
   $out_name = "mesa-#{git_id}@#{git_branch}"
 end
 
+$report_name = "static-analysis-report-#{git_id}-#{git_branch}"
+if File.exist? "#{$report_name}"
+    run "rm -rf #{$report_name}"
+end
+sys "mkdir #{$report_name}"
+sys "cp -r static_analysis_reports/* #{$report_name}"
+
 raise "No ws folder" if not File.exist? "./ws"
 
 run "cp -r ws #{$out_name}"
@@ -134,7 +141,10 @@ if $do_upload
   sys cmd.join(" ")
 end
 
+run "cp #{$report_name}/* images/." if File.exist? "./images"
 run "cp #{$out_name}.tar.gz images/." if File.exist? "./images"
+
+run "rm -rf #{$report_name}"
 
 exit $res
 
