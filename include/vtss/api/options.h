@@ -354,7 +354,8 @@
 
 // VTSS_ARCH_SPARX5 specific features
 #if defined(VTSS_ARCH_SPARX5)
-#define VTSS_FEATURE_SD_25G /**< SerDes 25G */
+#define VTSS_FEATURE_SD_25G           /**< SerDes 25G */
+#define VTSS_FEATURE_SERDES_PRBS_TEST /**< PRBS test for SerDes */
 #if !VTSS_OPT_LIGHT
 #define VTSS_FEATURE_HQOS /**< Hierarchical Quality of Service */
 #endif
@@ -362,6 +363,7 @@
 
 // VTSS_ARCH_LAN969X specific features
 #if defined(VTSS_ARCH_LAN969X)
+#define VTSS_FEATURE_SERDES_PRBS_TEST       /**< PRBS test for SerDes */
 #define VTSS_FEATURE_QOS_TAS_LIST_LINKED    /**< QoS: Time Aware Scheduling list                   \
                                                elements are linked */
 #define VTSS_FEATURE_ACL_EXT_ETYPE          /**< ACL Ethernet Type extended rules with             \
