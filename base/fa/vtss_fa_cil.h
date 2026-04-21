@@ -585,6 +585,7 @@ vtss_rc fa_debug_chip_serdes(vtss_state_t                  *vtss_state,
                              lmu_ss_t                      *ss,
                              const vtss_debug_info_t *const info,
                              vtss_port_no_t                 port_no);
+vtss_rc fla_port_loopback_set(vtss_state_t *vtss_state, const vtss_port_no_t port_no);
 vtss_rc fa_debug_serdes_set(vtss_state_t                         *vtss_state,
                             const vtss_port_no_t                  port_no,
                             const vtss_port_serdes_debug_t *const conf);

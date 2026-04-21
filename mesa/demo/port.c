@@ -459,6 +459,8 @@ typedef struct {
     mesa_bool_t facility;
     mesa_bool_t far_end;
     mesa_bool_t near_end;
+    mesa_bool_t lb_switch;
+    mesa_bool_t lb_phy;
 
     mesa_bool_t optical;
     mesa_bool_t dac1m;
@@ -663,12 +665,29 @@ static void cli_cmd_port_polling(cli_req_t *req)
     }
 }
 
+static const char *lb_txt(mesa_port_lb_t lb)
+{
+    return lb == MESA_PORT_LB_NEAR_END    ? "Near-End"
+           : lb == MESA_PORT_LB_FAR_END   ? "Far-End"
+           : lb == MESA_PORT_LB_FACILITY  ? "Facility"
+           : lb == MESA_PORT_LB_EQUIPMENT ? "Equipment"
+                                          : "Disabled";
+}
+
 static void cli_cmd_port_loopback(cli_req_t *req)
 {
     mesa_port_no_t        uport, iport;
     mesa_port_test_conf_t conf;
     mesa_bool_t           first = 1;
     port_cli_req_t       *mreq = req->module_req;
+    mesa_bool_t           both = !mreq->lb_switch && !mreq->lb_phy;
+    mesa_bool_t           do_switch = mreq->lb_switch || both;
+    mesa_bool_t           do_phy = mreq->lb_phy || both;
+    mesa_port_lb_t        lb_val = (mreq->near_end    ? MESA_PORT_LB_NEAR_END
+                                    : mreq->far_end   ? MESA_PORT_LB_FAR_END
+                                    : mreq->facility  ? MESA_PORT_LB_FACILITY
+                                    : mreq->equipment ? MESA_PORT_LB_EQUIPMENT
+                                                      : MESA_PORT_LB_DISABLED);
 
     for (iport = 0; iport < mesa_port_cnt(NULL); iport++) {
         uport = iport2uport(iport);
@@ -677,16 +696,15 @@ static void cli_cmd_port_loopback(cli_req_t *req)
             continue;
         }
 
+        mesa_bool_t is_cu = (port_table[iport].media_type == MSCC_PORT_TYPE_CU);
         if (req->set) {
-            conf.loopback = (mreq->near_end    ? MESA_PORT_LB_NEAR_END
-                             : mreq->far_end   ? MESA_PORT_LB_FAR_END
-                             : mreq->facility  ? MESA_PORT_LB_FACILITY
-                             : mreq->equipment ? MESA_PORT_LB_EQUIPMENT
-                                               : MESA_PORT_LB_DISABLED);
-            if (mesa_port_test_conf_set(NULL, iport, &conf) != MESA_RC_OK) {
-                printf("Loopback set failed for port %u\n", uport);
+            if (do_switch || (do_phy && !is_cu)) {
+                conf.loopback = lb_val;
+                if (mesa_port_test_conf_set(NULL, iport, &conf) != MESA_RC_OK) {
+                    printf("Switch loopback set failed for port %u\n", uport);
+                }
             }
-            if (port_table[iport].media_type == MSCC_PORT_TYPE_CU) {
+            if (do_phy && is_cu) {
                 mepa_loopback_t lb = {};
                 lb.near_end_ena = mreq->near_end;
                 lb.far_end_ena = mreq->far_end;
@@ -696,15 +714,41 @@ static void cli_cmd_port_loopback(cli_req_t *req)
             }
         } else {
             if (first) {
-                cli_table_header("Port  Loopback");
+                if (do_switch && do_phy)
+                    cli_table_header("Port  Switch-LB   PHY-LB");
+                else if (do_switch)
+                    cli_table_header("Port  Switch-LB");
+                else
+                    cli_table_header("Port  PHY-LB");
                 first = 0;
             }
-            cli_printf("%-6u%s\n", uport,
-                       conf.loopback == MESA_PORT_LB_NEAR_END    ? "Near-End"
-                       : conf.loopback == MESA_PORT_LB_FAR_END   ? "Far-End"
-                       : conf.loopback == MESA_PORT_LB_FACILITY  ? "Facility"
-                       : conf.loopback == MESA_PORT_LB_EQUIPMENT ? "Equipment"
-                                                                 : "Disabled");
+            if (do_switch && do_phy) {
+                mepa_loopback_t phy_lb = {};
+                const char     *phy_str = "N/A";
+                if (is_cu &&
+                    meba_phy_loopback_get(meba_global_inst, iport, &phy_lb) == MESA_RC_OK) {
+                    phy_str = (phy_lb.near_end_ena  ? "Near-End"
+                               : phy_lb.far_end_ena ? "Far-End"
+                                                    : "Disabled");
+                }
+                cli_printf("%-6u%-12s%s\n", uport, lb_txt(conf.loopback), phy_str);
+            } else if (do_switch) {
+                cli_printf("%-6u%s\n", uport, lb_txt(conf.loopback));
+            } else {
+                /* phy-only filter: CU ports show PHY LB, non-CU show switch LB */
+                if (is_cu) {
+                    mepa_loopback_t phy_lb = {};
+                    const char     *phy_str = "Disabled";
+                    if (meba_phy_loopback_get(meba_global_inst, iport, &phy_lb) == MESA_RC_OK) {
+                        phy_str = (phy_lb.near_end_ena  ? "Near-End"
+                                   : phy_lb.far_end_ena ? "Far-End"
+                                                        : "Disabled");
+                    }
+                    cli_printf("%-6u%s\n", uport, phy_str);
+                } else {
+                    cli_printf("%-6u%s (sw)\n", uport, lb_txt(conf.loopback));
+                }
+            }
         }
     }
 }
@@ -1427,8 +1471,8 @@ static cli_cmd_t cli_cmd_table[] = {
     {
      "Port NPI [<port_no>] [enable|disable]", "Enable/disable NPI port",
      cli_cmd_port_npi, },
-    {"Port Loopback [<port_list>] [near-end|far-end|facility|equipment] [enable|disable]",
-     "Set or show the port forwarding mode", cli_cmd_port_loopback},
+    {"Port Loopback [<port_list>] [near-end|far-end|facility|equipment] [switch|phy] [enable|disable]",
+     "Set or show the port loopback mode", cli_cmd_port_loopback},
     {"Debug Port PRBS [<port_list>] [enable|disable] [prbs31|prbs23|prbs15|prbs7]",
      "PRBS test settings", cli_cmd_deb_port_prbs},
     {"Debug Port cable [<port_list>] [optical|dac-1m|dac-2m|dac-3m|dac-5m]",
@@ -1512,6 +1556,10 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->far_end = 1;
     } else if (!strncasecmp(found, "near-end", 8)) {
         mreq->near_end = 1;
+    } else if (!strncasecmp(found, "switch", 6)) {
+        mreq->lb_switch = 1;
+    } else if (!strncasecmp(found, "phy", 3)) {
+        mreq->lb_phy = 1;
     } else if (!strncasecmp(found, "optical", 7)) {
         mreq->optical = 1;
     } else if (!strncasecmp(found, "dac-1m", 6)) {
@@ -1594,6 +1642,10 @@ static cli_parm_t cli_parm_table[] = {
      "equipment  : Loopback from Tx to Rx in SerDes\n"
      "facility   : Loopback from Rx to Tx in SerDes\n"
      "(default: Show loopback mode)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
+    {"switch|phy",
+     "switch     : Apply loopback to the switch (SerDes)\n"
+     "phy        : Apply loopback to the PHY\n"
+     "(default: Apply to both switch and PHY)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
     {"prbs31|prbs23|prbs15|prbs7",
      "PRBS31 : x^31 + x^28 + 1\n"
      "PRBS23 : x^23 + x^18 + 1\n"

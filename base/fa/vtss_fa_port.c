@@ -4470,7 +4470,11 @@ vtss_rc vtss_cil_port_forward_set(struct vtss_state_s *vtss_state, const vtss_po
 
 vtss_rc vtss_cil_port_test_conf_set(struct vtss_state_s *vtss_state, const vtss_port_no_t port_no)
 {
+#if defined(VTSS_ARCH_SPARX5) || defined(VTSS_ARCH_LAN969X)
+    return fla_port_loopback_set(vtss_state, port_no);
+#else
     return VTSS_RC_ERROR;
+#endif
 }
 
 vtss_rc vtss_cil_port_serdes_debug(struct vtss_state_s                  *vtss_state,
