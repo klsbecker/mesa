@@ -293,6 +293,12 @@ static vtss_rc lan966x_mux_mode_set(vtss_state_t *vtss_state)
         gmii = 0xf;
         qsgmii = 2;
         break;
+    case VTSS_PORT_MUX_MODE_4:
+        // 2xSGMII 1G + 2xRGMII (LAN9662)
+        cu_phy = FALSE;
+        rgmii = 0x3;
+        gmii = 0xc;
+        break;
     case VTSS_PORT_MUX_MODE_5:
         // 2xCu + 3x1G
         sd0 = 1;
