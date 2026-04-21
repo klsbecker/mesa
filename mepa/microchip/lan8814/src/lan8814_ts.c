@@ -766,10 +766,23 @@ static mepa_rc lan8814_ts_clock_path_delay_set(mepa_device_t *dev, const mepa_ti
 static mepa_rc lan8814_ts_clock_egress_latency_get(mepa_device_t *dev, mepa_timeinterval_t *const latency)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
+    mepa_status_t status;
+    mepa_rc rc;
+
+    rc = lan8814_poll_priv(dev, &status);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    // In case we don't know what is the actual speed, return the latency for
+    // the configured speed. This is matching the old behaviour.
+    if (status.speed == MEPA_SPEED_UNDEFINED) {
+        status.speed = data->conf.speed;
+    }
 
     MEPA_ASSERT(latency == NULL);
     MEPA_ENTER(dev);
-    switch (data->conf.speed) {
+    switch (status.speed) {
     case MEPA_SPEED_10M:
         *latency = data->ts_state.ts_port_conf.port_latencies.tx10mbps ;
         break;
@@ -796,8 +809,21 @@ static mepa_rc lan8814_ts_clock_egress_latency_set_priv(mepa_device_t *dev, cons
     phy_data_t *base_data = (phy_data_t *)base_dev->data;
     uint16_t val = 0;
     mepa_timeinterval_t latency;
+    mepa_status_t status;
+    mepa_rc rc;
 
-    switch (data->conf.speed) {
+    rc = lan8814_poll_priv(dev, &status);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    // In case we don't know what is the actual speed, return the latency for
+    // the configured speed. This is matching the old behaviour.
+    if (status.speed == MEPA_SPEED_UNDEFINED) {
+        status.speed = data->conf.speed;
+    }
+
+    switch (status.speed) {
     case MEPA_SPEED_10M:
         latency = base_data->ts_state.default_latencies.tx10mbps;
         if (two_step) {
@@ -919,10 +945,24 @@ mepa_rc lan8814_ts_reload_egress_latency(mepa_device_t *dev, mepa_bool_t two_ste
 static mepa_rc lan8814_ts_clock_ingress_latency_get(mepa_device_t *dev, mepa_timeinterval_t *const latency)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
+    mepa_status_t status;
+    mepa_rc rc;
 
     MEPA_ASSERT(latency == NULL);
     MEPA_ENTER(dev);
-    switch (data->conf.speed) {
+
+    rc = lan8814_poll_priv(dev, &status);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    // In case we don't know what is the actual speed, return the latency for
+    // the configured speed. This is matching the old behaviour.
+    if (status.speed == MEPA_SPEED_UNDEFINED) {
+        status.speed = data->conf.speed;
+    }
+
+    switch (status.speed) {
     case MEPA_SPEED_10M:
         *latency = data->ts_state.ts_port_conf.port_latencies.rx10mbps;
         break;
@@ -947,13 +987,26 @@ static mepa_rc lan8814_ts_clock_ingress_latency_set(mepa_device_t *dev, const me
     mepa_device_t *base_dev = data->base_dev;
     phy_data_t *base_phy;
     uint16_t val = 0;
+    mepa_status_t status;
+    mepa_rc rc;
+
+    rc = lan8814_poll_priv(dev, &status);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    // In case we don't know what is the actual speed, return the latency for
+    // the configured speed. This is matching the old behaviour.
+    if (status.speed == MEPA_SPEED_UNDEFINED) {
+        status.speed = data->conf.speed;
+    }
 
     MEPA_ASSERT(latency == NULL);
     MEPA_ENTER(dev);
     base_phy = (phy_data_t *)base_dev->data;
 
     val = (MEPA_LABS(*latency) >> 16) & 0xFFFF;
-    switch (data->conf.speed) {
+    switch (status.speed) {
     case MEPA_SPEED_10M:
         if (*latency >= 0) {
             val = (uint16_t)((base_phy->ts_state.default_latencies.rx10mbps >> 16) & 0xFFFF) + val;
