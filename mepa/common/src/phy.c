@@ -105,6 +105,19 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
         callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
         callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
     }
+
+    // PHY responding to APB register access
+    if (callout->apb_read && reg2 == 0 && reg3 == 0) {
+            callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), (uint16_t *)&reg2);
+            callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), (uint16_t *)&reg3);
+            // Hallberg Standard registers are located at 0x30000, currently handle it as special case.
+            // PHY_ID handling can be moved to "mepa_driver_get_phy_id" later for driver specific.
+            if (reg2 == 0 && reg3 == 0) {
+                callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), (uint16_t *)&reg2);
+                callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), (uint16_t *)&reg3);
+            }
+    }
+
     reg2 = (uint32_t)(reg2 & 0xFFFF);
     reg3 = (uint32_t)(reg3 & 0xFFFF);
     phy_id = (reg2 << 16) | reg3;

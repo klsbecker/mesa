@@ -101,6 +101,41 @@ typedef mepa_rc (*mepa_miim_write_t)(struct mepa_callout_ctx         *ctx,
 
 
 /**
+ * \brief APB read function
+ *
+ * \param ctx     [IN]  Pointer to a callout structure.
+ * \param idx     [IN]  Index of APB Register access base address.
+ * \param offset  [IN]  Register address offset.
+ * \param data    [OUT] Pointer to register data.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.
+ **/
+typedef mepa_rc (*mepa_apb_read_t)(struct mepa_callout_ctx      *ctx,
+                                   mepa_regacc_apb_idx_t        idx,
+                                   const uint32_t               offset,
+                                   uint16_t                     *const data);
+
+/**
+ * \brief APB write function
+ *
+ * \param ctx     [IN]  Pointer to a callout structure
+ * \param idx     [IN]  Index of APB Register access base address.
+ * \param offset  [IN]  Register address offset.
+ * \param data    [IN]  Register data
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.
+ **/
+typedef mepa_rc (*mepa_apb_write_t)(struct mepa_callout_ctx     *ctx,
+                                    mepa_regacc_apb_idx_t       idx,
+                                    const uint32_t              offset,
+                                    const uint16_t              data);
+
+
+/**
  * \brief SPI  read function
  *
  * \param ctx   [IN]  Pointer to a callout structure
@@ -204,6 +239,8 @@ typedef struct mepa_callout {
     mepa_mmd_write_t       mmd_write;
     mepa_miim_read_t       miim_read;
     mepa_miim_write_t      miim_write;
+    mepa_apb_read_t        apb_read;
+    mepa_apb_write_t       apb_write;
     mepa_spi_read_t        spi_read;
     mepa_spi_write_t       spi_write;
     mepa_spi_read_64bit_t  spi_read_64bit;

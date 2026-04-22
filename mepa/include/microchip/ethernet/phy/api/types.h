@@ -51,6 +51,12 @@ typedef mesa_debug_printf_t mepa_debug_print_t;
 typedef uint16_t mepa_vid_t;
 typedef uint16_t mepa_etype_t;
 
+/** \brief ABP Register Access index */
+typedef enum {
+    MEPA_REGACC_APB_PORT_BASE_ADDR_IDX = 0,
+    MEPA_REGACC_APB_BASE_ADDR_IDX_MAX
+} mepa_regacc_apb_idx_t;
+
 /** \brief Advertise disable flags. */
 typedef enum {
     MEPA_ADV_DIS_HDX = 0x00000001,     /**< Disable Half duplex */

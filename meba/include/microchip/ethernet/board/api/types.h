@@ -547,6 +547,8 @@ typedef struct mepa_callout_ctx {
     mesa_miim_controller_t miim_controller;
     uint8_t                miim_addr;
     mesa_chip_no_t         chip_no;
+    // This is to accomadate multiple base adresses for phy such as TC10 and Port etc.
+    uint32_t apb_base_addr[MEPA_REGACC_APB_BASE_ADDR_IDX_MAX];
 } mepa_callout_ctx_t;
 
 typedef struct {
