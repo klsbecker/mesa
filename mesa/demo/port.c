@@ -683,7 +683,8 @@ static void cli_cmd_port_loopback(cli_req_t *req)
     mesa_bool_t           both = !mreq->lb_switch && !mreq->lb_phy;
     mesa_bool_t           do_switch = mreq->lb_switch || both;
     mesa_bool_t           do_phy = mreq->lb_phy || both;
-    mesa_port_lb_t        lb_val = (mreq->near_end    ? MESA_PORT_LB_NEAR_END
+    mesa_port_lb_t        lb_val = (!req->enable      ? MESA_PORT_LB_DISABLED
+                                    : mreq->near_end  ? MESA_PORT_LB_NEAR_END
                                     : mreq->far_end   ? MESA_PORT_LB_FAR_END
                                     : mreq->facility  ? MESA_PORT_LB_FACILITY
                                     : mreq->equipment ? MESA_PORT_LB_EQUIPMENT

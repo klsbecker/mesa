@@ -30,6 +30,7 @@
 #define VTSS_FEATURE_PORT_MUX                        /**< Port mux between serdes blocks and ports */
 #define VTSS_FEATURE_MISC                            /**< Miscellaneous */
 #define VTSS_FEATURE_PORT_CONTROL                    /**< Port control */
+#define VTSS_FEATURE_SERDES_PRBS_TEST                /**< PRBS test for SerDes */
 #define VTSS_FEATURE_PORT_IFH                        /**< Port IFH control */
 #define VTSS_FEATURE_PORT_CNT_BRIDGE                 /**< Bridge counters */
 #define VTSS_FEATURE_PFC                             /**< 802.1Qbb Priority Flow Control */
