@@ -348,12 +348,12 @@ elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
     # TODO, need to merge the BBB and none BBB versions
     if (${HAS_RTE})
-        IMG_TARGET(NAME armv7_lan9662     TYPE fit    APP app_lan966x         MACHINE lan966x MERA)
+        IMG_TARGET(NAME armv7_lan9662     TYPE ext4   APP app_lan966x         MACHINE lan966x MERA)
     else ()
-        IMG_TARGET(NAME armv7_lan9662     TYPE fit    APP app_lan966x         MACHINE lan966x)
+        IMG_TARGET(NAME armv7_lan9662     TYPE ext4   APP app_lan966x         MACHINE lan966x)
     endif ()
 
-    IMG_TARGET(NAME armv7_lan966x         TYPE fit    APP app_lan966x         MACHINE lan966x)
+    IMG_TARGET(NAME armv7_lan966x         TYPE ext4   APP app_lan966x         MACHINE lan966x)
     IMG_TARGET(NAME armv7_lan966x_lm      TYPE fit    APP app_lan966x_lm      MACHINE lan966x)
     IMG_TARGET(NAME armv7_lan969x_bbb     TYPE fit    APP app_lan969x         MACHINE BeagleBoneBlack)
 
