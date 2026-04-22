@@ -31,8 +31,8 @@ they are expected to need other dependencies not documented here.
 When loading the firmware, this guide assumes that the Linux development machine
 is located at the same network as the reference board.
 
-NOTE: If you aldready have the build image for EDSx `arm64_vsc7558_edsx.itb` or 
-`arm64_vsc7558_edsx.ext4`, then you can direclty jump to Section 6 to know how to
+NOTE: If you aldready have the build image for EDSx `arm64_vsc7558MACSEC.itb` or
+`arm64_vsc7558MACSEC.ext4`, then you can direclty jump to Section 6 to know how to
 load this binary images to EDSx Board.
 
 NOTE: If you Already have the Build image for EDS2 `armv7_lan966x.itb` or
@@ -251,14 +251,14 @@ found:
 . Bootable demo images. These targets will generate a complete firmware image
   including kernel, root file system, and the MEPA Demo application. These are
   the images used in this getting started article.
-.. `IMG_arm64_vscXXXX_edsx` This is the image which is used on the ARM64 based targets for EDSx Boards.
+.. `IMG_arm64_vsc7558` This is the image which is used on the ARM64 based targets for EDSx Boards.
 .. `IMG_armv7_lan966x` This is the image which is used on the ARM based targets for EDS2 Boards
 
 
 As we are interested in a bootable firmware we need either a `fit`/`itb` or `ext4`
 image.
 
-For EDSx board we want the `IMG_arm64_vsc7558_edsx_ext4` target to be enabled.
+For EDSx board we want the `IMG_arm64_vsc7558MACSEC_ext4` target to be enabled.
 To enable this use the following command.
 ----
 $cd build-arm64
@@ -276,12 +276,12 @@ and available image options as below:
 BUILD_SHARED_LIBS                OFF
 BUILD_STATIC_LIBS                ON
 BUILD_mepa                       ON
-IMG_arm64_vsc7558_edsx_ext4      ON
+IMG_arm64_vsc7558MACSEC_ext4     ON
 MEPA_aqr                         OFF
 MEPA_dummy_phy                   OFF
 --------
 
-To enable the image generation for target `arm64_vsc7558` enable `IMG_arm64_vsc7558_edsx_ext4`.
+To enable the image generation for target `arm64_vsc7558` enable `IMG_arm64_vsc7558MACSEC_ext4`.
 
 
 Press [enter] to edit option Enable or Disable respective target +
@@ -338,7 +338,7 @@ Press [g] to generate Makefile
 Press [h] for help Press [q] to quit without generating
 Press [t] to toggle advanced mode (Currently Off)fter configuration is complete Press [g] to generate Makefile with enabled targets.
 
-NOTE: The Binary images `IMG_armv7_lan966x_ext4`, `IMG_arm64_vsc7558_edsx_ext4` binary packages contains static MEPA libraries linked,
+NOTE: The Binary images `IMG_armv7_lan966x_ext4`, `IMG_arm64_vsc7558MACSEC_ext4` binary packages contains static MEPA libraries linked,
 it doesn't uses shared MEPA libraries.
 
 === Building the SW
@@ -355,12 +355,12 @@ The below example is for EDSx platform:
 $ make -j12
 ....
 [ 93%] Linking C executable mesa-demo-vsc7558
-[ 93%] Built target app_vsc7558_edsx
-[100%] Generating arm64_vsc7558_edsx.itb
-[100%] Generating arm64_vsc7558_edsx.ext4.gz, arm64_vsc7558_edsx.ubifs
-mkimage -q -f arm64_vsc7558_esx.its arm64_vsc7558_edsx.itb
-[100%] Built target arm64_vsc7558_edsx_itb
-[100%] Built target arm64_vsc7558_edsx_ext4
+[ 93%] Built target app_vsc7558MACSEC
+[100%] Generating arm64_vsc7558MACSEC.itb
+[100%] Generating arm64_vsc7558MACSEC.ext4.gz, arm64_vsc7558MACSEC.ubifs
+mkimage -q -f arm64_vsc7558_esx.its arm64_vsc7558MACSEC.itb
+[100%] Built target arm64_vsc7558MACSEC_itb
+[100%] Built target arm64_vsc7558MACSEC_ext4
 ----
 
 After a while, the build will be done, and the resulting binary images will be available in `.build-arm64/mesa/demo`.
@@ -368,9 +368,9 @@ After a while, the build will be done, and the resulting binary images will be a
 Lets copy the binary images to the tftp server folder.
 
 ----
-$ cp mesa/demo/arm64_vsc7558_edsx.itb /var/lib/tftpboot/.
+$ cp mesa/demo/arm64_vsc7558MACSEC.itb /var/lib/tftpboot/.
                         or 
-$ cp mesa/demo/arm64_vsc7558_edsx.ext4.gz /var/lib/tftpboot/.
+$ cp mesa/demo/arm64_vsc7558MACSEC.ext4.gz /var/lib/tftpboot/.
 ----
 
 NOTE: For EDS2 platform `armv7_lan966x_ext4` 'fit' and 'ext4' Images will be generated
@@ -581,24 +581,24 @@ NOTE: To make the environment settings persistent, use the `saveenv` command.
 Final step is to load the SW into memory. To do this the `tftp` command is used.
 Remember to copy the firmware image into the tftp folder, and use the correct IP
 address of the tftp server and firmware filename (this example uses `10.99.10.1`
-as tftp server, and `arm64_vsc7558_edsx.itb` firmware file, replace with IP of your TFTP
+as tftp server, and `arm64_vsc7558MACSEC.itb` firmware file, replace with IP of your TFTP
 server, and actual file name of the firmware).
 
 ==== Steps to Load ITB image to Memory
 Load the itb binary from the tftp server using the following tftpboot command
 
 ----
-tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558_edsx.itb
+tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558MACSEC.itb
 ----
 
 The Expected console output is provided below.
 ----
-tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558_edsx.itb
+tftpboot ${loadaddr} 10.99.10.1:arm64_vsc7558MACSEC.itb
 switch@0 Waiting for PHY auto negotiation to complete........ done
 NPI Port: Up (internal)
 Using switch@0 device
 TFTP from server 192.168.1.2; our IP address is 10.99.10.1
-Filename 'arm64_vsc7558_edsx.itb'.
+Filename 'arm64_vsc7558MACSEC.itb'.
 Load address: 0x740000000
 Loading: #################################################################
          #################################################################
@@ -637,24 +637,24 @@ Bytes transferred = 28054304 (1ac1320 hex)
 ----
 
 NOTE: Above mentioned steps for ITB image loading into memory is shown
-with 'arm64_vsc7558_edsx.itb' for EDSx. The same steps can be used to load
+with 'arm64_vsc7558MACSEC.itb' for EDSx. The same steps can be used to load
 'armv7_lan966x.itb' image for EDS2 board as well.
 
 ==== Steps to Load EXT4 image to Memory
 Load the ext4 binary from the tftp server using the following tftpboot command
 
 ----
-tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558_edsx.ext4.gz
+tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558MACSEC.ext4.gz
 ----
 
 The Expected console output is provided below.
 ----
-tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558_edsx.ext4.gz
+tftpboot ${fileaddr} 10.99.10.1:arm64_vsc7558MACSEC.ext4.gz
 switch@0 Waiting for PHY auto negotiation to complete....... done
 NPI Port: Up (internal)
 Using switch@0 device
 TFTP from server 192.168.1.2; our IP address is 10.99.10.1
-Filename 'arm64_vsc7558_edsx.ext4.gz'.
+Filename 'arm64_vsc7558MACSEC.ext4.gz'.
 Load address: 0x740000000
 Loading: #################################################################
          #################################################################
@@ -675,7 +675,7 @@ Bytes transferred = 28379657 (1b10a09 hex)
 ----
 
 NOTE: Above mentioned steps for ext4 type image loading into memory is shown
-with 'arm64_vsc7558_edsx.ext4.gz' for EDSx board. The same steps can be used to load
+with 'arm64_vsc7558MACSEC.ext4.gz' for EDSx board. The same steps can be used to load
 'armv7_lan966x.ext4.gz' image for EDS2 board as well.
 
 ===== UBOOT command lines to update MMC flash for EDSx Boards
