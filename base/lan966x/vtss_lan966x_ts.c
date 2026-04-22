@@ -436,6 +436,8 @@ vtss_rc vtss_cil_ts_ingress_latency_set(vtss_state_t *vtss_state, vtss_port_no_t
     u32                  port;
     vtss_ts_port_conf_t *conf;
     i32                  rx_delay;
+    BOOL                 is_negative;
+    u64                  latency;
 
     VTSS_D("Enter  port_no %d", port_no);
 
@@ -447,15 +449,35 @@ vtss_rc vtss_cil_ts_ingress_latency_set(vtss_state_t *vtss_state, vtss_port_no_t
     port = VTSS_CHIP_PORT(port_no);
     conf = &vtss_state->ts.port_conf[port_no];
 
+    /* The conf->ingress_latency can be a negative number, because that means we
+     * need to substract from the default ingress latency. But if
+     * conf->ingress_latency is a negative number then VTSS_MOD64 doesn't behave
+     * correctly because it convers to unsigned number which will give wrong
+     * results. Therefore we need to check if the number is negative and then
+     * convert it to absolute value to be able to use VTSS_MOD64 and then on the
+     * result set the sign for the result.
+     */
+    is_negative = conf->ingress_latency < 0;
+    latency = VTSS_LABS(conf->ingress_latency);
+
     /* The default_igr_latency is in picoseconds */
     /* The ingress_latency is in nanoseconds<<16  */
     /* Register is in nanoseconds<<8 */
-    rx_delay = (VTSS_MOD64(conf->ingress_latency, ((u64)VTSS_ONE_MIA << 16)) >> 8) +
-               ((conf->default_igr_latency << 8) / 1000);
+    if (is_negative) {
+        rx_delay = (conf->default_igr_latency << 8) / 1000 -
+                   (VTSS_MOD64(latency, ((u64)VTSS_ONE_MIA << 16)) >> 8);
+    } else {
+        rx_delay = (VTSS_MOD64(latency, ((u64)VTSS_ONE_MIA << 16)) >> 8) +
+                   ((conf->default_igr_latency << 8) / 1000);
+    }
 
     if (rx_delay > 0xFFFFFF) { /* Register max value is 0xFFFFFF */
         rx_delay = 0xFFFFFF;
     }
+    if (rx_delay < 0) {
+        rx_delay = 0;
+    }
+
     VTSS_I("rx_delay %i  ingress_latency %u  default_igr_latency %u", rx_delay,
            VTSS_INTERVAL_NS(conf->ingress_latency), conf->default_igr_latency);
 
@@ -479,6 +501,8 @@ vtss_rc vtss_cil_ts_egress_latency_set(vtss_state_t *vtss_state, vtss_port_no_t 
     u32                  port;
     vtss_ts_port_conf_t *conf;
     u32                  tx_delay;
+    BOOL                 is_negative;
+    u64                  latency;
 
     VTSS_D("Enter  port_no %d", port_no);
 
@@ -490,14 +514,33 @@ vtss_rc vtss_cil_ts_egress_latency_set(vtss_state_t *vtss_state, vtss_port_no_t 
     port = VTSS_CHIP_PORT(port_no);
     conf = &vtss_state->ts.port_conf[port_no];
 
+    /* The conf->ingress_latency can be a negative number, because that means we
+     * need to substract from the default ingress latency. But if
+     * conf->ingress_latency is a negative number then VTSS_MOD64 doesn't behave
+     * correctly because it convers to unsigned number which will give wrong
+     * results. Therefore we need to check if the number is negative and then
+     * convert it to absolute value to be able to use VTSS_MOD64 and then on the
+     * result set the sign for the result.
+     */
+    is_negative = conf->egress_latency < 0;
+    latency = VTSS_LABS(conf->egress_latency);
+
     /* The default_egr_latency is in picoseconds */
     /* The egress_latency is in nanoseconds<<16  */
     /* Register is in nanoseconds<<8 */
-    tx_delay = (VTSS_MOD64(conf->egress_latency, ((u64)VTSS_ONE_MIA << 16)) >> 8) +
-               ((conf->default_egr_latency << 8) / 1000);
+    if (is_negative) {
+        tx_delay = (conf->default_egr_latency << 8) / 1000 -
+                   (VTSS_MOD64(latency, ((u64)VTSS_ONE_MIA << 16)) >> 8);
+    } else {
+        tx_delay = (VTSS_MOD64(latency, ((u64)VTSS_ONE_MIA << 16)) >> 8) +
+                   ((conf->default_egr_latency << 8) / 1000);
+    }
 
     if (tx_delay > 0xFFFFFF) { /* Register max value is 0xFFFFFF */
         tx_delay = 0xFFFFFF;
+    }
+    if (tx_delay < 0) {
+        tx_delay = 0;
     }
     VTSS_I("tx_delay %u  egress_latency %u  default_egr_latency %u", tx_delay,
            VTSS_INTERVAL_NS(conf->egress_latency), conf->default_egr_latency);
