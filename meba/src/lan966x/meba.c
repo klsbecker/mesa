@@ -1185,7 +1185,7 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
     // Unrecognized pluging module
     char buf[64];
     T_W(inst, "Unrecognized plugin module in slot A\n");
-    if (inst->iface.conf_get("plugin-module", buf, sizeof(buf), NULL) == MESA_RC_OK) {
+    if (inst->iface.conf_get("plugin_module", buf, sizeof(buf), NULL) == MESA_RC_OK) {
         if (strstr(buf, ev16r73a)) {
             *plugin_module = ev16r73a;
             T_W(inst, "Assume %s\n", *plugin_module);
@@ -1320,7 +1320,7 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
                                     port_table_eds2_lan8842);
         } else {
             T_W(inst,
-                "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin-module'\n");
+                "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin_module'\n");
             // Just using the builtin PHYs
             inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
             lan966x_init_port_table(inst, 2, port_table_eds2);
