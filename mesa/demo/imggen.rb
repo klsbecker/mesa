@@ -410,15 +410,17 @@ def dts path, machine, machine_name, ramdisk
     s += "                        load = #{machine[:kerneladdr]};\n"
     s += "                        entry = #{machine[:kernelentry]};\n"
     s += "                };\n"
-    s += "                ramdisk {\n"
-    s += "                        description = \"ramdisk\";\n"
-    s += "                        data = /incbin/(\"#{ramdisk}\");\n"
-    s += "                        type = \"ramdisk\";\n"
-    s += "                        arch = \"#{machine[:arch]}\";\n"
-    s += "                        os = \"linux\";\n"
-    s += "                        load = #{machine[:ramdiscaddr]};\n" if machine[:ramdiscaddr]
-    s += "                        compression = \"none\";\n"
-    s += "                };\n"
+    if not ramdisk.nil?
+        s += "                ramdisk {\n"
+        s += "                        description = \"ramdisk\";\n"
+        s += "                        data = /incbin/(\"#{ramdisk}\");\n"
+        s += "                        type = \"ramdisk\";\n"
+        s += "                        arch = \"#{machine[:arch]}\";\n"
+        s += "                        os = \"linux\";\n"
+        s += "                        load = #{machine[:ramdiscaddr]};\n" if machine[:ramdiscaddr]
+        s += "                        compression = \"none\";\n"
+        s += "                };\n"
+    end
     machine[:dt].each do |d|
         s += "                fdt_#{d[:name]} {\n"
         s += "                        description = \"Flattened Device Tree blob\";\n"
@@ -437,7 +439,9 @@ def dts path, machine, machine_name, ramdisk
         s += "                        description = \"Boot Linux kernel with DT #{d[:name]}\";\n"
         s += "                        kernel = \"kernel\";\n"
         s += "                        fdt = \"fdt_#{d[:name]}\";\n"
-        s += "                        ramdisk = \"ramdisk\";\n"
+        if not ramdisk.nil?
+            s += "                        ramdisk = \"ramdisk\";\n"
+        end
         s += "                };\n"
     end
     s += "        };\n"
@@ -602,7 +606,11 @@ when "ext4"
 
     m = dts_process_overlays $o[:machine], $m
     sys "mksquashfs #{stage1_dir}/* #{$o[:name]}_initrd.squashfs -no-progress -quiet -comp xz -all-root"
-    dts "#{$o[:name]}_ext4.its", m, $o[:machine], "#{$o[:name]}_initrd.squashfs"
+    if $o[:machine] == "lan966x"
+        dts "#{$o[:name]}_ext4.its", m, $o[:machine], nil
+    else
+        dts "#{$o[:name]}_ext4.its", m, $o[:machine], "#{$o[:name]}_initrd.squashfs"
+    end
     sys "mkimage -q -f #{$o[:name]}_ext4.its #{install_dir}/Image.itb"
 
     t1 = Thread.new {
