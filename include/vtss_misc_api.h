@@ -781,6 +781,8 @@ typedef struct {
     vtss_sgpio_bmode_t     bmode[2];                    /**< Blink mode 0 and 1 */
     u8                     bit_count;                   /**< Bits enabled per port, 1-4 */
     vtss_sgpio_port_conf_t port_conf[VTSS_SGPIO_PORTS]; /**< Port configuration */
+    u32                    clock_freq_khz;              /**< SIO controller clock freq in kHz.
+                                                             '0' means default (see CIL code) */
 } vtss_sgpio_conf_t;
 
 /**

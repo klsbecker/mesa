@@ -506,6 +506,7 @@ typedef struct {
     mesa_sgpio_bmode_t     bmode[2];                    // Blink mode 0 and 1
     uint8_t                bit_count;                   // Bits enabled per port, 1-4
     mesa_sgpio_port_conf_t port_conf[MESA_SGPIO_PORTS]; // Port configuration
+    uint32_t clock_freq_khz; // SIO controller clock freq in kHz. 0 means default (see CIL code)
 } mesa_sgpio_conf_t CAP(MISC_SGPIO_CNT);
 
 // Get SGPIO configuration

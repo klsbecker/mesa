@@ -1093,6 +1093,19 @@ vtss_rc vtss_cil_misc_sgpio_conf_set(struct vtss_state_s           *vtss_state,
     vtss_rc rc = VTSS_RC_OK;
     u32     i, port, val = 0U, pol = 0U, bmode[2], bit_idx, value, mask, offs, width;
     BOOL    pol_high;
+    u32     clk_period_ps = vtss_fa_clk_period(vtss_state->init_conf.core_clock.freq);
+    u32     sys_clk_period = clk_period_ps / 100U;
+    u32     sio_clk_freq_div;
+
+    if (conf->clock_freq_khz != 0U) {
+        sio_clk_freq_div = (u32)(1000000000ULL / ((u64)clk_period_ps * (u64)conf->clock_freq_khz));
+    } else {
+#if defined(VTSS_ARCH_SPARX5)
+        sio_clk_freq_div = 50U; /* 5,10,12.5 MHz (250/500/625Mhz core clock)*/
+#else
+        sio_clk_freq_div = 65U; /* 5 Mhz (328Mhz core clock) */
+#endif
+    }
 
     /* Setup serial IO port enable register */
     for (port = 0U; port < 32U; port++) {
@@ -1145,20 +1158,16 @@ vtss_rc vtss_cil_misc_sgpio_conf_set(struct vtss_state_s           *vtss_state,
     REG_WR(VTSS_DEVCPU_GCB_SIO_PORT_ENA(group), val);
     REG_WRM(VTSS_DEVCPU_GCB_SIO_CFG(group), value, mask);
     REG_WRM(VTSS_DEVCPU_GCB_SIO_CLOCK(group),
-            // Configuring the denominator of the system clock frequency:
-            // VTSS_CORE_CLOCK_250MHZ -> SIO clock = 250MHz / 50 =  5   MHz
-            // VTSS_CORE_CLOCK_500MHZ -> SIO clock = 500MHz / 50 = 10   MHz
-            // VTSS_CORE_CLOCK_625MHZ -> SIO clock = 625MHz / 50 = 12.5 MHz
-            VTSS_F_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ(50), VTSS_M_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ);
+            VTSS_F_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ(sio_clk_freq_div) |
+                VTSS_F_DEVCPU_GCB_SIO_CLOCK_SYS_CLK_PERIOD(sys_clk_period),
+            VTSS_M_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ | VTSS_M_DEVCPU_GCB_SIO_CLOCK_SYS_CLK_PERIOD);
 #else
     REG_WR(VTSS_DEVCPU_GCB_SIO_PORT_ENA, val);
     REG_WRM(VTSS_DEVCPU_GCB_SIO_CFG, value, mask);
     REG_WRM(VTSS_DEVCPU_GCB_SIO_CLOCK,
-            // Configuring the denominator of the system clock frequency:
-            // VTSS_CORE_CLOCK_328MHZ -> SIO clock = 328MHz / 328 =  1   MHz
-            VTSS_F_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ(65), /* Max 5Mhz on some
-                                                             boards */
-            VTSS_M_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ);
+            VTSS_F_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ(sio_clk_freq_div) |
+                VTSS_F_DEVCPU_GCB_SIO_CLOCK_SYS_CLK_PERIOD(sys_clk_period),
+            VTSS_M_DEVCPU_GCB_SIO_CLOCK_SIO_CLK_FREQ | VTSS_M_DEVCPU_GCB_SIO_CLOCK_SYS_CLK_PERIOD);
 #endif
 
     /*
