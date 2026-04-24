@@ -1103,15 +1103,10 @@ static uint32_t fa_capability(meba_inst_t inst, int cap)
     meba_board_state_t *board = INST2BOARD(inst);
     T_N(inst, "Called - %d", cap);
     switch (cap) {
-    case MEBA_CAP_POE:              return board->type == BOARD_TYPE_SPARX5_PCB135; // Only PCB135
-    case MEBA_CAP_1588_CLK_ADJ_DAC: return 0;
-    case MEBA_CAP_1588_REF_CLK_SEL: return 0;
-    case MEBA_CAP_TEMP_SENSORS:
-        if ((board->type == BOARD_TYPE_SPARX5_PCB135) && (board->gpy241_present)) {
-            // This is PCB135 rev C. Temp sensors not yet implemented for INDY
-            return 0;
-        }
-        return 1;
+    case MEBA_CAP_POE:                  return board->type == BOARD_TYPE_SPARX5_PCB135; // Only PCB135
+    case MEBA_CAP_1588_CLK_ADJ_DAC:     return 0;
+    case MEBA_CAP_1588_REF_CLK_SEL:     return 0;
+    case MEBA_CAP_TEMP_SENSORS:         return 1;
     case MEBA_CAP_BOARD_PORT_COUNT:
     case MEBA_CAP_BOARD_PORT_MAP_COUNT: return board->port_cnt;
     case MEBA_CAP_LED_MODES:            return 0;
@@ -1173,26 +1168,19 @@ static mesa_rc fa_port_entry_get(meba_inst_t inst, mesa_port_no_t port_no, meba_
 
 static mesa_rc fa_sensor_get(meba_inst_t inst, meba_sensor_t type, int six, int *value)
 {
-    mesa_rc             rc = MESA_RC_ERROR;
-    int16_t             temp = 0;
-    meba_board_state_t *board = INST2BOARD(inst);
+    mesa_rc rc = MESA_RC_ERROR;
+    int16_t temp = 0;
 
     T_N(inst, "Called %d:%d", type, six);
-
     if (type == MEBA_SENSOR_BOARD_TEMP) {
         rc = mesa_temp_sensor_get(NULL, &temp);
         // EMC1182 needs more debug
         /* rc = inst->iface.i2c_read(0, 0x4C, 0, data, 10); */
         /* printf("data: %d, %d, %d \n",data[0],data[1],data[2]); */
     } else if (type == MEBA_SENSOR_PORT_TEMP) {
-        if (board->type == BOARD_TYPE_SPARX5_PCB134 || board->type == BOARD_TYPE_SPARX5_PCB8415) {
+        rc = meba_phy_chip_temp_get(inst, six, &temp);
+        if (rc != MESA_RC_OK) {
             rc = mesa_temp_sensor_get(NULL, &temp);
-        } else if (board->type == BOARD_TYPE_SPARX5_PCB135) {
-            if (board->port[six].map.mac_if == MESA_PORT_INTERFACE_QSGMII) {
-                rc = vtss_phy_chip_temp_get(PHY_INST, six, &temp);
-            } else {
-                rc = mesa_temp_sensor_get(NULL, &temp);
-            }
         }
     }
 

@@ -783,6 +783,13 @@ static void cli_cmd_board_dump(cli_req_t *req)
     if (cap_sensor && mesa_temp_sensor_get(NULL, &temp_celsius) == MESA_RC_OK) {
         printf("Chip temperature: %d (C)\n", temp_celsius);
     }
+    for (uint32_t i = 0; i < meba_cnt; i++) {
+        int port_temp;
+        if (MEBA_WRAP(meba_sensor_get, appl_init.board_inst, MEBA_SENSOR_PORT_TEMP, (int)i,
+                      &port_temp) == MESA_RC_OK) {
+            printf("Port %u temperature: %d (C)\n", i, port_temp);
+        }
+    }
 }
 
 static cli_cmd_t cli_cmd_table[] = {
