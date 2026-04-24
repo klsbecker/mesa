@@ -7,267 +7,201 @@ require_relative 'libeasy/et'
 
 $ts = get_test_setup("mesa_pc_b2b_4x")
 
-check_capabilities do
-    $dpl_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_DPL_CNT")
-    $chip_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
-    $cap_dwrr_mode = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_SCHEDULER_MODE_DWRR")
-    assert(($cap_family != chip_family_to_id("MESA_CHIP_FAMILY_LAN969X")) || ($cap_fpga != 0), "This test must be checked on Laguna chip")
-end
-
-MESA_CHIP_FAMILY_CARACAL = 2
-
 # Use random ingress/egress port
 idx_list = port_idx_shuffle($ts)
 eg = idx_list[0]
 ig = (idx_list - [eg])
 ig_list = port_idx_list_str(ig)
 
-# Save configuration
-$vconf = []
-$qconf = []
-$dconf = []
-idx_list.each do |idx|
-    port = $ts.dut.p[idx]
-    $vconf[port] = $ts.dut.call("mesa_vlan_port_conf_get", port)
-    $qconf[port] = $ts.dut.call("mesa_qos_port_conf_get", port)
-    $dconf[port] = $ts.dut.call("mesa_qos_port_dpl_conf_get", port, $dpl_cnt)
+test_table =
+[
+    {
+        txt: "strict-scheduling",
+        cfg: {},
+        chk: {erate: [0, 0, 1000000000], pcp: [0, 3, 7]},
+        # On some platforms, some low priority frames are slipping through
+        tol: {ca: [220, 305, 2],
+              oc: [340, 380, 2],
+              ma: [260, 500, 1.1],
+              fa: [295, 535, 2],
+              la: [10, 600, 1.1],
+              df: [0, 380, 2]},
+    },
+    {
+        txt: "weighted-scheduling-30-30-30",
+        cfg: {dwrr: [30, 30, 30]},
+        chk: {erate: [1000000000/3, 1000000000/3, 1000000000/3], pcp: [0, 1, 2]},
+        tol: {ca: [0.8, 0.8, 0.8],
+              ma: [0.1, 0.1, 0.1],
+              la: [0.05, 0.05, 0.05],
+              df: [0.2, 0.2, 0.2]},
+    },
+    {
+        txt: "weighted-scheduling-10-30-60",
+        cfg: {dwrr: [10, 30, 60]},
+        chk: {erate: [1000000000*1/10, 1000000000*3/10, 1000000000*6/10], pcp: [0, 1, 2]},
+        tol: {ca: [4, 7.2, 5.3],
+              ma: [0.05, 0.05, 0.05],
+              j2: [0.3, 0.08, 0.08],
+              df: [0.08, 0.08, 0.08]},
+    },
+    {
+        txt: "weighted-scheduling-frame-10-30-60",
+        cap: true,
+        cfg: {dwrr: [10, 30, 60], frame_rate: true},
+        chk: {size: [64, 512, 1024], pcp: [0, 1, 2]},
+        tol: {df: [0.2, 0.2, 0.2]},
+    },
+    {
+        txt: "weighted-scheduling-frame-2-3",
+        cap: true,
+        pop: true,
+        cfg: {dwrr: [2, 3], frame_rate: true},
+        chk: {size: [64, 1500], pcp: [0, 1]},
+        tol: {df: [0.05, 0.05]},
+    },
+]
+
+def run_test(t)
+    ig = t[:ig]
+    eg = t[:eg]
+    if (t[:pop])
+        ig.pop
+    end
+    t_i("ig: #{ig}, eg: #{eg}")
+
+    # Egress port configuration
+    cfg = t[:cfg]
+    port = $ts.dut.p[eg]
+    c = $ts.dut.call("mesa_qos_port_conf_get", port)
+    dwrr = fld_get(cfg, :dwrr, [])
+    cnt = dwrr.size
+    c["dwrr_enable"] = (cnt > 0)
+    frame_rate = fld_get(cfg, :frame_rate, false)
+    c["dwrr_mode"] = ("MESA_DWWR_MODE_" + (frame_rate ? "FRAME" : "LINE"))
+    c["dwrr_cnt"] = cnt
+    cnt.times do |i|
+        c["queue"][i]["pct"] = dwrr[i]
+    end
+    c = $ts.dut.call("mesa_qos_port_conf_set", port, c)
+
+    # Tolerance per family, with a default value
+    tol = t[:tol]
+    etol = fld_get(tol, :df)
+    case chip_id_to_family(cap_get("MISC_CHIP_FAMILY"))
+    when "MESA_CHIP_FAMILY_CARACAL"
+        etol = fld_get(tol, :ca, etol)
+    when "MESA_CHIP_FAMILY_OCELOT"
+        etol = fld_get(tol, :oc, etol)
+    when "MESA_CHIP_FAMILY_JAGUAR2"
+        etol = fld_get(tol, :j2, etol)
+    when "MESA_CHIP_FAMILY_LAN966X"
+        etol = fld_get(tol, :ma, etol)
+    when "MESA_CHIP_FAMILY_SPARX5"
+        etol = fld_get(tol, :fa, etol)
+    when "MESA_CHIP_FAMILY_LAN969X"
+        etol = fld_get(tol, :la, etol)
+    end
+
+    # Rate check
+    chk = fld_get(t, :chk)
+    c = {}
+    c[:ig] = ig
+    c[:eg] = eg
+    c[:size] = 1000
+    c[:with_pre_tx] = true
+    c[:frame_rate] = frame_rate
+    erate = chk[:erate]
+    if (frame_rate)
+        # Calculate the number of frames received in one second
+        size = fld_get(chk, :size, [])
+        sum = 0
+        cnt.times do |i|
+            sum += ((size[i] + 20) * dwrr[i])
+        end
+        erate = []
+        cnt.times do |i|
+            erate[i] = ((1000000000 * dwrr[i]) / (sum * 8))
+        end
+        c[:size_array] = size
+    end
+    c[:erate] = erate
+    c[:etolerance] = etol
+    c[:pcp] = chk[:pcp]
+    check_rate(c)
 end
 
-MESA_VID_NULL = 0
+# Initial configuration
+test "config" do
+    t_i ("Only forward on relevant ports #{$ts.dut.p}")
+    port_list = port_idx_list_str(idx_list)
+    $ts.dut.call("mesa_vlan_port_members_set", 1, port_list)
 
-t_i("-------------------------")
-t_i("ig: #{ig}  eg: #{eg}")
-t_i("-------------------------")
+    t_i ("Configure ingress ports to C tag aware")
+    ig.each do |i|
+        port = $ts.dut.p[i]
+        $ts.dut.run("mesa-cmd port flow control #{port + 1} disable")
 
-t_i ("Only forward on relevant ports #{$ts.dut.p}")
-port_list = port_idx_list_str(idx_list)
-$ts.dut.call("mesa_vlan_port_members_set", 1, port_list)
+        c = $ts.dut.call("mesa_vlan_port_conf_get", port)
+        c["port_type"] = "MESA_VLAN_PORT_TYPE_C"
+        $ts.dut.call("mesa_vlan_port_conf_set", port, c)
 
-t_i ("Configure ingress ports to C tag aware")
-ig.each do |i|
-    $ts.dut.run("mesa-cmd port flow control #{$ts.dut.p[i]+1} disable")
-
-    conf = $ts.dut.call("mesa_vlan_port_conf_get", $ts.dut.p[i])
-    conf["port_type"] = "MESA_VLAN_PORT_TYPE_C"
-    $ts.dut.call("mesa_vlan_port_conf_set", $ts.dut.p[i], conf)
-
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[i])
-    conf["tag"]["class_enable"] = true
-    conf["tag"]["pcp_dei_map"][0][0]["prio"] = 0
-    conf["tag"]["pcp_dei_map"][0][0]["dpl"] = 0
-    conf["tag"]["pcp_dei_map"][0][1]["prio"] = 0
-    conf["tag"]["pcp_dei_map"][0][1]["dpl"] = 1
-    conf["tag"]["pcp_dei_map"][1][0]["prio"] = 1
-    conf["tag"]["pcp_dei_map"][1][0]["dpl"] = 0
-    conf["tag"]["pcp_dei_map"][1][1]["prio"] = 1
-    conf["tag"]["pcp_dei_map"][1][1]["dpl"] = 1
-    conf["default_prio"] = i
-    conf["default_dpl"] = 0
-    $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[i], conf)
-end
-sleep(5)
-dut_port_state_up(ig)
-
-t_i ("Configure egress port to C tag all")
-vconf = $ts.dut.call("mesa_vlan_port_conf_get", $ts.dut.p[eg])
-vconf["port_type"] = "MESA_VLAN_PORT_TYPE_C"
-vconf["untagged_vid"] = MESA_VID_NULL
-$ts.dut.call("mesa_vlan_port_conf_set", $ts.dut.p[eg], vconf)
-
-t_i("Configure egress prio and dpl mapping to 1:1")
-dconf = $ts.dut.call("mesa_qos_port_dpl_conf_get", $ts.dut.p[eg], $dpl_cnt)
-dconf[0]["pcp"] = [0,1,2,3,4,5,6,7]
-dconf[0]["dei"] = [0,0,0,0,0,0,0,0]
-dconf[1]["pcp"] = [0,1,2,3,4,5,6,7]
-dconf[1]["dei"] = [1,1,1,1,1,1,1,1]
-$ts.dut.call("mesa_qos_port_dpl_conf_set", $ts.dut.p[eg], $dpl_cnt, dconf)
-
-t_i("Configure egress prio and dpl tagging to mapped. Also enable port shaper to assure queues are never emptied")
-qconf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-qconf["tag"]["remark_mode"] = "MESA_TAG_REMARK_MODE_MAPPED"
-$ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], qconf)
-
-if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_OCELOT"))
-# For some reason on Ocelot if flooding is not prevented tests will - by far - not pass
-    $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-end
-
-
-test "Strict scheduling test from #{ig_list} to #{$ts.dut.p[eg]}" do
-    # Only expect frames in the highest priority queue when running strict scheduling
-       #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,  with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [220,305,2],   true,              [0,3,7]) # On Caracal some lower priority frames are slipping through
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [295,535,2],  true,              [0,3,7]) # On SparX-5 some lower priority frames are slipping through
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [260,500,1.1], true,             [0,3,7]) # On LAN966X some lower priority frames are slipping through
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
-        measure(ig, eg, 600, 1,      false,            false,           [0,0,1000000000],  [10,600,1.1],   true,              [0,3,7]) # On LAN969X some lower priority frames are slipping through
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_OCELOT"))
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [340,380,2],  true,              [0,3,7]) # On Ocelot some lower priority frames are slipping through
-    else
-        measure(ig, eg, 1000, 1,     false,            false,           [0,0,1000000000],  [0,380,2],    true,              [0,3,7]) # On ServalT some lower priority frames are slipping through
+        c = $ts.dut.call("mesa_qos_port_conf_get", port)
+        c["tag"]["class_enable"] = true
+        c["tag"]["pcp_dei_map"][0][0]["prio"] = 0
+        c["tag"]["pcp_dei_map"][0][0]["dpl"] = 0
+        c["tag"]["pcp_dei_map"][0][1]["prio"] = 0
+        c["tag"]["pcp_dei_map"][0][1]["dpl"] = 1
+        c["tag"]["pcp_dei_map"][1][0]["prio"] = 1
+        c["tag"]["pcp_dei_map"][1][0]["dpl"] = 0
+        c["tag"]["pcp_dei_map"][1][1]["prio"] = 1
+        c["tag"]["pcp_dei_map"][1][1]["dpl"] = 1
+        c["default_prio"] = i
+        c["default_dpl"] = 0
+        $ts.dut.call("mesa_qos_port_conf_set", port, c)
     end
-    end
-    end
-    end
+    sleep(5)
+    dut_port_state_up(ig)
+
+    t_i ("Configure egress port to C tag all")
+    port = $ts.dut.p[eg]
+    c = $ts.dut.call("mesa_vlan_port_conf_get", port)
+    c["port_type"] = "MESA_VLAN_PORT_TYPE_C"
+    c["untagged_vid"] = 0
+    $ts.dut.call("mesa_vlan_port_conf_set", port, c)
+
+    t_i("Configure egress prio and dpl mapping to 1:1")
+    dpl_cnt = cap_get("QOS_DPL_CNT")
+    c = $ts.dut.call("mesa_qos_port_dpl_conf_get", port, dpl_cnt)
+    c[0]["pcp"] = [0,1,2,3,4,5,6,7]
+    c[0]["dei"] = [0,0,0,0,0,0,0,0]
+    c[1]["pcp"] = [0,1,2,3,4,5,6,7]
+    c[1]["dei"] = [1,1,1,1,1,1,1,1]
+    $ts.dut.call("mesa_qos_port_dpl_conf_set", port, dpl_cnt, c)
+
+    t_i("Configure egress prio and dpl tagging to mapped")
+    c = $ts.dut.call("mesa_qos_port_conf_get", port)
+    c["tag"]["remark_mode"] = "MESA_TAG_REMARK_MODE_MAPPED"
+    $ts.dut.call("mesa_qos_port_conf_set", port, c)
+
+    if (cap_get("MISC_CHIP_FAMILY") == chip_family_to_id("MESA_CHIP_FAMILY_OCELOT"))
+        # For some reason on Ocelot if flooding is not prevented tests will - by far - not pass
+        $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth smac 00:00:00:00:01:01")
     end
 end
 
-test "Weighted scheduling with equal weights test from #{ig_list} to #{$ts.dut.p[eg]}" do
-    # Expect equal distribution of frames in queue 0..2
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["dwrr_enable"] = true
-    conf["dwrr_cnt"] = 3
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-    erate = 1000000000/3
-       #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000,    tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.1,0.1,0.1], true,              [0,1,2])
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.8,0.8,0.8],     true,              [0,1,2])
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.05,0.05,0.05],     true,              [0,1,2])
-    else
-        measure(ig, eg, 1000, 1,     false,            false,           [erate,erate,erate], [0.2,0.2,0.2],     true,              [0,1,2])
+# Run all or selected test
+sel = table_lookup(test_table, :sel)
+test_table.each do |t|
+    test t[:txt] do
+        if (t[:sel] != sel || (t[:cap] && cap_get("QOS_SCHEDULER_MODE_DWRR") == 0))
+            test_skip
+            next
+        end
+        t[:ig] = ig
+        t[:eg] = eg
+        run_test(t)
     end
-    end
-    end
-end
-
-test "Weighted scheduling with 10, 30 and 60 percent test from #{ig_list} to #{$ts.dut.p[eg]}" do
-    # Expect distribution of frames in queue 0..2 based on weights (10%, 30%, 60%)
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["dwrr_enable"] = true
-    conf["dwrr_cnt"] = 3
-    conf["queue"][0]["pct"] = 10
-    conf["queue"][1]["pct"] = 30
-    conf["queue"][2]["pct"] = 60
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-    erate0 = 1000000000*1/10
-    erate1 = 1000000000*3/10
-    erate2 = 1000000000*6/10
-
-       #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000,       tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.05,0.05,0.05], true,              [0,1,2])
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_CARACAL"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [4,7.2,5.3],   true,              [0,1,2])
-    else
-    if ($chip_family == chip_family_to_id("MESA_CHIP_FAMILY_JAGUAR2"))
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.3,0.08,0.08],   true,              [0,1,2])
-    else
-        measure(ig, eg, 1000, 1,     false,            false,           [erate0,erate1,erate2], [0.08,0.08,0.08],   true,              [0,1,2])
-    end
-    end
-    end
-end
-
-if ($cap_dwrr_mode == 1)
-test "Weighted frame scheduling with 10, 30 and 60 percent test from #{ig_list} to #{$ts.dut.p[eg]}" do
-    # Expect distribution of frames in queue 0..2 based on weights (10%, 30%, 60%)
-    w0 = 10
-    w1 = 30
-    w2 = 60
-    s0 = 64+20
-    s1 = 512+20
-    s2 = 1024+20
-
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["dwrr_enable"] = true
-    conf["dwrr_mode"] = "MESA_DWWR_MODE_FRAME"
-    conf["dwrr_cnt"] = 3
-    conf["queue"][0]["pct"] = w0
-    conf["queue"][1]["pct"] = w1
-    conf["queue"][2]["pct"] = w2
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-# Calculate the number of frames received in one second
-
-#   (s0*n0 + s1*n1 + s2*n2)*8 = 1000000000
-#   w0*n1 = w1*n0
-#   n1 = (w1*n0)/w0
-#   w0*n2 = w2*n0
-#   n2 = (w2*n0)/w0
-#   (s0*n0 + s1*(w1*n0)/w0 + s2*(w2*n0)/w0)*8 = 1000000000
-#   n0*(s0 + s1*w1/w0 + s2*w2/w0)*8 = 1000000000
-    n0 = 1000000000/((s0 + s1*w1/w0 + s2*w2/w0)*8)
-
-#   (s0*n0 + s1*n1 + s2*n2)*8 = 1000000000
-#   w1*n0 = w0*n1
-#   n0 = (w0*n1)/w1
-#   w1*n2 = w2*n1
-#   n2 = (w2*n1)/w1
-#   (s0*(w0*n1)/w1 + s1*n1 + s2*(w2*n1)/w1)*8 = 1000000000
-#   n1*(s0*w0/w1 + s1 + s2*w2/w1)*8 = 1000000000
-    n1 = 1000000000/((s0*w0/w1 + s1 + s2*w2/w1)*8)
-
-#   (s0*n0 + s1*n1 + s2*n2)*8 = 1000000000
-#   w2*n0 = w0*n2
-#   n0 = (w0*n2)/w2
-#   w2*n1 = w1*n2
-#   n1 = (w1*n2)/w2
-#   (s0*(w0*n2)/w2 + s1*(w1*n2)/w2 + s2*n2)*8 = 1000000000
-#   n2*(s0*w0/w2 + s1*w1/w2 + s2)*8 = 1000000000
-    n2 = 1000000000/((s0*w0/w2 + s1*w1/w2 + s2)*8)
-
-   #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,   with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure(ig, eg, 1000, 1,     true,            false,           [n0,n1,n2],        [0.2,0.2,0.2], true,              [0,1,2], [], [(s0-20),(s1-20),(s2-20)])
-end
-
-test "Weighted frame scheduling TC11 test with 2, 3 percent from #{ig_list} to #{$ts.dut.p[eg]}" do
-    # Expect distribution of frames in queue 0..2 based on weights (10%, 30%, 60%)
-    w0 = 2
-    w1 = 3
-    s0 = 64+20
-    s1 = 1500+20
-
-    conf = $ts.dut.call("mesa_qos_port_conf_get", $ts.dut.p[eg])
-    conf["dwrr_enable"] = true
-    conf["dwrr_mode"] = "MESA_DWWR_MODE_FRAME"
-    conf["dwrr_cnt"] = 2
-    conf["queue"][0]["pct"] = w0
-    conf["queue"][1]["pct"] = w1
-    conf = $ts.dut.call("mesa_qos_port_conf_set", $ts.dut.p[eg], conf)
-
-# Calculate the number of frames received in one second
-
-#   (s0*n0 + s1*n1)*8 = 1000000000
-#   w0*n1 = w1*n0
-#   n1 = (w1*n0)/w0
-#   (s0*n0 + s1*(w1*n0)/w0)*8 = 1000000000
-#   n0*(s0 + s1*w1/w0)*8 = 1000000000
-    n0 = 1000000000/((s0 + s1*w1/w0)*8)
-
-#   (s0*n0 + s1*n1)*8 = 1000000000
-#   w1*n0 = w0*n1
-#   n0 = (w0*n1)/w1
-#   (s0*(w0*n1)/w1 + s1*n1)*8 = 1000000000
-#   n1*(s0*w0/w1 + s1)*8 = 1000000000
-    n1 = 1000000000/((s0*w0/w1 + s1)*8)
-
-    ig.pop
-   #measure(ig, eg, size, sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1, with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure(ig, eg, 1000, 1,     true,            false,            [n0,n1],          [0.05,0.05],   true,              [0,1], [], [(s0-20),(s1-20)])
-end
-end
-
-# Restore configuration
-t_i("Clean up")
-idx_list.each do |idx|
-    port = $ts.dut.p[idx]
-    $ts.dut.call("mesa_vlan_port_conf_set", port, $vconf[port])
-    $ts.dut.call("mesa_qos_port_conf_set", port, $qconf[port])
-    $ts.dut.call("mesa_qos_port_dpl_conf_set", port, $dpl_cnt, $dconf[port])
 end
 
 test_summary
