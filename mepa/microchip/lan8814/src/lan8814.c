@@ -1028,7 +1028,8 @@ static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode)
         value = mask = status = 0;
         value |= LAN8814_F_CABLE_DIAG_TEST_ENA;
         value |= LAN8814_F_CABLE_TEST_PAIR(pair);
-        mask |= LAN8814_F_CABLE_DIAG_TEST_ENA | LAN8814_M_CABLE_TEST_PAIR;
+        mask |= LAN8814_F_CABLE_DIAG_TEST_ENA | LAN8814_M_CABLE_TEST_PAIR |
+                LAN8814_F_CABLE_VCT_SEL;
         WRM(dev, LAN8814_CABLE_DIAG, value, mask);
         if (lan8814_wait_for_cable_diagnostics(dev)) {
             RD(dev, LAN8814_CABLE_DIAG, &value);
