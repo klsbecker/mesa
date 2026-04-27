@@ -935,7 +935,6 @@ static mepa_rc lan8814_gpio_mode_private(mepa_device_t *dev, const mepa_gpio_con
     return MEPA_RC_OK;
 }
 
-#if !defined MEPA_LAN8814_LIGHT
 // wait in loop while cable diagnostics is running.
 static mepa_bool_t lan8814_wait_for_cable_diagnostics(mepa_device_t *dev)
 {
@@ -957,9 +956,7 @@ static mepa_bool_t lan8814_wait_for_cable_diagnostics(mepa_device_t *dev)
     T_D(MEPA_TRACE_GRP_GEN, "ret = %d cnt= %d value=0x%x\n", ret, cnt, value);
     return ret;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 // Before starting cable diagnostics, do necessary phy configuration like reset speed config.
 static mepa_rc lan8814_cab_diag_enter_config(mepa_device_t *dev)
 {
@@ -974,9 +971,7 @@ static mepa_rc lan8814_cab_diag_enter_config(mepa_device_t *dev)
     MEPA_MSLEEP(50);
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 // After exiting cable diagnostics/self-test , restore phy configuration.
 static mepa_rc lan8814_restore_config_(mepa_device_t *dev)
 {
@@ -987,9 +982,7 @@ static mepa_rc lan8814_restore_config_(mepa_device_t *dev)
     lan8814_reset_(dev, &rst_cfg);
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 // LAN8814 phy dignostics is calculated only when there is no remote link partner for the port.
 // For mode values {0,1} corresponding to {VTSS_PHY_MODE_ANEG, VTSS_PHY_MODE_FORCED}, diagnostics is calculated.
 // For power down mode(2), diagnostics is not calculated.
@@ -1051,7 +1044,6 @@ static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode)
     lan8814_restore_config_(dev);
     return MEPA_RC_OK;
 }
-#endif
 
 #if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_port_flow_mapping_get(uint8_t packet_idx, mepa_bool_t ingress, int *map_val)
@@ -2254,7 +2246,6 @@ static mepa_rc lan8814_eee_status_get(mepa_device_t *dev, u8 *const advertisemen
     return MEPA_RC_OK;
 }
 
-#if !defined(MEPA_LAN8814_LIGHT)
 // LAN8814 phy dignostics is calculated only when there is no remote link partner for the port.
 // For mode values {0,1} corresponding to {VTSS_PHY_MODE_ANEG, VTSS_PHY_MODE_FORCED}, diagnostics is calculated.
 // For power down mode(2), diagnostics is not calculated.
@@ -2267,9 +2258,7 @@ static mepa_rc lan8814_cab_diag_start(mepa_device_t *dev, int32_t mode)
     MEPA_EXIT(dev);
     return rc;
 }
-#endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_cab_diag_get(mepa_device_t *dev, mepa_cable_diag_result_t *res)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
@@ -2278,7 +2267,6 @@ static mepa_rc lan8814_cab_diag_get(mepa_device_t *dev, mepa_cable_diag_result_t
     MEPA_EXIT(dev);
     return MEPA_RC_OK;
 }
-#endif
 
 #if !defined(MEPA_LAN8814_LIGHT)
 // Set loopback modes in phy
@@ -3043,9 +3031,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
             .mepa_driver_eee_status_get = lan8814_eee_status_get,
-#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_ts = &lan8814_ts_drivers,
@@ -3094,9 +3082,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
             .mepa_driver_eee_status_get = lan8814_eee_status_get,
-#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
@@ -3142,10 +3130,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
             .mepa_driver_eee_status_get = lan8814_eee_status_get,
-#if !defined MEPA_LAN8814_LIGHT
-            .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+#if !defined MEPA_LAN8814_LIGHT
+            .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
@@ -3191,9 +3179,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
             .mepa_driver_eee_status_get = lan8814_eee_status_get,
-#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_ts = &lan8814_ts_drivers,
@@ -3241,9 +3229,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
             .mepa_driver_eee_status_get = lan8814_eee_status_get,
-#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+#if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
