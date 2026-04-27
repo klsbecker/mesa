@@ -1041,6 +1041,7 @@ static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode)
                 res->status[pair] = MEPA_CABLE_DIAG_STATUS_ABNORM;
                 T_I(MEPA_TRACE_GRP_GEN, "link status failed for pair %d \n", pair);
             } else { // status as LAN8814_CABLE_NORMAL
+                res->status[pair] = MEPA_CABLE_DIAG_STATUS_OK;
                 T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d \n", pair, status);
             }
         }
