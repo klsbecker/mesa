@@ -164,10 +164,6 @@ static const fa_malibu_gpio_port_map_t malibu_gpio_map[] = {
      },
 };
 
-/* EDSX/PCB8415 daughter cards */
-const char *ev57u68a = "EV57U68A";
-const char *ev96d50a = "EV96D50A";
-
 meba_inst_t lan969x_initialize(meba_inst_t inst, const meba_board_interface_t *callouts);
 
 static const meba_aux_rawio_t rawio = {
@@ -476,29 +472,61 @@ static const port_map_t port_table_ev96d50a_slot_2[] = {
     EV96D50A_PORT_MAP_ROW(63, 28, 4),
 };
 
-static void fa_pcb8415_init_port(meba_inst_t inst,
-                                 const char *sfp_plugin_module1,
-                                 const char *sfp_plugin_module2)
+typedef struct {
+    const char       *name;          /* identifier as reported by EEPROM / u-boot env */
+    const port_map_t *port_table[2]; /* [0] = slot 1, [1] = slot 2 */
+    uint32_t          port_count;    /* number of ports contributed per slot */
+    mesa_bool_t       lan80xx;       /* Work-arround for LAN80XX EVB Board */
+} edsx_module_t;
+
+static const edsx_module_t edsx_modules[] = {
+    {
+     .name = "EV57U68A",
+     .port_table = {port_table_ev57u67a_slot_1, port_table_ev57u67a_slot_2},
+     .port_count = 4,
+     .lan80xx = true,
+     },
+    {
+     .name = "EV96D50A",
+     .port_table = {port_table_ev96d50a_slot_1, port_table_ev96d50a_slot_2},
+     .port_count = 4,
+     .lan80xx = false,
+     },
+};
+
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+static const edsx_module_t *edsx_module_find_in(const char *buf)
 {
-    // This counds how many ports were added so far to the port_map_entry;
-    int port_cnt = 0;
-
-    if (sfp_plugin_module1 == ev57u68a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_1, true);
-        port_cnt += 4;
-    } else if (sfp_plugin_module1 == ev96d50a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d50a_slot_1, false);
-        port_cnt += 4;
+    if (!buf) {
+        return NULL;
     }
 
-    if (sfp_plugin_module2 == ev57u68a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_2, true);
-        port_cnt += 4;
-    } else if (sfp_plugin_module2 == ev96d50a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d50a_slot_2, false);
-        port_cnt += 4;
+    for (size_t i = 0; i < ARRAY_SIZE(edsx_modules); i++) {
+        if (strstr(buf, edsx_modules[i].name)) {
+            return &edsx_modules[i];
+        }
     }
 
+    return NULL;
+}
+
+static void fa_pcb8415_init_port(meba_inst_t          inst,
+                                 const edsx_module_t *slot1_module,
+                                 const edsx_module_t *slot2_module)
+{
+    const edsx_module_t *slots[] = {slot1_module, slot2_module};
+    int                  port_cnt = 0;
+
+    for (int i = 0; i < ARRAY_SIZE(slots); i++) {
+        if (!slots[i]) {
+            continue;
+        }
+
+        fa_init_port_table(inst, port_cnt, slots[i]->port_count, slots[i]->port_table[i],
+                           slots[i]->lan80xx);
+        port_cnt += slots[i]->port_count;
+    }
     fa_init_port_table(inst, port_cnt, 1, port_table_npi_port, false);
 }
 
@@ -2653,11 +2681,12 @@ static meba_api_cpu_port_t fa_ls1046_cpu_ports[] = {
     {21, "eth0"},
 };
 
-mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugin_module)
+mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const edsx_module_t **plugin_module)
 {
-    char  eeprom_name[128];
-    char  eeprom[128];
-    char *uboot_env = NULL;
+    char                 eeprom_name[128];
+    char                 eeprom[128];
+    char                *uboot_env = NULL;
+    const edsx_module_t *m;
 
     *plugin_module = NULL; // No plugin module found yet;
 
@@ -2681,13 +2710,10 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
 
     char *p = eeprom;
     while (p < eeprom + sizeof(eeprom) - 1) {
-        if (strstr(p, ev57u68a)) {
-            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev57u68a, address);
-            *plugin_module = ev57u68a;
-            return MESA_RC_OK;
-        } else if (strstr(p, ev96d50a)) {
-            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev96d50a, address);
-            *plugin_module = ev96d50a;
+        m = edsx_module_find_in(p);
+        if (m) {
+            T_I(inst, "Found plugin module %s in SFP slot %d\n", m->name, address);
+            *plugin_module = m;
             return MESA_RC_OK;
         }
         p += strlen(p) + 1;
@@ -2704,13 +2730,10 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
     }
 
     if (inst->iface.conf_get(uboot_env, buf, sizeof(buf), NULL) == MESA_RC_OK) {
-        if (strstr(buf, ev57u68a)) {
-            *plugin_module = ev57u68a;
-            T_W(inst, "Assume %s\n", *plugin_module);
-            return MESA_RC_OK;
-        } else if (strstr(buf, ev96d50a)) {
-            *plugin_module = ev96d50a;
-            T_W(inst, "Assume %s\n", *plugin_module);
+        m = edsx_module_find_in(buf);
+        if (m) {
+            *plugin_module = m;
+            T_W(inst, "Assume %s\n", m->name);
             return MESA_RC_OK;
         }
     }
@@ -2720,15 +2743,15 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
 // Public Initialize
 meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *callouts)
 {
-    meba_inst_t         inst;
-    meba_board_state_t *board;
-    mesa_port_no_t      port_no;
-    char                buf[32];
-    uint32_t            u;
-    int                 i, pcb;
-    FILE               *fp;
-    const char         *sfp_plugin_module1 = NULL;
-    const char         *sfp_plugin_module2 = NULL;
+    meba_inst_t          inst;
+    meba_board_state_t  *board;
+    mesa_port_no_t       port_no;
+    char                 buf[32];
+    uint32_t             u;
+    int                  i, pcb;
+    FILE                *fp;
+    const edsx_module_t *sfp_plugin_module1 = NULL;
+    const edsx_module_t *sfp_plugin_module2 = NULL;
 
     if (callouts_size < sizeof(*callouts)) {
         fprintf(stderr, "Callouts size problem, expected %zd, got %zd\n", sizeof(*callouts),
@@ -2805,19 +2828,10 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         // the NPI port.
         board->port_cnt = 1;
         if (sfp_plugin_module1 != NULL) {
-            if (sfp_plugin_module1 == ev57u68a) {
-                board->port_cnt += 4;
-            } else if (sfp_plugin_module1 == ev96d50a) {
-                board->port_cnt += 4;
-            }
+            board->port_cnt += sfp_plugin_module1->port_count;
         }
-
         if (sfp_plugin_module2 != NULL) {
-            if (sfp_plugin_module2 == ev57u68a) {
-                board->port_cnt += 4;
-            } else if (sfp_plugin_module2 == ev96d50a) {
-                board->port_cnt += 4;
-            }
+            board->port_cnt += sfp_plugin_module2->port_count;
         }
     }
 
