@@ -308,6 +308,7 @@ $conv_methods = {}
 
 $error_suppress = [
     "impl-conv: mesa_cap_t",
+    "impl-conv: mepa_cap_t",
     "impl-conv: mesa_cap_callback_t",
 
 
@@ -1161,12 +1162,15 @@ end
 $methods.each do |m, o|
     aaa = nil
     #begin
-        cap = (m == "mesa_capability")
+        cap_mesa = (m == "mesa_capability")
+        cap_mepa = (m == "meba_capability")
         aa = analyze_args o[:args]
         aa.each do |a|
             next if skip_inst(a)
-            t = if cap
+            t = if cap_mesa
                 "mesa_cap_t"
+            elsif cap_mepa
+                "mepa_cap_t"
             else
                 a&.dig(:type_resolved, :type_resolved, :type)
             end
@@ -1518,6 +1522,20 @@ $methods.each do |m, o|
             $c_src.puts "    int val;"
             $c_src.puts "    MESA_RC(json_rpc_get_idx_mesa_cap_t(req, req->params, &req->idx, &cap));"
             $c_src.puts "    val = mesa_capability(NULL, cap);"
+            $c_src.puts "    MESA_RC(json_rpc_add_int(req, req->result, &val));"
+            $c_src.puts ""
+            $c_src.puts "    return MESA_RC_OK;"
+            $c_src.puts "}"
+            next
+        end
+
+        if m == "meba_capability"
+            $c_src.puts "    mepa_cap_t capability;"
+            $c_src.puts "    mepa_port_no_t port_no;"
+            $c_src.puts "    int val;"
+            $c_src.puts "    MESA_RC(json_rpc_get_idx_uint32_t(req, req->params, &req->idx, &port_no));"
+            $c_src.puts "    MESA_RC(json_rpc_get_idx_mepa_cap_t(req, req->params, &req->idx, &capability));"
+            $c_src.puts "    val = meba_capability(meba_global_inst, port_no, capability);"
             $c_src.puts "    MESA_RC(json_rpc_add_int(req, req->result, &val));"
             $c_src.puts ""
             $c_src.puts "    return MESA_RC_OK;"

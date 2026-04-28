@@ -289,5 +289,8 @@ mesa_rc meba_port_media_type_get(meba_inst_t              inst,
                                  mepa_port_no_t           port_no,
                                  mesa_port_interface_t    if_type,
                                  mesa_sd10g_media_type_t *media);
+
+uint32_t meba_capability(meba_inst_t inst, mepa_port_no_t port_no, uint32_t capability);
+
 #include <microchip/ethernet/hdr_end.h>
 #endif //_MICROCHIP_ETHERNET_BOARD_PHY_DRIVER_H
