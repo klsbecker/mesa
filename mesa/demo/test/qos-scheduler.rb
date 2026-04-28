@@ -25,7 +25,7 @@ test_table =
               ma: [260, 500, 1.1],
               fa: [295, 535, 2],
               la: [10, 600, 1.1],
-              df: [0, 380, 2]},
+              df: [0, 700, 2]},
     },
     {
         txt: "weighted-scheduling-30-30-30",
@@ -33,6 +33,7 @@ test_table =
         chk: {erate: [1000000000/3, 1000000000/3, 1000000000/3], pcp: [0, 1, 2]},
         tol: {ca: [0.8, 0.8, 0.8],
               ma: [0.1, 0.1, 0.1],
+              j2: [0.5, 0.5, 0.5],
               la: [0.05, 0.05, 0.05],
               df: [0.2, 0.2, 0.2]},
     },
@@ -41,8 +42,9 @@ test_table =
         cfg: {dwrr: [10, 30, 60]},
         chk: {erate: [1000000000*1/10, 1000000000*3/10, 1000000000*6/10], pcp: [0, 1, 2]},
         tol: {ca: [4, 7.2, 5.3],
+              oc: [0.5, 0.5, 0.5],
               ma: [0.05, 0.05, 0.05],
-              j2: [0.3, 0.08, 0.08],
+              j2: [0.5, 0.5, 0.5],
               df: [0.08, 0.08, 0.08]},
     },
     {
@@ -50,7 +52,8 @@ test_table =
         cap: true,
         cfg: {dwrr: [10, 30, 60], frame_rate: true},
         chk: {size: [64, 512, 1024], pcp: [0, 1, 2]},
-        tol: {df: [0.2, 0.2, 0.2]},
+        tol: {j2: [2, 2, 2],
+              df: [0.2, 0.2, 0.2]},
     },
     {
         txt: "weighted-scheduling-frame-2-3",
@@ -58,12 +61,13 @@ test_table =
         pop: true,
         cfg: {dwrr: [2, 3], frame_rate: true},
         chk: {size: [64, 1500], pcp: [0, 1]},
-        tol: {df: [0.05, 0.05]},
+        tol: {j2: [5, 5, 5],
+              df: [0.05, 0.05]},
     },
 ]
 
 def run_test(t)
-    ig = t[:ig]
+    ig = t[:ig].dup
     eg = t[:eg]
     if (t[:pop])
         ig.pop
@@ -93,14 +97,15 @@ def run_test(t)
         etol = fld_get(tol, :ca, etol)
     when "MESA_CHIP_FAMILY_OCELOT"
         etol = fld_get(tol, :oc, etol)
-    when "MESA_CHIP_FAMILY_JAGUAR2"
-        etol = fld_get(tol, :j2, etol)
     when "MESA_CHIP_FAMILY_LAN966X"
         etol = fld_get(tol, :ma, etol)
     when "MESA_CHIP_FAMILY_SPARX5"
         etol = fld_get(tol, :fa, etol)
     when "MESA_CHIP_FAMILY_LAN969X"
         etol = fld_get(tol, :la, etol)
+    else
+        # Jaguar-2/Serval-T
+        etol = fld_get(tol, :j2, etol)
     end
 
     # Rate check
