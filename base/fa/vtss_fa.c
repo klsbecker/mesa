@@ -364,6 +364,24 @@ u32 vtss_fa_clk_period(vtss_core_clock_freq_t c)
     return u;
 }
 
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
+static u32 vtss_fa_clk_mhz(vtss_core_clock_freq_t cfreq)
+{
+    u32 mhz;
+
+    switch (cfreq) {
+    case VTSS_CORE_CLOCK_180MHZ: mhz = 180; break;
+    case VTSS_CORE_CLOCK_250MHZ: mhz = 250; break;
+    case VTSS_CORE_CLOCK_328MHZ: mhz = 328; break;
+    case VTSS_CORE_CLOCK_500MHZ: mhz = 500; break;
+    case VTSS_CORE_CLOCK_733MHZ: mhz = 733; break;
+    case VTSS_CORE_CLOCK_625MHZ:
+    default: mhz = 625; break;
+    }
+    return mhz;
+}
+#endif
+
 BOOL fa_is_target(vtss_state_t *vtss_state)
 {
     BOOL b;
@@ -1296,7 +1314,7 @@ static u32 calspd2int(fa_cal_speed_t spd, vtss_port_no_t port_no)
     return val;
 }
 
-#if defined(VTSS_ARCH_LAN969X)
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
 static u32 bwd2int(vtss_internal_bw_t bw)
 {
     u32 u;
@@ -1403,7 +1421,7 @@ vtss_rc fa_cell_calendar_auto(vtss_state_t *vtss_state)
 #define FA_DSM_CAL_LEN               64U
 #define FA_DSM_CAL_EMPTY             0xFFFFU
 
-#if defined(VTSS_ARCH_SPARX5) || defined(VTSS_ARCH_LAIKA)
+#if defined(VTSS_ARCH_SPARX5)
 static u32 dsm_cal_len(vtss_state_t *vtss_state, u32 *cal)
 {
     u32 i = 0U, len = 0U;
@@ -1461,7 +1479,7 @@ static vtss_rc fa_dsm_set_calendar(vtss_state_t *vtss_state, u32 taxi, u32 *cale
 {
     u32 val;
 
-#if defined(VTSS_ARCH_LAN969X)
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
     REG_RD(VTSS_DSM_TAXI_CAL_CFG(taxi), &val);
     u32 active_calendar = VTSS_X_DSM_TAXI_CAL_CFG_CAL_SEL_STAT(val);
     REG_WRM(VTSS_DSM_TAXI_CAL_CFG(taxi), VTSS_F_DSM_TAXI_CAL_CFG_CAL_PGM_SEL(active_calendar == 0U),
@@ -1483,14 +1501,14 @@ static vtss_rc fa_dsm_set_calendar(vtss_state_t *vtss_state, u32 taxi, u32 *cale
     if (val != len - 1U) {
         VTSS_E("Calendar length is not correct (%d)", val);
     }
-#if defined(VTSS_ARCH_LAN969X)
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
     REG_WRM(VTSS_DSM_TAXI_CAL_CFG(taxi), VTSS_F_DSM_TAXI_CAL_CFG_CAL_SWITCH(1),
             VTSS_M_DSM_TAXI_CAL_CFG_CAL_SWITCH);
 #endif
     return VTSS_RC_OK;
 }
 
-#if defined(VTSS_ARCH_SPARX5) || defined(VTSS_ARCH_LAIKA)
+#if defined(VTSS_ARCH_SPARX5)
 static vtss_rc fa_dsm_chk_calendar(vtss_state_t *vtss_state, u32 *calendar, i32 *avg_dist)
 {
     u32 num_of_slots, slot_indices[FA_DSM_CAL_LEN], distances[FA_DSM_CAL_LEN];
@@ -1701,7 +1719,7 @@ vtss_rc vtss_fa_port2taxi(vtss_state_t *vtss_state, u32 taxi, vtss_port_no_t por
     return VTSS_RC_ERROR;
 }
 
-#if defined(VTSS_ARCH_SPARX5) || defined(VTSS_ARCH_LAIKA)
+#if defined(VTSS_ARCH_SPARX5)
 static vtss_rc fa_dsm_calc_calendar(vtss_state_t *vtss_state, u32 taxi, u32 *schedule, i32 *avg_dist)
 {
     u32 gcd, k, i, a, sum = 0U, min = 25000U, factor, adjusted_speed;
@@ -2055,7 +2073,7 @@ static vtss_rc la_dsm_cal_delay_get(vtss_state_t *vtss_state,
 }
 #endif
 
-#if defined(VTSS_ARCH_LAN969X)
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
 /******************************************************************************/
 // la_dsm_cal_idx_set()
 // Helper function that both checks that the calendar index is within limits and
@@ -2444,7 +2462,7 @@ vtss_rc fa_dsm_calc_and_apply_calendar(vtss_state_t *vtss_state, BOOL force)
 {
     u32 calendar[FA_DSM_CAL_LEN], taxi;
 
-#if defined(VTSS_ARCH_SPARX5) || defined(VTSS_ARCH_LAIKA)
+#if defined(VTSS_ARCH_SPARX5)
     i32 avg_len[FA_DSM_CAL_LEN];
 
     for (taxi = 0U; taxi < RT_DSM_CAL_TAXIS; taxi++) {
@@ -2462,7 +2480,7 @@ vtss_rc fa_dsm_calc_and_apply_calendar(vtss_state_t *vtss_state, BOOL force)
     u32                 taxi_ports[FA_DSM_CAL_MAX_DEVS_PER_TAXI] = {};
     u32                 port_speeds[RT_CHIP_PORTS_ALL] = {};
     BOOL                port_speeds_5g_or_higher[RT_CHIP_PORTS_ALL] = {};
-    u32                 freq_mhz = 328U; // Currently only supported frequency
+    u32                 freq_mhz;
     u32                 taxi_bw;
     u32                 interlink_dev, dev;
     BOOL                first, cal_changed;
@@ -2483,6 +2501,7 @@ vtss_rc fa_dsm_calc_and_apply_calendar(vtss_state_t *vtss_state, BOOL force)
     // bus is 1.055 times lower than actually and use that for all
     // calculations despite actually requested port B/W.
     // Division by 1.055 is roughly the same as multiplication by 0.948.
+    freq_mhz = vtss_fa_clk_mhz(vtss_state->init_conf.core_clock.freq);
     taxi_bw = (freq_mhz * 128U /* bits per taxi word */ * 948U) / 1000U;
 
     for (p = 0U; p < vtss_state->port_count; p++) {

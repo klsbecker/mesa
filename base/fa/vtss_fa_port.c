@@ -3850,7 +3850,7 @@ vtss_rc vtss_cil_port_conf_set(struct vtss_state_s *vtss_state, const vtss_port_
         /* Shutdown the not-in-use device */
         VTSS_RC(fa_port_flush(vtss_state, port_no, !use_primary_dev));
 
-#if defined(VTSS_ARCH_LAN969X)
+#if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
         // On Laguna, we might need to change DSM Taxi calendar when
         // enabling or disabling a shadow device.
         // don't force a new calendar
