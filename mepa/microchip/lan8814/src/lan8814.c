@@ -1191,7 +1191,6 @@ en_err:
 }
 #endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_serdes_set(mepa_device_t *dev, uint16_t addr, uint16_t data, uint8_t op_rd)
 {
     uint16_t val;
@@ -1211,17 +1210,13 @@ static mepa_rc lan8814_serdes_set(mepa_device_t *dev, uint16_t addr, uint16_t da
     }
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 struct serd_set {
     uint16_t addr;
     uint16_t data;
     uint8_t op_rd;
 };
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_prbs7_init(mepa_device_t *dev)
 {
     mepa_rc rc;
@@ -1306,9 +1301,7 @@ static mepa_rc lan8814_prbs7_init(mepa_device_t *dev)
 
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_prbs7_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
 {
     mepa_rc rc;
@@ -1352,9 +1345,7 @@ static mepa_rc lan8814_prbs7_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
     }
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev, mepa_prbs_loopback_t loopback)
 {
     mepa_rc rc;
@@ -1385,9 +1376,7 @@ static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev, mepa_prbs_loopback_t l
     }
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_prbs7_enable(mepa_device_t *dev)
 {
     mepa_rc rc;
@@ -1411,9 +1400,7 @@ static mepa_rc lan8814_prbs7_enable(mepa_device_t *dev)
     }
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined MEPA_LAN8814_LIGHT
 static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_prbs_clock_t clk, mepa_prbs_loopback_t loopback)
 {
     mepa_rc rc = MEPA_RC_OK;
@@ -1447,7 +1434,6 @@ static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_pr
 
     return MEPA_RC_OK;
 }
-#endif
 
 #if !defined MEPA_LAN8814_LIGHT
 static void lan8814_phy_deb_pr_reg (mepa_device_t *dev,
@@ -2756,7 +2742,6 @@ do_exit:
 }
 #endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_prbs_set(mepa_device_t *dev, mepa_phy_prbs_type_t type, mepa_phy_prbs_direction_t direction,
                                 const mepa_phy_prbs_generator_conf_t *const prbs_conf)
 {
@@ -2786,9 +2771,7 @@ static mepa_rc lan8814_prbs_set(mepa_device_t *dev, mepa_phy_prbs_type_t type, m
 
     return MEPA_RC_ERROR;
 }
-#endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_prbs_get(mepa_device_t *dev, mepa_phy_prbs_type_t type, mepa_phy_prbs_direction_t direction, mepa_phy_prbs_generator_conf_t *const prbs_conf)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
@@ -2799,9 +2782,7 @@ static mepa_rc lan8814_prbs_get(mepa_device_t *dev, mepa_phy_prbs_type_t type, m
 
     return MEPA_RC_OK;
 }
-#endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_prbs_monitor_set(mepa_device_t *dev, const mepa_phy_prbs_monitor_conf_t *const value)
 {
     mepa_rc rc = MEPA_RC_ERROR;
@@ -2815,9 +2796,7 @@ static mepa_rc lan8814_prbs_monitor_set(mepa_device_t *dev, const mepa_phy_prbs_
 
     return rc;
 }
-#endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_prbs_monitor_get(mepa_device_t *dev, mepa_phy_prbs_monitor_conf_t *const value)
 {
     uint16_t val;
@@ -2839,7 +2818,6 @@ static mepa_rc lan8814_prbs_monitor_get(mepa_device_t *dev, mepa_phy_prbs_monito
 
     return rc;
 }
-#endif
 
 #if !defined(MEPA_LAN8814_LIGHT)
 /**
@@ -3039,6 +3017,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
+            .mepa_driver_prbs_set = lan8814_prbs_set,
+            .mepa_driver_prbs_get = lan8814_prbs_get,
+            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
+            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3054,10 +3036,6 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_framepreempt_set = lan8814_framepreempt_set,
             .mepa_driver_selftest_start = lan8814_selftest_start,
             .mepa_driver_selftest_read = lan8814_selftest_read,
-            .mepa_driver_prbs_set = lan8814_prbs_set,
-            .mepa_driver_prbs_get = lan8814_prbs_get,
-            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
-            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
             .mepa_driver_serdes_tx_conf_set = lan8814_serdes_tx_conf_set,
 #endif //!defined MEPA_LAN8814_LIGHT
         },
@@ -3090,6 +3068,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
+            .mepa_driver_prbs_set = lan8814_prbs_set,
+            .mepa_driver_prbs_get = lan8814_prbs_get,
+            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
+            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3103,10 +3085,6 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
             .mepa_driver_selftest_start = lan8814_selftest_start,
             .mepa_driver_selftest_read = lan8814_selftest_read,
-            .mepa_driver_prbs_set = lan8814_prbs_set,
-            .mepa_driver_prbs_get = lan8814_prbs_get,
-            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
-            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
             .mepa_driver_serdes_tx_conf_set = lan8814_serdes_tx_conf_set,
 #endif //!defined MEPA_LAN8814_LIGHT
         },
@@ -3138,6 +3116,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
+            .mepa_driver_prbs_set = lan8814_prbs_set,
+            .mepa_driver_prbs_get = lan8814_prbs_get,
+            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
+            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3152,10 +3134,6 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
             .mepa_driver_selftest_start = lan8814_selftest_start,
             .mepa_driver_selftest_read = lan8814_selftest_read,
-            .mepa_driver_prbs_set = lan8814_prbs_set,
-            .mepa_driver_prbs_get = lan8814_prbs_get,
-            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
-            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
             .mepa_driver_serdes_tx_conf_set = lan8814_serdes_tx_conf_set,
 #endif //!defined MEPA_LAN8814_LIGHT
         },
@@ -3187,6 +3165,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
+            .mepa_driver_prbs_set = lan8814_prbs_set,
+            .mepa_driver_prbs_get = lan8814_prbs_get,
+            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
+            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3202,10 +3184,6 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
             .mepa_driver_selftest_start = lan8814_selftest_start,
             .mepa_driver_selftest_read = lan8814_selftest_read,
-            .mepa_driver_prbs_set = lan8814_prbs_set,
-            .mepa_driver_prbs_get = lan8814_prbs_get,
-            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
-            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
             .mepa_driver_serdes_tx_conf_set = lan8814_serdes_tx_conf_set,
 #endif //!defined MEPA_LAN8814_LIGHT
         },
@@ -3237,6 +3215,10 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
+            .mepa_driver_prbs_set = lan8814_prbs_set,
+            .mepa_driver_prbs_get = lan8814_prbs_get,
+            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
+            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3251,10 +3233,6 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
             .mepa_driver_selftest_start = lan8814_selftest_start,
             .mepa_driver_selftest_read = lan8814_selftest_read,
-            .mepa_driver_prbs_set = lan8814_prbs_set,
-            .mepa_driver_prbs_get = lan8814_prbs_get,
-            .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
-            .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
             .mepa_driver_serdes_tx_conf_set = lan8814_serdes_tx_conf_set,
 #endif //!defined MEPA_LAN8814_LIGHT
         },
