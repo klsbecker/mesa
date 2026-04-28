@@ -567,6 +567,24 @@ typedef struct {
     mepa_preemption_mode_t sof_preemption_mode;
 } mepa_start_of_frame_conf_t;
 
+/* =========================================================================
+ *  If any new enum value needs to be added, always add it at the bottom.
+ *  Do NOT insert new values in between existing enums to preserve binary compatibility.
+ * ========================================================================= */
+
+#define MEPA_LOOPBACK_FAR_END                   0x00000001
+#define MEPA_LOOPBACK_NEAR_END                  0x00000002
+#define MEPA_LOOPBACK_CONNECTOR_END             0x00000004
+#define MEPA_LOOPBACK_MAC_SERDES_INPUT_ENA      0x00000008
+#define MEPA_LOOPBACK_MAC_SERDES_FACILITY_ENA   0x00000010
+#define MEPA_LOOPBACK_MAC_SERDES_EQUIP_ENA      0x00000020
+#define MEPA_LOOPBACK_MEDIA_SERDES_INPUT_ENA    0x00000040
+#define MEPA_LOOPBACK_MEDIA_SERDES_FACILITY_ENA 0x00000080
+#define MEPA_LOOPBACK_MEDIA_SERDES_EQUIP_ENA    0x00000100
+#define MEPA_LOOPBACK_QSGMII_PCS_TBI_ENA        0x00000200
+#define MEPA_LOOPBACK_QSGMII_PCS_GMII_ENA       0x00000400
+#define MEPA_LOOPBACK_QSGMII_SERDES_ENA         0x00000800
+
 /**< Loopback types */
 typedef struct {
     mepa_bool_t far_end_ena;    /**< far end loopback where traffic is looped back towards link partner from pcs. */
@@ -925,6 +943,10 @@ typedef enum {
     MEPA_CAP_TS_GEN_2,                    /* PHY supports timestamping capability of GEN-2 devices such as vsc8584, vsc8490. */
     MEPA_CAP_TS_GEN_3,                    /* PHY supports timestamping capability of GEN-3 devices such as Lan8814. */
     MEPA_CAP_TS_NONE,                     /* PHY does not support timestamping capability. */
+
+    MEPA_CAP_LOOPBACK,                    /* PHY supports loopback. The return value
+                                             is a bitmask where each bit represents an
+                                             entry in the struct mepa_loopback_t */
 } mepa_cap_t;
 
 #include <microchip/ethernet/hdr_end.h>  /**< ALL INCLUDE ABOVE THIS LINE */
