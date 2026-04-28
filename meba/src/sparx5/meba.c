@@ -2698,7 +2698,7 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
             *plugin_module = ev57u68a;
             T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
-        } else if (strstr(p, ev96d50a)) {
+        } else if (strstr(buf, ev96d50a)) {
             *plugin_module = ev96d50a;
             T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
