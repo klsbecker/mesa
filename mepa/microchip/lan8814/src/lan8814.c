@@ -2132,6 +2132,10 @@ static uint32_t lan8814_capability_priv(mepa_device_t *dev, uint32_t capability)
     case MEPA_CAP_SPEED_1G:
         c = 1;
         break;
+    case MEPA_CAP_LOOPBACK:
+        c = MEPA_LOOPBACK_FAR_END | MEPA_LOOPBACK_NEAR_END | MEPA_LOOPBACK_CONNECTOR_END |
+            MEPA_LOOPBACK_QSGMII_PCS_TBI_ENA | MEPA_LOOPBACK_QSGMII_PCS_GMII_ENA | MEPA_LOOPBACK_QSGMII_SERDES_ENA;
+        break;
     default:
         c = 0;
         break;
