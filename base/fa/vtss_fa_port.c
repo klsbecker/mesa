@@ -4726,14 +4726,6 @@ static vtss_rc fa_debug_chip_port(vtss_state_t                  *vtss_state,
        sd_indx, sd);
     pr("\n");
 
-    if (info->full) {
-        pr("DSM Taxi calendar mappings:\n");
-        (void)vtss_fa_dsm_cal_debug(vtss_state, ss);
-        pr("\n");
-        pr("Cell bus auto calendar mappings:\n");
-        (void)vtss_fa_cell_cal_debug(vtss_state, ss);
-    }
-
     return VTSS_RC_OK;
 }
 
@@ -5123,6 +5115,14 @@ static vtss_rc fa_debug_port(vtss_state_t                  *vtss_state,
 
         VTSS_RC(fa_debug_chip_port(vtss_state, ss, info, port_no));
     } /* Port loop */
+
+    if (info->full) {
+        pr("DSM Taxi calendar mappings:\n");
+        (void)vtss_fa_dsm_cal_debug(vtss_state, ss);
+        pr("\n");
+        pr("Cell bus auto calendar mappings:\n");
+        (void)vtss_fa_cell_cal_debug(vtss_state, ss);
+    }
 
     return VTSS_RC_OK;
 }
