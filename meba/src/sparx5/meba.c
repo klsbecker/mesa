@@ -167,7 +167,7 @@ static const fa_malibu_gpio_port_map_t malibu_gpio_map[] = {
 
 /* EDSX/PCB8415 daughter cards */
 const char *ev57u68a = "EV57U68A";
-const char *ev96d59a = "EV96D59A";
+const char *ev96d50a = "EV96D50A";
 
 meba_inst_t lan969x_initialize(meba_inst_t inst, const meba_board_interface_t *callouts);
 
@@ -476,16 +476,16 @@ static void fa_pcb8415_init_port(meba_inst_t inst,
     if (sfp_plugin_module1 == ev57u68a) {
         fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_1, true);
         port_cnt += 4;
-    } else if (sfp_plugin_module1 == ev96d59a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d59a_slot_1, false);
+    } else if (sfp_plugin_module1 == ev96d50a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d50a_slot_1, false);
         port_cnt += 4;
     }
 
     if (sfp_plugin_module2 == ev57u68a) {
         fa_init_port_table(inst, port_cnt, 4, port_table_ev57u67a_slot_2, true);
         port_cnt += 4;
-    } else if (sfp_plugin_module2 == ev96d59a) {
-        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d59a_slot_2, false);
+    } else if (sfp_plugin_module2 == ev96d50a) {
+        fa_init_port_table(inst, port_cnt, 4, port_table_ev96d50a_slot_2, false);
         port_cnt += 4;
     }
 
@@ -2675,9 +2675,9 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
             T_I(inst, "Found plugin module %s in SFP slot %d\n", ev57u68a, address);
             *plugin_module = ev57u68a;
             return MESA_RC_OK;
-        } else if (strstr(p, ev96d59a)) {
-            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev96d59a, address);
-            *plugin_module = ev96d59a;
+        } else if (strstr(p, ev96d50a)) {
+            T_I(inst, "Found plugin module %s in SFP slot %d\n", ev96d50a, address);
+            *plugin_module = ev96d50a;
             return MESA_RC_OK;
         }
         p += strlen(p) + 1;
@@ -2698,8 +2698,8 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const char **plugi
             *plugin_module = ev57u68a;
             T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
-        } else if (strstr(p, ev96d59a)) {
-            *plugin_module = ev96d59a;
+        } else if (strstr(p, ev96d50a)) {
+            *plugin_module = ev96d50a;
             T_W(inst, "Assume %s\n", *plugin_module);
             return MESA_RC_OK;
         }
@@ -2797,7 +2797,7 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         if (sfp_plugin_module1 != NULL) {
             if (sfp_plugin_module1 == ev57u68a) {
                 board->port_cnt += 4;
-            } else if (sfp_plugin_module1 == ev96d59a) {
+            } else if (sfp_plugin_module1 == ev96d50a) {
                 board->port_cnt += 4;
             }
         }
@@ -2805,7 +2805,7 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         if (sfp_plugin_module2 != NULL) {
             if (sfp_plugin_module2 == ev57u68a) {
                 board->port_cnt += 4;
-            } else if (sfp_plugin_module2 == ev96d59a) {
+            } else if (sfp_plugin_module2 == ev96d50a) {
                 board->port_cnt += 4;
             }
         }
