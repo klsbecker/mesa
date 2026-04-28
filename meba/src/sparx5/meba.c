@@ -369,11 +369,11 @@ static void update_entry(meba_inst_t           inst,
     entry->cap &= ~MEBA_PORT_CAP_SD_HIGH;     // The polarity is inversed
 }
 
-static void fa_init_port_table(meba_inst_t inst,
-                               int         start_port,
-                               int         port_cnt,
-                               port_map_t *map,
-                               mesa_bool_t lan80xx)
+static void fa_init_port_table(meba_inst_t       inst,
+                               int               start_port,
+                               int               port_cnt,
+                               const port_map_t *map,
+                               mesa_bool_t       lan80xx)
 {
     meba_board_state_t *board = INST2BOARD(inst);
     mesa_port_no_t      port_no;
