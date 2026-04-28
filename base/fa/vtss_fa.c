@@ -1934,15 +1934,15 @@ vtss_rc vtss_fa_dsm_cal_debug(vtss_state_t *vtss_state, lmu_ss_t *ss)
             val = VTSS_X_DSM_TAXI_CAL_CFG_CAL_CUR_VAL(val);
             if (val < RT_DSM_CAL_MAX_DEVS_PER_TAXI) {
                 port = taxi_ports[val];
-                pr(" %d ", port);
+                pr(" %2d ", port);
             } else if (FA_TGT) {
-                pr(" - ");
+                pr("  - ");
             } else {
                 // LAN969x
-                pr(" %c ", val == TAXI_SLOT_UNUSED_BUT_LOCKED ? 'L' : '-');
+                pr("  %c ", val == TAXI_SLOT_UNUSED_BUT_LOCKED ? 'L' : '-');
             }
 
-            if ((i > 0U && (i % 32U == 0U)) || (i == len - 1U)) {
+            if ((i % 16U == 15U) || (i == len - 1U)) {
                 pr("\n");
             }
         }
