@@ -417,6 +417,34 @@ mepa_rc mepa_cable_diag_get(struct mepa_device *dev,
     return dev->drv->mepa_driver_cable_diag_get(dev, result);
 }
 
+mepa_rc mepa_cable_diag_start_async(struct mepa_device *dev,
+                                    int mode)
+{
+    if (!dev || !dev->drv->mepa_driver_cable_diag_start_async) {
+        return MESA_RC_NOT_IMPLEMENTED;
+    }
+
+    return dev->drv->mepa_driver_cable_diag_start_async(dev, mode);
+}
+
+mepa_rc mepa_cable_diag_stop_async(struct mepa_device *dev)
+{
+    if (!dev || !dev->drv->mepa_driver_cable_diag_stop_async) {
+        return MESA_RC_NOT_IMPLEMENTED;
+    }
+
+    return dev->drv->mepa_driver_cable_diag_stop_async(dev);
+}
+
+mepa_rc mepa_cable_diag_poll(struct mepa_device *dev)
+{
+    if (!dev || !dev->drv->mepa_driver_cable_diag_poll) {
+        return MESA_RC_NOT_IMPLEMENTED;
+    }
+
+    return dev->drv->mepa_driver_cable_diag_poll(dev);
+}
+
 mepa_rc mepa_media_set(struct mepa_device *dev,
                        mepa_media_interface_t phy_media_if)
 {

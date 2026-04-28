@@ -421,6 +421,47 @@ mepa_rc mepa_cable_diag_get(struct mepa_device *dev,
                             mepa_cable_diag_result_t *result);
 
 /**
+ * \brief Starts cable diag asynchronous. This function will return immediately,
+ *        it is required to call mepa_driver_cable_diag_poll to poll the status
+ *
+ * \param dev  [IN]  Driver instance.
+ * \param mode [IN]  Mode in which to start.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_cable_diag_start_async(struct mepa_device *dev,
+                                    int mode);
+
+/**
+ * \brief Stops cable diag asynchronous.
+ *
+ * \param dev  [IN]  Driver instance.
+ * \param mode [IN]  Mode in which to start.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+mepa_rc mepa_cable_diag_stop_async(struct mepa_device *dev);
+
+/**
+ * \brief Poll the status of the cable diagnostic.
+ *
+ * \param dev      [IN]  Driver instance.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK when the cable diagnostic finished.\n
+ *   MEPA_RC_INCOMPLETE when the cable diagnostic didn't finish the test.\n
+ *   MEPA_RC_ERROR on error
+ **/
+mepa_rc mepa_cable_diag_poll(struct mepa_device *dev);
+
+/**
  * \brief Sets the media type in case the port is a dual media port with external phy.
  *
  *  \param dev           [IN]  Driver instance.

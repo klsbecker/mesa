@@ -174,6 +174,49 @@ typedef mepa_rc (*mepa_driver_cable_diag_get_t)(
     struct mepa_device *dev, mepa_cable_diag_result_t *result);
 
 /**
+ * \brief Starts cable diag asynchronous. This function will return immediately,
+ *        it is required to call mepa_driver_cable_diag_poll to poll the status
+ *
+ * \param dev  [IN]  Driver instance.
+ * \param mode [IN]  Mode in which to start.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_driver_cable_diag_start_async_t)(
+    struct mepa_device *dev, int32_t mode);
+
+/**
+ * \brief Stops cable diag asynchronous.
+ *
+ * \param dev  [IN]  Driver instance.
+ * \param mode [IN]  Mode in which to start.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK on success.\n
+ *   MEPA_RC_ERROR on error.
+ **/
+typedef mepa_rc (*mepa_driver_cable_diag_stop_async_t)(
+    struct mepa_device *dev);
+
+/**
+ * \brief Poll the status of the cable diagnostic.
+ *
+ * \param dev      [IN]  Driver instance.
+ *
+ * \return
+ *   MEPA_RC_NOT_IMPLEMENTED when not supported.\n
+ *   MEPA_RC_OK when the cable diagnostic finished.\n
+ *   MEPA_RC_INCOMPLETE when the cable diagnostic didn't finish the test.\n
+ *   MEPA_RC_ERROR on error
+ **/
+typedef mepa_rc (*mepa_driver_cable_diag_poll_t)(
+    struct mepa_device *dev);
+
+/**
  * \brief Sets the media type in case the port is a dual media port with external phy.
  *
  *  \param dev           [IN]  Driver instance.
@@ -822,68 +865,71 @@ typedef uint32_t (*mepa_capability_t)(struct mepa_device *dev, uint32_t capabili
 typedef mepa_rc (*mepa_driver_phy_qsgmii_sync_t)(struct mepa_device *dev);
 
 typedef struct mepa_driver {
-    mepa_driver_delete_t               mepa_driver_delete;
-    mepa_driver_reset_t                mepa_driver_reset;
-    mepa_driver_poll_t                 mepa_driver_poll;
-    mepa_capability_t                  mepa_capability;
-    mepa_driver_conf_set_t             mepa_driver_conf_set;
-    mepa_driver_conf_get_t             mepa_driver_conf_get;
-    mepa_driver_if_set_t               mepa_driver_if_set;
-    mepa_driver_if_get_t               mepa_driver_if_get;
-    mepa_driver_power_set_t            mepa_driver_power_set;
-    mepa_driver_cable_diag_start_t     mepa_driver_cable_diag_start;
-    mepa_driver_cable_diag_get_t       mepa_driver_cable_diag_get;
-    mepa_driver_media_set_t            mepa_driver_media_set;
-    mepa_driver_media_get_t            mepa_driver_media_get;
-    mepa_driver_probe_t                mepa_driver_probe;
-    mepa_driver_aneg_status_get_t      mepa_driver_aneg_status_get;
-    mepa_driver_clause22_read_t        mepa_driver_clause22_read;
-    mepa_driver_clause22_write_t       mepa_driver_clause22_write;
-    mepa_driver_clause45_read_t        mepa_driver_clause45_read;
-    mepa_driver_clause45_write_t       mepa_driver_clause45_write;
-    mepa_driver_event_enable_set_t     mepa_driver_event_enable_set;
-    mepa_driver_event_enable_get_t     mepa_driver_event_enable_get;
-    mepa_driver_event_poll_t           mepa_driver_event_poll;
-    mepa_driver_loopback_set_t         mepa_driver_loopback_set;
-    mepa_driver_loopback_get_t         mepa_driver_loopback_get;
-    mepa_driver_gpio_mode_set_t        mepa_driver_gpio_mode_set;
-    mepa_driver_gpio_out_set_t         mepa_driver_gpio_out_set;
-    mepa_driver_gpio_in_get_t          mepa_driver_gpio_in_get;
-    mepa_driver_synce_clock_conf_set_t mepa_driver_synce_clock_conf_set;
-    mepa_driver_link_base_port_t       mepa_driver_link_base_port;
-    mepa_driver_phy_info_get_t         mepa_driver_phy_info_get;
-    mepa_driver_isolate_mode_conf_t    mepa_driver_isolate_mode_conf;
-    mepa_driver_chip_temp_get_t        mepa_driver_chip_temp_get;
-    mepa_driver_eee_mode_conf_set_t    mepa_driver_eee_mode_conf_set;
-    mepa_driver_eee_mode_conf_get_t    mepa_driver_eee_mode_conf_get;
-    mepa_driver_eee_status_get_t       mepa_driver_eee_status_get;
-    mepa_debug_info_dump_t             mepa_debug_info_dump;
-    mepa_driver_phy_i2c_read_t         mepa_driver_phy_i2c_read;
-    mepa_driver_phy_i2c_write_t        mepa_driver_phy_i2c_write;
-    mepa_driver_phy_i2c_clock_select_t mepa_driver_phy_i2c_clock_select;
-    mepa_driver_phy_fefi_set_t         mepa_driver_phy_fefi_set;
-    mepa_driver_phy_fefi_get_t         mepa_driver_phy_fefi_get;
-    mepa_driver_phy_fefi_detect_t      mepa_driver_phy_fefi_detect;
-    mepa_driver_sqi_read_t             mepa_driver_sqi_read;
-    mepa_driver_start_of_frame_write_t mepa_driver_start_of_frame_conf_set;
-    mepa_driver_start_of_frame_read_t  mepa_driver_start_of_frame_conf_get;
-    mepa_driver_framepreempt_set_t     mepa_driver_framepreempt_set;
-    mepa_driver_framepreempt_get_t     mepa_driver_framepreempt_get;
-    mepa_driver_selftest_start_t       mepa_driver_selftest_start;
-    mepa_driver_selftest_read_t        mepa_driver_selftest_read;
-    mepa_driver_prbs_set_t             mepa_driver_prbs_set;
-    mepa_driver_prbs_get_t             mepa_driver_prbs_get;
-    mepa_driver_prbs_monitor_set_t     mepa_driver_prbs_monitor_set;
-    mepa_driver_prbs_monitor_get_t     mepa_driver_prbs_monitor_get;
-    mepa_driver_warmrestart_conf_get_t mepa_driver_warmrestart_conf_get;
-    mepa_driver_warmrestart_conf_end_t mepa_driver_warmrestart_conf_end;
-    mepa_driver_warmrestart_conf_set_t mepa_driver_warmrestart_conf_set;
-    mepa_driver_serdes_tx_conf_set_t   mepa_driver_serdes_tx_conf_set;
-    mepa_driver_phy_qsgmii_sync_t      mepa_driver_phy_qsgmii_sync;
-    mepa_ts_driver_t                   *mepa_ts;
-    mepa_macsec_driver_t               *mepa_macsec;
-    mepa_tc10_driver_t                 *mepa_tc10;
-    mepa_t1s_driver_t                  *mepa_t1s;
+    mepa_driver_delete_t                 mepa_driver_delete;
+    mepa_driver_reset_t                  mepa_driver_reset;
+    mepa_driver_poll_t                   mepa_driver_poll;
+    mepa_capability_t                    mepa_capability;
+    mepa_driver_conf_set_t               mepa_driver_conf_set;
+    mepa_driver_conf_get_t               mepa_driver_conf_get;
+    mepa_driver_if_set_t                 mepa_driver_if_set;
+    mepa_driver_if_get_t                 mepa_driver_if_get;
+    mepa_driver_power_set_t              mepa_driver_power_set;
+    mepa_driver_cable_diag_start_t       mepa_driver_cable_diag_start;
+    mepa_driver_cable_diag_get_t         mepa_driver_cable_diag_get;
+    mepa_driver_cable_diag_start_async_t mepa_driver_cable_diag_start_async;
+    mepa_driver_cable_diag_stop_async_t  mepa_driver_cable_diag_stop_async;
+    mepa_driver_cable_diag_poll_t        mepa_driver_cable_diag_poll;
+    mepa_driver_media_set_t              mepa_driver_media_set;
+    mepa_driver_media_get_t              mepa_driver_media_get;
+    mepa_driver_probe_t                  mepa_driver_probe;
+    mepa_driver_aneg_status_get_t        mepa_driver_aneg_status_get;
+    mepa_driver_clause22_read_t          mepa_driver_clause22_read;
+    mepa_driver_clause22_write_t         mepa_driver_clause22_write;
+    mepa_driver_clause45_read_t          mepa_driver_clause45_read;
+    mepa_driver_clause45_write_t         mepa_driver_clause45_write;
+    mepa_driver_event_enable_set_t       mepa_driver_event_enable_set;
+    mepa_driver_event_enable_get_t       mepa_driver_event_enable_get;
+    mepa_driver_event_poll_t             mepa_driver_event_poll;
+    mepa_driver_loopback_set_t           mepa_driver_loopback_set;
+    mepa_driver_loopback_get_t           mepa_driver_loopback_get;
+    mepa_driver_gpio_mode_set_t          mepa_driver_gpio_mode_set;
+    mepa_driver_gpio_out_set_t           mepa_driver_gpio_out_set;
+    mepa_driver_gpio_in_get_t            mepa_driver_gpio_in_get;
+    mepa_driver_synce_clock_conf_set_t   mepa_driver_synce_clock_conf_set;
+    mepa_driver_link_base_port_t         mepa_driver_link_base_port;
+    mepa_driver_phy_info_get_t           mepa_driver_phy_info_get;
+    mepa_driver_isolate_mode_conf_t      mepa_driver_isolate_mode_conf;
+    mepa_driver_chip_temp_get_t          mepa_driver_chip_temp_get;
+    mepa_driver_eee_mode_conf_set_t      mepa_driver_eee_mode_conf_set;
+    mepa_driver_eee_mode_conf_get_t      mepa_driver_eee_mode_conf_get;
+    mepa_driver_eee_status_get_t         mepa_driver_eee_status_get;
+    mepa_debug_info_dump_t               mepa_debug_info_dump;
+    mepa_driver_phy_i2c_read_t           mepa_driver_phy_i2c_read;
+    mepa_driver_phy_i2c_write_t          mepa_driver_phy_i2c_write;
+    mepa_driver_phy_i2c_clock_select_t   mepa_driver_phy_i2c_clock_select;
+    mepa_driver_phy_fefi_set_t           mepa_driver_phy_fefi_set;
+    mepa_driver_phy_fefi_get_t           mepa_driver_phy_fefi_get;
+    mepa_driver_phy_fefi_detect_t        mepa_driver_phy_fefi_detect;
+    mepa_driver_sqi_read_t               mepa_driver_sqi_read;
+    mepa_driver_start_of_frame_write_t   mepa_driver_start_of_frame_conf_set;
+    mepa_driver_start_of_frame_read_t    mepa_driver_start_of_frame_conf_get;
+    mepa_driver_framepreempt_set_t       mepa_driver_framepreempt_set;
+    mepa_driver_framepreempt_get_t       mepa_driver_framepreempt_get;
+    mepa_driver_selftest_start_t         mepa_driver_selftest_start;
+    mepa_driver_selftest_read_t          mepa_driver_selftest_read;
+    mepa_driver_prbs_set_t               mepa_driver_prbs_set;
+    mepa_driver_prbs_get_t               mepa_driver_prbs_get;
+    mepa_driver_prbs_monitor_set_t       mepa_driver_prbs_monitor_set;
+    mepa_driver_prbs_monitor_get_t       mepa_driver_prbs_monitor_get;
+    mepa_driver_warmrestart_conf_get_t   mepa_driver_warmrestart_conf_get;
+    mepa_driver_warmrestart_conf_end_t   mepa_driver_warmrestart_conf_end;
+    mepa_driver_warmrestart_conf_set_t   mepa_driver_warmrestart_conf_set;
+    mepa_driver_serdes_tx_conf_set_t     mepa_driver_serdes_tx_conf_set;
+    mepa_driver_phy_qsgmii_sync_t        mepa_driver_phy_qsgmii_sync;
+    mepa_ts_driver_t                     *mepa_ts;
+    mepa_macsec_driver_t                 *mepa_macsec;
+    mepa_tc10_driver_t                   *mepa_tc10;
+    mepa_t1s_driver_t                    *mepa_t1s;
     uint32_t id;                  /**< Id of the driver */
     uint32_t mask;                /**< Mask of the driver */
     struct mepa_driver *next; /**< Pointer to the next driver */
