@@ -26,6 +26,14 @@
 #define LAN8814_CABLE_SHORT  2
 #define LAN8814_CABLE_FAIL   3
 
+// number of pairs that the cable has, as this is a 1000BaseT then it should
+// have 4 pairs
+#define LAN8814_PAIRS        4
+
+#define LAN8814_CABLE_DIAG_STATE_INIT 0
+#define LAN8814_CABLE_DIAG_STATE_POLL 1
+#define LAN8814_CABLE_DIAG_STATE_DONE 2
+
 #define LAN8814_REV_D        4
 #define LAN8814_REV_C1       3
 #define LAN8814_REV_C0       2
@@ -179,6 +187,7 @@ typedef struct {
     uint8_t                  rep_cnt; //Rate at which application polls a port per sec, for ex: rep_cnt = 10 means 10 times polling will be called per port per sec.
     mepa_bool_t              dsh_complete; //flag to denote downshift operation completed.
     mepa_bool_t              aneg_flag; //flag to denote ANEG restart is completed.
+    uint8_t                  cable_diag_state[LAN8814_PAIRS]; // Contains the state of cable diagnostic when using with async. One state for each pair.
 } phy_data_t;
 
 mepa_rc lan8814_poll_priv(mepa_device_t *dev, mepa_status_t *status);

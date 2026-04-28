@@ -991,19 +991,58 @@ static mepa_rc lan8814_restore_config_(mepa_device_t *dev)
     return MEPA_RC_OK;
 }
 
+static void lan8814_cab_diag_start_test(mepa_device_t *dev, uint8_t pair)
+{
+    uint16_t value, mask;
+
+    // clear diag test ena before starting
+    WRM(dev, LAN8814_CABLE_DIAG, 0, LAN8814_F_CABLE_DIAG_TEST_ENA);
+
+    value = 0;
+    mask = 0;
+
+    value |= LAN8814_F_CABLE_DIAG_TEST_ENA;
+    value |= LAN8814_F_CABLE_TEST_PAIR(pair);
+    mask |= LAN8814_F_CABLE_DIAG_TEST_ENA | LAN8814_M_CABLE_TEST_PAIR |
+            LAN8814_F_CABLE_VCT_SEL;
+    WRM(dev, LAN8814_CABLE_DIAG, value, mask);
+}
+
+static void lan8814_cab_diag_read_result(mepa_device_t *dev, uint8_t pair)
+{
+    phy_data_t *data = (phy_data_t *)dev->data;
+    mepa_cable_diag_result_t *res = &data->cable_diag;
+    uint16_t status, value;
+
+    RD(dev, LAN8814_CABLE_DIAG, &value);
+    status = LAN8814_X_CABLE_DIAG_STATUS(value);
+    if ((status == LAN8814_CABLE_OPEN) || (status == LAN8814_CABLE_SHORT)) {
+        res->status[pair] = (status == LAN8814_CABLE_SHORT) ? MEPA_CABLE_DIAG_STATUS_SHORT : MEPA_CABLE_DIAG_STATUS_OPEN;
+        res->length[pair] = 0.8 * MEPA_ABS((LAN8814_X_CABLE_DIAG_DATA(value) - 22));
+        T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d length=%d\n", pair, res->status[pair], res->length[pair]);
+    } else if (status == LAN8814_CABLE_FAIL) {
+        res->status[pair] = MEPA_CABLE_DIAG_STATUS_ABNORM;
+        T_I(MEPA_TRACE_GRP_GEN, "link status failed for pair %d \n", pair);
+    } else { // status as LAN8814_CABLE_NORMAL
+        res->status[pair] = MEPA_CABLE_DIAG_STATUS_OK;
+        T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d \n", pair, status);
+    }
+}
+
 // LAN8814 phy dignostics is calculated only when there is no remote link partner for the port.
 // For mode values {0,1} corresponding to {VTSS_PHY_MODE_ANEG, VTSS_PHY_MODE_FORCED}, diagnostics is calculated.
 // For power down mode(2), diagnostics is not calculated.
-static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode)
+static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode,
+                                       mepa_bool_t async)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
-    uint16_t value, mask = 0, pair, status;
+    uint16_t pair, value;
     mepa_cable_diag_result_t *res = &data->cable_diag;
 
     T_I(MEPA_TRACE_GRP_GEN, "port=%d mode=%d\n", data->port_no, mode);
 
     // Initialize diagnostics
-    for (pair = 0; pair < 4; pair++) {
+    for (pair = 0; pair < LAN8814_PAIRS; pair++) {
         res->status[pair] = MEPA_CABLE_DIAG_STATUS_UNKNOWN;
         res->length[pair] = 0;
         res->link = FALSE;
@@ -1018,41 +1057,93 @@ static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode)
     RD(dev, LAN8814_BASIC_STATUS, &value);
     res->link = (value & LAN8814_F_BASIC_STATUS_LINK_STATUS) ? 1 : 0;
 
+    if (async) {
+        // Initialize the cable diag state for async
+        for (pair = 0; pair < LAN8814_PAIRS; ++pair) {
+            data->cable_diag_state[pair] = LAN8814_CABLE_DIAG_STATE_INIT;
+        }
+    }
+
     /* If link is Up do not perform cable diagnostics operation just return */
     if (res->link) {
         return MEPA_RC_OK;
     }
 
     lan8814_cab_diag_enter_config(dev);
-    for (pair = 0; pair < 4; pair++) {
-        // clear diag test ena before starting
-        WRM(dev, LAN8814_CABLE_DIAG, 0, LAN8814_F_CABLE_DIAG_TEST_ENA);
 
-        value = mask = status = 0;
-        value |= LAN8814_F_CABLE_DIAG_TEST_ENA;
-        value |= LAN8814_F_CABLE_TEST_PAIR(pair);
-        mask |= LAN8814_F_CABLE_DIAG_TEST_ENA | LAN8814_M_CABLE_TEST_PAIR |
-                LAN8814_F_CABLE_VCT_SEL;
-        WRM(dev, LAN8814_CABLE_DIAG, value, mask);
+    if (async) {
+        // Just exit for now as it is required to call lan8814_cab_diag_poll to
+        // start and check when the test is finished.
+        return MEPA_RC_OK;
+    }
+
+    for (pair = 0; pair < LAN8814_PAIRS; pair++) {
+        // clear diag test ena before starting
+        lan8814_cab_diag_start_test(dev, pair);
+
         if (lan8814_wait_for_cable_diagnostics(dev)) {
-            RD(dev, LAN8814_CABLE_DIAG, &value);
-            status = LAN8814_X_CABLE_DIAG_STATUS(value);
-            if ((status == LAN8814_CABLE_OPEN) || (status == LAN8814_CABLE_SHORT)) {
-                res->status[pair] = (status == LAN8814_CABLE_SHORT) ? MEPA_CABLE_DIAG_STATUS_SHORT : MEPA_CABLE_DIAG_STATUS_OPEN;
-                res->length[pair] = 0.8 * MEPA_ABS((LAN8814_X_CABLE_DIAG_DATA(value) - 22));
-                T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d length=%d\n", pair, res->status[pair], res->length[pair]);
-            } else if (status == LAN8814_CABLE_FAIL) {
-                res->status[pair] = MEPA_CABLE_DIAG_STATUS_ABNORM;
-                T_I(MEPA_TRACE_GRP_GEN, "link status failed for pair %d \n", pair);
-            } else { // status as LAN8814_CABLE_NORMAL
-                res->status[pair] = MEPA_CABLE_DIAG_STATUS_OK;
-                T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d \n", pair, status);
-            }
+            lan8814_cab_diag_read_result(dev, pair);
         }
     }
 
     lan8814_restore_config_(dev);
     return MEPA_RC_OK;
+}
+
+static mepa_rc lan8814_cab_diag_stop_async(mepa_device_t *dev)
+{
+    phy_data_t *data = (phy_data_t *)dev->data;
+    uint16_t pair;
+
+    MEPA_ENTER(dev);
+
+    for (pair = 0; pair < LAN8814_PAIRS; ++pair) {
+        data->cable_diag_state[pair] = LAN8814_CABLE_DIAG_STATE_INIT;
+    }
+    lan8814_restore_config_(dev);
+
+    MEPA_EXIT(dev);
+
+    return MEPA_RC_OK;
+}
+
+static mepa_rc lan8814_cab_diag_poll(mepa_device_t *dev)
+{
+    phy_data_t *data = (phy_data_t *)dev->data;
+    mepa_rc rc = MEPA_RC_ERROR;
+    uint16_t pair, value;
+
+    MEPA_ENTER(dev);
+
+    for (pair = 0; pair < LAN8814_PAIRS; ++pair) {
+        if (data->cable_diag_state[pair] == LAN8814_CABLE_DIAG_STATE_DONE) {
+            continue;
+        }
+
+        if (data->cable_diag_state[pair] == LAN8814_CABLE_DIAG_STATE_INIT) {
+            lan8814_cab_diag_start_test(dev, pair);
+            data->cable_diag_state[pair] = LAN8814_CABLE_DIAG_STATE_POLL;
+        }
+
+        if (data->cable_diag_state[pair] == LAN8814_CABLE_DIAG_STATE_POLL) {
+            RD(dev, LAN8814_CABLE_DIAG, &value);
+            if (!(value & LAN8814_F_CABLE_DIAG_TEST_ENA)) {
+                lan8814_cab_diag_read_result(dev, pair);
+                data->cable_diag_state[pair] = LAN8814_CABLE_DIAG_STATE_DONE;
+            } else {
+                rc = MEPA_RC_INCOMPLETE;
+                goto out;
+            }
+        }
+    }
+
+    lan8814_restore_config_(dev);
+    rc = MEPA_RC_OK;
+
+out:
+    MEPA_EXIT(dev);
+
+    return rc;
 }
 
 #if !defined MEPA_LAN8814_LIGHT
@@ -2260,7 +2351,17 @@ static mepa_rc lan8814_cab_diag_start(mepa_device_t *dev, int32_t mode)
     mepa_rc rc;
 
     MEPA_ENTER(dev);
-    rc = lan8814_cab_diag_start_(dev, mode);
+    rc = lan8814_cab_diag_start_(dev, mode, FALSE);
+    MEPA_EXIT(dev);
+    return rc;
+}
+
+static mepa_rc lan8814_cab_diag_start_async(mepa_device_t *dev, int32_t mode)
+{
+    mepa_rc rc;
+
+    MEPA_ENTER(dev);
+    rc = lan8814_cab_diag_start_(dev, mode, TRUE);
     MEPA_EXIT(dev);
     return rc;
 }
@@ -3024,6 +3125,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_phy_info_get = lan8814_info_get,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+            .mepa_driver_cable_diag_start_async = lan8814_cab_diag_start_async,
+            .mepa_driver_cable_diag_stop_async = lan8814_cab_diag_stop_async,
+            .mepa_driver_cable_diag_poll = lan8814_cab_diag_poll,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_prbs_set = lan8814_prbs_set,
@@ -3075,6 +3179,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_phy_info_get = lan8814_info_get,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+            .mepa_driver_cable_diag_start_async = lan8814_cab_diag_start_async,
+            .mepa_driver_cable_diag_stop_async = lan8814_cab_diag_stop_async,
+            .mepa_driver_cable_diag_poll = lan8814_cab_diag_poll,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_prbs_set = lan8814_prbs_set,
@@ -3123,6 +3230,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_phy_info_get = lan8814_info_get,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+            .mepa_driver_cable_diag_start_async = lan8814_cab_diag_start_async,
+            .mepa_driver_cable_diag_stop_async = lan8814_cab_diag_stop_async,
+            .mepa_driver_cable_diag_poll = lan8814_cab_diag_poll,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_prbs_set = lan8814_prbs_set,
@@ -3172,6 +3282,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_phy_info_get = lan8842_info_get,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+            .mepa_driver_cable_diag_start_async = lan8814_cab_diag_start_async,
+            .mepa_driver_cable_diag_stop_async = lan8814_cab_diag_stop_async,
+            .mepa_driver_cable_diag_poll = lan8814_cab_diag_poll,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_prbs_set = lan8814_prbs_set,
@@ -3222,6 +3335,9 @@ mepa_drivers_t mepa_lan8814_driver_init()
             .mepa_driver_phy_info_get = lan8842_info_get,
             .mepa_driver_cable_diag_start = lan8814_cab_diag_start,
             .mepa_driver_cable_diag_get = lan8814_cab_diag_get,
+            .mepa_driver_cable_diag_start_async = lan8814_cab_diag_start_async,
+            .mepa_driver_cable_diag_stop_async = lan8814_cab_diag_stop_async,
+            .mepa_driver_cable_diag_poll = lan8814_cab_diag_poll,
             .mepa_driver_loopback_set = lan8814_loopback_set,
             .mepa_driver_loopback_get = lan8814_loopback_get,
             .mepa_driver_prbs_set = lan8814_prbs_set,
