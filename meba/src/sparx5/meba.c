@@ -42,7 +42,6 @@ typedef struct {
     meba_port_cap_t        cap;
     mesa_port_no_t         phy_base_port;
     uint8_t                board_port;
-    uint8_t                sgpio_port;
     mesa_bool_t            npi_port;
 } port_map_t;
 
@@ -410,60 +409,71 @@ static void fa_init_port_table(meba_inst_t inst,
     }
 }
 
-static port_map_t port_table_npi_port[] = {
-    {64, 28, MESA_MIIM_CONTROLLER_3, MESA_PORT_INTERFACE_SGMII, MESA_BW_1G,
-     MEBA_PORT_CAP_TRI_SPEED_COPPER, 0, true},
+static const port_map_t port_table_npi_port[] = {
+    {
+     .chip_port = 64,
+     .miim_addr = 28,
+     .miim_controller = MESA_MIIM_CONTROLLER_3,
+     .mac_if = MESA_PORT_INTERFACE_SGMII,
+     .max_bw = MESA_BW_1G,
+     .cap = MEBA_PORT_CAP_TRI_SPEED_COPPER,
+     .npi_port = true,
+     },
 };
 
 #define MEBA_CAP_EV57U67A                                                                          \
     (MEBA_PORT_CAP_25G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |                     \
      MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_25G_FDX | MEBA_PORT_CAP_AUTONEG |                        \
      MEBA_PORT_CAP_SFP_DETECT)
-static port_map_t port_table_ev57u67a_slot_1[] = {
-    {56, 27, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
-     false},
-    {57, 26, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
-     false},
-    {58, 25, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
-     false},
-    {59, 24, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 0,
-     false},
+
+#define EV57U67A_PORT_MAP_ROW(chip, miim, base)                                                    \
+    {.chip_port = (chip),                                                                          \
+     .miim_addr = (miim),                                                                          \
+     .miim_controller = MESA_MIIM_CONTROLLER_0,                                                    \
+     .mac_if = MESA_PORT_INTERFACE_SFI,                                                            \
+     .max_bw = MESA_BW_25G,                                                                        \
+     .cap = MEBA_CAP_EV57U67A,                                                                     \
+     .phy_base_port = (base)}
+
+static const port_map_t port_table_ev57u67a_slot_1[] = {
+    EV57U67A_PORT_MAP_ROW(56, 27, 0),
+    EV57U67A_PORT_MAP_ROW(57, 26, 0),
+    EV57U67A_PORT_MAP_ROW(58, 25, 0),
+    EV57U67A_PORT_MAP_ROW(59, 24, 0),
 };
 
-static port_map_t port_table_ev57u67a_slot_2[] = {
-    {60, 31, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
-     false},
-    {61, 30, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
-     false},
-    {62, 29, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
-     false},
-    {63, 28, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_25G, MEBA_CAP_EV57U67A, 4,
-     false},
+static const port_map_t port_table_ev57u67a_slot_2[] = {
+    EV57U67A_PORT_MAP_ROW(60, 31, 4),
+    EV57U67A_PORT_MAP_ROW(61, 30, 4),
+    EV57U67A_PORT_MAP_ROW(62, 29, 4),
+    EV57U67A_PORT_MAP_ROW(63, 28, 4),
 };
 
-#define MEBA_CAP_EV96D59A                                                                          \
+#define MEBA_CAP_ev96d50a                                                                          \
     (MEBA_PORT_CAP_VTSS_10G_PHY | MEBA_PORT_CAP_10G_FDX | MEBA_PORT_CAP_FLOW_CTRL |                \
      MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_AUTONEG | MEBA_PORT_CAP_SFP_DETECT)
-static port_map_t port_table_ev96d59a_slot_1[] = {
-    {56, 27, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
-     false},
-    {57, 26, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
-     false},
-    {58, 25, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
-     false},
-    {59, 24, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 0,
-     false},
+
+#define EV96D50A_PORT_MAP_ROW(chip, miim, base)                                                    \
+    {.chip_port = (chip),                                                                          \
+     .miim_addr = (miim),                                                                          \
+     .miim_controller = MESA_MIIM_CONTROLLER_0,                                                    \
+     .mac_if = MESA_PORT_INTERFACE_SFI,                                                            \
+     .max_bw = MESA_BW_10G,                                                                        \
+     .cap = MEBA_CAP_ev96d50a,                                                                     \
+     .phy_base_port = (base)}
+
+static const port_map_t port_table_ev96d50a_slot_1[] = {
+    EV96D50A_PORT_MAP_ROW(56, 27, 0),
+    EV96D50A_PORT_MAP_ROW(57, 26, 0),
+    EV96D50A_PORT_MAP_ROW(58, 25, 0),
+    EV96D50A_PORT_MAP_ROW(59, 24, 0),
 };
 
-static port_map_t port_table_ev96d59a_slot_2[] = {
-    {60, 31, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
-     false},
-    {61, 30, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
-     false},
-    {62, 29, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
-     false},
-    {63, 28, MESA_MIIM_CONTROLLER_0, MESA_PORT_INTERFACE_SFI, MESA_BW_10G, MEBA_CAP_EV96D59A, 4,
-     false},
+static const port_map_t port_table_ev96d50a_slot_2[] = {
+    EV96D50A_PORT_MAP_ROW(60, 31, 4),
+    EV96D50A_PORT_MAP_ROW(61, 30, 4),
+    EV96D50A_PORT_MAP_ROW(62, 29, 4),
+    EV96D50A_PORT_MAP_ROW(63, 28, 4),
 };
 
 static void fa_pcb8415_init_port(meba_inst_t inst,
