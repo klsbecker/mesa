@@ -1788,35 +1788,62 @@ out:
     return c;
 }
 
-/* In 10G Malibu PHY's the arguments i2c_dev_addr and word_access of API i2c_read/write have no functionality,
- * so the value for these arguments can be given as zero
- */
+/* I2C master SCL prescaler. */
+#define MALIBU_I2C_PRESCALE_DEFAULT 0x50
+
+/* word_access is unused on Malibu (byte-oriented I2C master). */
 static mepa_rc malibu_10g_i2c_read(struct mepa_device *dev,
-                                   uint8_t      i2c_mux,
-                                   uint8_t      i2c_reg_addr,
-                                   uint8_t      i2c_dev_addr,
-                                   mepa_bool_t  word_access,
-                                   uint8_t      cnt,
-                                   uint8_t      *const value)
+                                   uint8_t             i2c_mux,
+                                   uint8_t             i2c_reg_addr,
+                                   uint8_t             i2c_dev_addr,
+                                   mepa_bool_t         word_access,
+                                   uint8_t             cnt,
+                                   uint8_t *const      value)
 {
-    mepa_rc rc = MEPA_RC_OK;
-    phy_data_t *data =(phy_data_t*)dev->data;
-    rc = vtss_phy_10g_i2c_read(data->vtss_instance, data->port_no, i2c_reg_addr, value);
-    return rc;
+    phy_data_t                   *data = (phy_data_t *)dev->data;
+    vtss_phy_10g_i2c_slave_conf_t slave_cfg = {.slave_id = i2c_dev_addr,
+                                               .prescale = MALIBU_I2C_PRESCALE_DEFAULT};
+    uint8_t                       i;
+
+    if (vtss_phy_10g_i2c_slave_conf_set(data->vtss_instance, data->port_no, &slave_cfg) !=
+        VTSS_RC_OK) {
+        return VTSS_RC_ERROR;
+    }
+
+    for (i = 0; i < cnt; i++) {
+        if (vtss_phy_10g_i2c_read(data->vtss_instance, data->port_no,
+                                  (uint8_t)(i2c_reg_addr + i), &value[i]) != VTSS_RC_OK) {
+            return VTSS_RC_ERROR;
+        }
+    }
+    return VTSS_RC_OK;
 }
 
-static mepa_rc malibu_10g_i2c_write(struct mepa_device *dev,
-                                    uint8_t     i2c_mux,
-                                    uint8_t     i2c_reg_addr,
-                                    uint8_t     i2c_dev_addr,
-                                    mepa_bool_t word_access,
-                                    uint8_t     cnt,
-                                    const uint8_t     *const value)
+static mepa_rc malibu_10g_i2c_write(struct mepa_device  *dev,
+                                    uint8_t              i2c_mux,
+                                    uint8_t              i2c_reg_addr,
+                                    uint8_t              i2c_dev_addr,
+                                    mepa_bool_t          word_access,
+                                    uint8_t              cnt,
+                                    const uint8_t *const value)
 {
-    mepa_rc rc =MEPA_RC_OK;
-    phy_data_t *data =(phy_data_t*)dev->data;
-    rc = vtss_phy_10g_i2c_write(data->vtss_instance, data->port_no, i2c_reg_addr, value);
-    return rc;
+    phy_data_t                   *data = (phy_data_t *)dev->data;
+    vtss_phy_10g_i2c_slave_conf_t slave_cfg = {.slave_id = i2c_dev_addr,
+                                               .prescale = MALIBU_I2C_PRESCALE_DEFAULT};
+    uint8_t                       i;
+
+    if (vtss_phy_10g_i2c_slave_conf_set(data->vtss_instance, data->port_no, &slave_cfg) !=
+        VTSS_RC_OK) {
+        return VTSS_RC_ERROR;
+    }
+
+    for (i = 0; i < cnt; i++) {
+        if (vtss_phy_10g_i2c_write(data->vtss_instance, data->port_no,
+                                   (uint8_t)(i2c_reg_addr + i), &value[i]) != VTSS_RC_OK) {
+            return VTSS_RC_ERROR;
+        }
+    }
+    return VTSS_RC_OK;
 }
 
 static mepa_rc phy_10g_warmrestart_conf_end(struct mepa_device *dev) {
