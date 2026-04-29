@@ -398,6 +398,10 @@ static void port_setup(mesa_port_no_t port_no, mesa_bool_t aneg, mesa_bool_t ini
                 phy.speed = pc->autoneg ? MESA_SPEED_AUTO : pc->speed;
                 phy.conf_10g.oper_mode =
                     (phy.speed == MESA_SPEED_10G) ? MEPA_PHY_LAN_MODE : MEPA_PHY_1G_MODE;
+                if (meba_phy_if_set(meba_global_inst, port_no, conf.if_type)) {
+                    T_E("meba_phy_if_set(%u) failed", port_no);
+                    return;
+                }
                 if (meba_phy_conf_set(meba_global_inst, port_no, &phy) != MESA_RC_OK) {
                     T_E("meba_phy_conf_set(%u) failed", port_no);
                     return;
