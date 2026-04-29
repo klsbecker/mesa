@@ -1085,7 +1085,7 @@ static void cli_cmd_phy_id(cli_req_t *req)
 
     for (uint32_t port_no = 0; port_no < mesa_port_cnt(NULL); port_no++) {
         if ((rc = meba_phy_info_get(meba_global_inst, port_no, &phy_id)) == MESA_RC_OK) {
-            meba_phy_if_get(meba_global_inst, port_no, 1, &mac_if);
+            meba_phy_if_get(meba_global_inst, port_no, port_table[port_no].conf.speed, &mac_if);
             sprintf(spd, "%s",
                     phy_id.cap & MEPA_CAP_SPEED_MASK_2G5   ? "2G5"
                     : phy_id.cap & MEPA_CAP_SPEED_MASK_10G ? "10G"
