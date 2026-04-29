@@ -4096,6 +4096,9 @@ vtss_rc vtss_phy_10g_i2c_reset(const vtss_inst_t                inst,
     return rc;
 }
 
+/* I2C data register bit 15 is BUS_BUSY on Venice/Malibu 10G PHYs. */
+#define VTSS_I2C_BUS_BUSY VTSS_BIT(15)
+
 vtss_rc vtss_phy_10g_i2c_read(const vtss_inst_t                inst,
                               const vtss_port_no_t             port_no,
                               const u8                         addr,
@@ -4113,9 +4116,13 @@ vtss_rc vtss_phy_10g_i2c_read(const vtss_inst_t                inst,
             if ((rc = vtss_mmd_wr(vtss_state,port_no,mmd,addr_reg,addr)) == VTSS_RC_OK ) {
                 MEPA_MSLEEP(1);
                 if (((rc = vtss_mmd_rd(vtss_state,port_no,mmd,data_reg,&reg_value)) == VTSS_RC_OK)) {
-                    *value = reg_value;
-                    if (*value & 0x8000) {
-                        VTSS_E("I2C bus is busy\n");
+                    /* Bit 15 of the I2C data register is BUS_BUSY; must be checked on the
+                     * full u16 before we truncate to u8. */
+                    if (reg_value & VTSS_I2C_BUS_BUSY) {
+                        VTSS_D("port %u: I2C bus busy (reg=0x%04x)", port_no, reg_value);
+                        rc = VTSS_RC_ERROR;
+                    } else {
+                        *value = (u8)reg_value;
                     }
                 } else {
                     VTSS_E("Error in reading from i2c data register 0x%x\n",data_reg);
