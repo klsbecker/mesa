@@ -472,26 +472,64 @@ static const port_map_t port_table_ev96d50a_slot_2[] = {
     EV96D50A_PORT_MAP_ROW(63, 28, 4),
 };
 
+/* EV96D50A SFP status GPIOs live on the Malibu-10 PHY. Malibu has 4 channels
+ * × 8 GPIOs; the board wires MOD_DET / TX_FAULT / LOS at fixed offsets within
+ * each channel's GPIO block, with channels numbered reverse to port_no. */
+#define EV96D50A_PORTS_PER_SLOT       4
+#define MALIBU_CHANNELS_PER_CHIP      4
+#define MALIBU_GPIOS_PER_CHANNEL      8
+#define EV96D50A_GPIO_OFFSET_MOD_DET  1
+#define EV96D50A_GPIO_OFFSET_TX_FAULT 5
+#define EV96D50A_GPIO_OFFSET_LOS      6
+
+static mesa_rc ev96d50a_sfp_status_read(meba_inst_t        inst,
+                                        mesa_port_no_t     port_no,
+                                        meba_sfp_status_t *sfp_status)
+{
+    const uint32_t     ch = (MALIBU_CHANNELS_PER_CHIP - 1) - (port_no % EV96D50A_PORTS_PER_SLOT);
+    const uint32_t     gpio_base = ch * MALIBU_GPIOS_PER_CHANNEL;
+    vtss_gpio_10g_no_t det = gpio_base + EV96D50A_GPIO_OFFSET_MOD_DET;
+    vtss_gpio_10g_no_t tx_fault = gpio_base + EV96D50A_GPIO_OFFSET_TX_FAULT;
+    vtss_gpio_10g_no_t los = gpio_base + EV96D50A_GPIO_OFFSET_LOS;
+    mepa_device_t     *mepa_dev = inst->phy_devices[port_no];
+    mesa_bool_t        raw;
+
+    if (sfp_status == NULL) {
+        return MESA_RC_ERR_PARM;
+    }
+
+    if (mepa_gpio_in_get(mepa_dev, det, &raw) != VTSS_RC_OK) {
+        return MESA_RC_ERROR;
+    }
+    sfp_status->present = !raw; /* active low */
+
+    if (mepa_gpio_in_get(mepa_dev, tx_fault, &sfp_status->tx_fault) != VTSS_RC_OK) {
+        return MESA_RC_ERROR;
+    }
+
+    if (mepa_gpio_in_get(mepa_dev, los, &sfp_status->los) != VTSS_RC_OK) {
+        return MESA_RC_ERROR;
+    }
+
+    return MESA_RC_OK;
+}
+
 typedef struct {
-    const char       *name;          /* identifier as reported by EEPROM / u-boot env */
-    const port_map_t *port_table[2]; /* [0] = slot 1, [1] = slot 2 */
-    uint32_t          port_count;    /* number of ports contributed per slot */
-    mesa_bool_t       lan80xx;       /* Work-arround for LAN80XX EVB Board */
+    const plugin_module_t plugin_module;
+    const port_map_t     *port_table[2]; /* [0] = slot 1, [1] = slot 2 */
+    uint32_t              port_count;    /* number of ports contributed per slot */
+    mesa_bool_t           lan80xx;       /* Work-arround for LAN80XX EVB Board */
 } edsx_module_t;
 
 static const edsx_module_t edsx_modules[] = {
-    {
-     .name = "EV57U68A",
-     .port_table = {port_table_ev57u67a_slot_1, port_table_ev57u67a_slot_2},
+    {.port_table = {port_table_ev57u67a_slot_1, port_table_ev57u67a_slot_2},
      .port_count = 4,
      .lan80xx = true,
-     },
-    {
-     .name = "EV96D50A",
-     .port_table = {port_table_ev96d50a_slot_1, port_table_ev96d50a_slot_2},
+     .plugin_module = {.name = "EV57U68A", .sfp_status_read = NULL}                    },
+    {.port_table = {port_table_ev96d50a_slot_1, port_table_ev96d50a_slot_2},
      .port_count = 4,
      .lan80xx = false,
-     },
+     .plugin_module = {.name = "EV96D50A", .sfp_status_read = ev96d50a_sfp_status_read}},
 };
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
@@ -503,7 +541,7 @@ static const edsx_module_t *edsx_module_find_in(const char *buf)
     }
 
     for (size_t i = 0; i < ARRAY_SIZE(edsx_modules); i++) {
-        if (strstr(buf, edsx_modules[i].name)) {
+        if (strstr(buf, edsx_modules[i].plugin_module.name)) {
             return &edsx_modules[i];
         }
     }
@@ -515,6 +553,7 @@ static void fa_pcb8415_init_port(meba_inst_t          inst,
                                  const edsx_module_t *slot1_module,
                                  const edsx_module_t *slot2_module)
 {
+    meba_board_state_t  *board = INST2BOARD(inst);
     const edsx_module_t *slots[] = {slot1_module, slot2_module};
     int                  port_cnt = 0;
 
@@ -525,6 +564,9 @@ static void fa_pcb8415_init_port(meba_inst_t          inst,
 
         fa_init_port_table(inst, port_cnt, slots[i]->port_count, slots[i]->port_table[i],
                            slots[i]->lan80xx);
+        for (uint32_t p = 0; p < slots[i]->port_count; p++) {
+            board->port[port_cnt + p].plugin_module = &slots[i]->plugin_module;
+        }
         port_cnt += slots[i]->port_count;
     }
     fa_init_port_table(inst, port_cnt, 1, port_table_npi_port, false);
@@ -1231,6 +1273,10 @@ static mesa_rc fa_sensor_get(meba_inst_t inst, meba_sensor_t type, int six, int 
     return rc;
 }
 
+/* EDSX SFP cages reached via the Malibu-10 PHY's I2C master have no external
+ * I2C mux on the path — pass 0 for the mux-select argument. */
+#define PHY_I2C_NO_MUX 0
+
 static mesa_rc fa_sfp_i2c_xfer(meba_inst_t    inst,
                                mesa_port_no_t port_no,
                                mesa_bool_t    write,
@@ -1240,19 +1286,31 @@ static mesa_rc fa_sfp_i2c_xfer(meba_inst_t    inst,
                                uint8_t        cnt,
                                mesa_bool_t    word_access)
 {
-    mesa_rc             rc = MESA_RC_ERROR;
-    meba_board_state_t *board = INST2BOARD(inst);
-    uint32_t            board_port = PORT_2_BOARD_PORT(board, port_no);
+    mesa_rc                rc = MESA_RC_ERROR;
+    meba_board_state_t    *board = INST2BOARD(inst);
+    uint32_t               board_port = PORT_2_BOARD_PORT(board, port_no);
+    const plugin_module_t *pm = board->port[port_no].plugin_module;
 
     T_N(inst, "Called");
 
     if (write) { // cnt ignored
-        uint8_t i2c_data[3];
-        i2c_data[0] = addr;
-        memcpy(&i2c_data[1], data, 2);
-        rc = inst->iface.i2c_write(board_port, i2c_addr, i2c_data, 3);
+        if (pm) {
+            rc = mepa_i2c_write(board->phy_devices[port_no], PHY_I2C_NO_MUX, addr, i2c_addr,
+                                word_access, cnt, data);
+        } else {
+            uint8_t i2c_data[3];
+            i2c_data[0] = addr;
+            memcpy(&i2c_data[1], data, 2);
+            rc = inst->iface.i2c_write(board_port, i2c_addr, i2c_data, 3);
+        }
+
     } else {
-        rc = inst->iface.i2c_read(board_port, i2c_addr, addr, data, cnt);
+        if (pm) {
+            rc = mepa_i2c_read(board->phy_devices[port_no], PHY_I2C_NO_MUX, addr, i2c_addr,
+                               word_access, cnt, data);
+        } else {
+            rc = inst->iface.i2c_read(board_port, i2c_addr, addr, data, cnt);
+        }
     }
 
     T_D(inst, "i2c %s port %d - address 0x%02x:0x%02x, %d bytes return %d",
@@ -1287,8 +1345,9 @@ static mesa_rc fa_sfp_status_get(meba_inst_t        inst,
                                  mesa_port_no_t     port_no,
                                  meba_sfp_status_t *status)
 {
-    mesa_rc             rc = MESA_RC_OK;
-    meba_board_state_t *board = INST2BOARD(inst);
+    mesa_rc                rc = MESA_RC_OK;
+    meba_board_state_t    *board = INST2BOARD(inst);
+    const plugin_module_t *pm = board->port[port_no].plugin_module;
 
     if (board->type == BOARD_TYPE_SPARX5_PCB134 || board->type == BOARD_TYPE_SPARX5_PCB135 ||
         board->type == BOARD_TYPE_SPARX5_PCB8415) {
@@ -1297,16 +1356,22 @@ static mesa_rc fa_sfp_status_get(meba_inst_t        inst,
             status->los = false;
             status->tx_fault = false;
             if (is_sfp_port(board->port[port_no].map.cap)) {
-                mesa_sgpio_port_data_t data[MESA_SGPIO_PORTS];
-                rc = mesa_sgpio_read(NULL, 0, 2, data); // SGPIO group 2
-                if (rc == MESA_RC_OK) {
-                    status->present = get_sfp_status(inst, port_no, data, SFP_DETECT);
-                    status->tx_fault = get_sfp_status(inst, port_no, data, SFP_FAULT);
-                    status->los = get_sfp_status(inst, port_no, data, SFP_LOS);
+                if (pm) {
+                    if (pm->sfp_status_read) {
+                        rc = pm->sfp_status_read(inst, port_no, status);
+                    }
+                } else {
+                    mesa_sgpio_port_data_t data[MESA_SGPIO_PORTS];
+                    rc = mesa_sgpio_read(NULL, 0, 2, data); // SGPIO group 2
+                    if (rc == MESA_RC_OK) {
+                        status->present = get_sfp_status(inst, port_no, data, SFP_DETECT);
+                        status->tx_fault = get_sfp_status(inst, port_no, data, SFP_FAULT);
+                        status->los = get_sfp_status(inst, port_no, data, SFP_LOS);
+                    }
                 }
-                T_N(inst, "port(%d): rc %d, present:%d los:%d tx_fault:%d", port_no, rc,
-                    status->present, status->los, status->tx_fault);
             }
+            T_N(inst, "port(%d): rc %d, present:%d los:%d tx_fault:%d", port_no, rc,
+                status->present, status->los, status->tx_fault);
         }
     }
     return rc;
@@ -2712,7 +2777,7 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const edsx_module_
     while (p < eeprom + sizeof(eeprom) - 1) {
         m = edsx_module_find_in(p);
         if (m) {
-            T_I(inst, "Found plugin module %s in SFP slot %d\n", m->name, address);
+            T_I(inst, "Found plugin module %s in SFP slot %d\n", m->plugin_module.name, address);
             *plugin_module = m;
             return MESA_RC_OK;
         }
@@ -2733,7 +2798,7 @@ mesa_rc read_sfp_plugin_module(meba_inst_t inst, int address, const edsx_module_
         m = edsx_module_find_in(buf);
         if (m) {
             *plugin_module = m;
-            T_W(inst, "Assume %s\n", m->name);
+            T_W(inst, "Assume %s\n", m->plugin_module.name);
             return MESA_RC_OK;
         }
     }

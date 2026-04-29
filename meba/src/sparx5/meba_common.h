@@ -2,14 +2,23 @@
 // SPDX-License-Identifier: MIT
 
 #define MAX_PORTS 57
+
 typedef struct {
-    meba_port_entry_t  map;
-    uint32_t           board_port;
-    uint32_t           sgpio_port;
-    uint32_t           sgpio_bit;
-    mesa_port_status_t status;
-    mesa_bool_t        activity;
-    mesa_bool_t        ts_phy;
+    const char *name;
+    mesa_rc (*sfp_status_read)(meba_inst_t        inst,
+                               mesa_port_no_t     port_no,
+                               meba_sfp_status_t *sfp_status);
+} plugin_module_t;
+
+typedef struct {
+    meba_port_entry_t      map;
+    uint32_t               board_port;
+    uint32_t               sgpio_port;
+    uint32_t               sgpio_bit;
+    mesa_port_status_t     status;
+    mesa_bool_t            activity;
+    mesa_bool_t            ts_phy;
+    const plugin_module_t *plugin_module; /* NULL → default/non-plug-in path */
 } fa_port_info_t;
 
 // The PCB type
