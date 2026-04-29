@@ -1643,11 +1643,16 @@ vtss_rc vtss_cil_qos_status_get(vtss_state_t *vtss_state, vtss_qos_status_t *sta
     /* Read and clear sticky register */
     JR2_RD(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_STICKY, &value);
     JR2_WR(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_STICKY,
-           value & VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY);
+           value & (VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY |
+                    VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_FWD_STICKY |
+                    VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_CPU_STICKY));
 
-    /* Detect storm events */
+    /* Detect storm events (frames actually dropped due to storm policing) */
     status->storm =
-        VTSS_BOOL(value & VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY);
+        ((value & (VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_FWD_STICKY |
+                   VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_CPU_STICKY)) != 0U)
+            ? TRUE
+            : FALSE;
 
     return VTSS_RC_OK;
 }

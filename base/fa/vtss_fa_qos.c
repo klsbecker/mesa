@@ -2726,12 +2726,19 @@ vtss_rc vtss_cil_qos_status_get(struct vtss_state_s *vtss_state, vtss_qos_status
     /* Read and clear sticky register */
     REG_RD(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_STICKY, &value);
     REG_WRM(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_STICKY,
-            VTSS_F_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY(0xFF),
-            VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY);
+            VTSS_F_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY(0xFF) |
+                VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_FWD_STICKY |
+                VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_CPU_STICKY,
+            VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY |
+                VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_FWD_STICKY |
+                VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_CPU_STICKY);
 
-    /* Detect storm events */
+    /* Detect storm events (frames actually dropped due to storm policing) */
     status->storm =
-        VTSS_BOOL(VTSS_X_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_ACTIVE_STICKY(value));
+        ((value & (VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_FWD_STICKY |
+                   VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_STICKY_POL_STORM_DROP_CPU_STICKY)) != 0U)
+            ? TRUE
+            : FALSE;
 
     VTSS_D("Exit");
     return VTSS_RC_OK;
