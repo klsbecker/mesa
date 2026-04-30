@@ -179,7 +179,12 @@ static mesa_rc port_speed_adjust(mesa_port_no_t        port_no,
         return MESA_RC_OK;
         break;
     case MESA_PORT_INTERFACE_SGMII_CISCO:
-        *speed_out = MESA_SPEED_1G; // initial speed is 1G
+        if (speed_in == MESA_SPEED_10M || speed_in == MESA_SPEED_100M ||
+            speed_in == MESA_SPEED_1G) {
+            *speed_out = speed_in;
+        } else {
+            *speed_out = MESA_SPEED_1G;
+        }
         return MESA_RC_OK;
     case MESA_PORT_INTERFACE_SFI:
     case MESA_PORT_INTERFACE_XAUI:
