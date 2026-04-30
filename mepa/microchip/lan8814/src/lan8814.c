@@ -1066,6 +1066,7 @@ static mepa_rc lan8814_cab_diag_start_(mepa_device_t *dev, int32_t mode,
 
     /* If link is Up do not perform cable diagnostics operation just return */
     if (res->link) {
+        T_W(MEPA_TRACE_GRP_GEN, "Can't perform cable diagnostics while link is up");
         return MEPA_RC_OK;
     }
 
