@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "microchip/ethernet/board/api.h"
 #include "meba_poe_generic.h"
+#include "drivers/poe_driver.h"
 
 #define MESA_RC(EXPR)                                                                              \
     {                                                                                              \
@@ -381,6 +382,21 @@ mesa_rc meba_poe_generic_port_pd_bt_data_set(const meba_inst_t      inst,
                 MESA_RC_OK) {
                 return MESA_RC_OK;
             }
+        }
+    }
+    return MESA_RC_ERROR;
+}
+
+mesa_rc meba_poe_generic_hw_gpio_reset(const meba_inst_t inst)
+{
+    meba_poe_system_t *system;
+    if (inst && inst->api_poe && inst->api_poe->meba_poe_system_get) {
+        if (inst->api_poe->meba_poe_system_get(inst, &system) == MESA_RC_OK) {
+            int i;
+            for (i = 0; i < system->controller_count; ++i) {
+                meba_poe_ctrl_hw_gpio_reset(&system->controllers[i]);
+            }
+            return MESA_RC_OK;
         }
     }
     return MESA_RC_ERROR;

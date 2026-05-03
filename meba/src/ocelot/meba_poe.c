@@ -164,6 +164,8 @@ mesa_rc meba_poe_system_initialize(meba_inst_t inst, meba_poe_init_params_t *tPo
                                meba_pd_i2c_adapter_open(&ocelot_pd69200_system.controllers[0],
                                                         ocelot_i2c_config.i2c_device,
                                                         ocelot_i2c_config.i2c_address),
+                               ocelot_i2c_config.i2c_device,
+                               ocelot_i2c_config.i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -197,6 +199,8 @@ mesa_rc meba_poe_system_initialize(meba_inst_t inst, meba_poe_init_params_t *tPo
                                  meba_pd_i2c_adapter_open(&ocelot_pd69200_system.controllers[0],
                                                           ocelot_i2c_config.i2c_device,
                                                           ocelot_i2c_config.i2c_address),
+                                 ocelot_i2c_config.i2c_device,
+                                 ocelot_i2c_config.i2c_address,
                                  MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                      MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                      MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -264,6 +268,7 @@ static meba_api_poe_t public_functions = {
     .meba_poe_status_get = meba_poe_generic_status_get,
     .meba_poe_capabilities_get = meba_poe_generic_capabilities_get,
     .meba_poe_reset_command = meba_poe_generic_reset_command,
+    .meba_poe_hw_gpio_reset = meba_poe_generic_hw_gpio_reset,
     .meba_poe_save_command = meba_poe_generic_save_command,
     .meba_poe_debug = meba_poe_generic_debug,
     .meba_poe_firmware_upgrade = meba_poe_generic_firmware_upgrade,

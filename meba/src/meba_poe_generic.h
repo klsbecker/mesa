@@ -64,6 +64,8 @@ mesa_rc meba_poe_generic_port_status_get(const meba_inst_t             inst,
 
 mesa_rc meba_poe_generic_reset_command(const meba_inst_t inst);
 
+mesa_rc meba_poe_generic_hw_gpio_reset(const meba_inst_t inst);
+
 mesa_rc meba_poe_generic_save_command(const meba_inst_t inst);
 
 mesa_rc meba_poe_generic_debug(const meba_inst_t inst,

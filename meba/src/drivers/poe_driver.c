@@ -631,6 +631,11 @@ typedef struct {
 
     int iFF_byte_counter; // no i2c response
     int i00_byte_counter; // poe data buffer empty
+
+    char    i2c_device[64]; // I2C device path for bus recovery (e.g. "/dev/i2c-0")
+    uint8_t i2c_addr;       // I2C slave address for bus recovery
+
+    int i2c_consecutive_tx_errors; // consecutive write failures; recovery triggers at 10
 } poe_driver_private_t;
 
 uint8_t prod_class_error_selection[4][2] = {
@@ -739,11 +744,10 @@ static char *print_as_hex_string(uint8_t *in, int in_size, char *out, int out_si
 
     for (i = 0; i < in_size; ++i) {
         s = snprintf(tmp, out_size, "%02hhX ", in[i]);
+        if (s <= 0 || s >= out_size)
+            goto OUT;
         tmp += s;
         out_size -= s;
-
-        if (out_size <= 0)
-            goto OUT;
     }
 
 OUT:
@@ -809,6 +813,9 @@ void check_reading_byte(uint8_t data, poe_driver_private_t *private_data)
         private_data->iFF_byte_counter = 0;
 }
 
+// declaration 
+static void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst);
+
 // Function for writing data from the MicroSemi micro-controller.
 // IN  : Data - Pointer to data to write
 //     : Size - Number of bytes to write.
@@ -825,20 +832,86 @@ static mesa_rc pd_wr(const meba_poe_ctrl_inst_t *const inst,
     DEBUG(inst, MEBA_TRACE_LVL_DEBUG, "%s: %s Wrote(%d/%d) %s ", inst->adapter_name,
           data_description, size, cnt, print_as_hex_string(data, size, buf, sizeof(buf)));
 
+    poe_driver_private_t *private_data = (poe_driver_private_t *)(inst->private_data);
+
     if (cnt == size) {
+        private_data->i2c_consecutive_tx_errors = 0; // success — reset streak
         return MESA_RC_OK;
-    } else {
-        poe_driver_private_t *private_data = (poe_driver_private_t *)(inst->private_data);
+    }
 
-        private_data->status.global.i2c_tx_error_counter++;
+    // Write failed — capture errno before any other call clears it
+    int write_errno = errno;
+    private_data->status.global.i2c_tx_error_counter++;
+    private_data->i2c_consecutive_tx_errors++;
 
-        DEBUG(inst, MEBA_TRACE_LVL_DEBUG, "%s: %s Wrote(%d/%d. TxErrCnt=%u) %s ",
-              inst->adapter_name, data_description, size, cnt,
-              private_data->status.global.i2c_tx_error_counter,
-              print_as_hex_string(data, size, buf, sizeof(buf)));
+#define I2C_RECOVERY_THRESHOLD 10
 
+    DEBUG(inst, MEBA_TRACE_LVL_WARNING,
+          "%s: %s write failed cnt=%d/%d errno=%d (%s) TxErrCnt=%u ConsecErr=%d/%d",
+          inst->adapter_name, data_description, cnt, size, write_errno, strerror(write_errno),
+          private_data->status.global.i2c_tx_error_counter,
+          private_data->i2c_consecutive_tx_errors, I2C_RECOVERY_THRESHOLD);
+
+    // Only attempt recovery after 10 consecutive failures — a single transient
+    // error does not justify a bus reset which disrupts all ongoing PoE traffic.
+    if (private_data->i2c_consecutive_tx_errors < I2C_RECOVERY_THRESHOLD) {
         return MESA_RC_ERROR;
     }
+
+    DEBUG(inst, MEBA_TRACE_LVL_WARNING,
+          "%s: %d consecutive write failures reached — attempting I2C bus recovery",
+          inst->adapter_name, I2C_RECOVERY_THRESHOLD);
+
+    private_data->i2c_consecutive_tx_errors = 0; // reset before recovery attempt
+
+    // Recover: close and reopen the I2C adapter to unstick a hung bus.
+    close(inst->adapter_fd);
+    int new_fd = meba_pd_i2c_adapter_open(inst, private_data->i2c_device, private_data->i2c_addr);
+    ((meba_poe_ctrl_inst_t *)inst)->adapter_fd = new_fd;
+
+    if (new_fd < 0) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "%s: I2C recovery reopen failed errno=%d (%s)",
+              inst->adapter_name, errno, strerror(errno));
+        return MESA_RC_ERROR;
+    }
+
+    // Retry the write once after recovery
+    cnt = write(new_fd, data, size);
+    if (cnt == size) {
+        DEBUG(inst, MEBA_TRACE_LVL_WARNING, "%s: %s write succeeded after I2C bus recovery",
+              inst->adapter_name, data_description);
+        return MESA_RC_OK;
+    }
+
+    // Stage 2: soft I2C recovery was not enough — perform a hardware GPIO reset.
+    DEBUG(inst, MEBA_TRACE_LVL_ERROR,
+          "%s: %s write still failed after I2C recovery cnt=%d/%d errno=%d (%s) — attempting PoE MCU GPIO reset",
+          inst->adapter_name, data_description, cnt, size, errno, strerror(errno));
+
+    meba_poe_io_reset(inst); // asserts reset GPIO, waits 5s, releases — MCU is now rebooting
+
+    // Reopen the fd after the MCU has rebooted
+    close(((meba_poe_ctrl_inst_t *)inst)->adapter_fd);
+    new_fd = meba_pd_i2c_adapter_open(inst, private_data->i2c_device, private_data->i2c_addr);
+    ((meba_poe_ctrl_inst_t *)inst)->adapter_fd = new_fd;
+
+    if (new_fd < 0) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "%s: I2C reopen after GPIO reset failed errno=%d (%s)",
+              inst->adapter_name, errno, strerror(errno));
+        return MESA_RC_ERROR;
+    }
+
+    cnt = write(new_fd, data, size);
+    if (cnt == size) {
+        DEBUG(inst, MEBA_TRACE_LVL_WARNING, "%s: %s write succeeded after PoE MCU GPIO reset",
+              inst->adapter_name, data_description);
+        return MESA_RC_OK;
+    }
+
+    DEBUG(inst, MEBA_TRACE_LVL_ERROR,
+          "%s: %s write failed even after GPIO reset cnt=%d/%d errno=%d (%s)",
+          inst->adapter_name, data_description, cnt, size, errno, strerror(errno));
+    return MESA_RC_ERROR;
 }
 
 // Function for reading data from the MicroSemi micro-controller.
@@ -2226,6 +2299,9 @@ void GetDataPerBit(uint8_t byArr_Ports[], uint8_t startIndex, uint16_t ulData, i
     if (iNumberOfBits > POE_MAX_PORTS)
         return;
 
+    if ((int)startIndex + iNumberOfBits > POE_MAX_PORTS)
+        return;
+
     for (int i = 0; i < iNumberOfBits; i++) {
         byArr_Ports[startIndex + i] = (ulData >> i) & 1;
     }
@@ -2478,7 +2554,7 @@ static mesa_rc meba_poe_pd_get_software_version(const meba_poe_ctrl_inst_t *cons
         ptSoftware_version->sw_version_L = buf[6];
     } else { // GEN6
         // Combine the bytes into a single hexadecimal representation
-        int combined = (buf[5] << 8) | buf[6];
+        int combined = ((unsigned int)buf[5] << 8) | buf[6];
 
         // Major version is the hundreds digit (3)
         ptSoftware_version->sw_version_H = combined / 100;
@@ -2606,12 +2682,15 @@ char *get_port_max_power_string(const meba_poe_ctrl_inst_t *const inst,
     }
 }
 
-void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst)
+
+static void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst)
 {
     poe_driver_private_t *private_data = (poe_driver_private_t *)(inst->private_data);
 
     // no gpio for reseting poe mcu
     if (private_data->tPoE_parameters.reset_poe_gpio_number == 0xFF) {
+        DEBUG(inst, MEBA_TRACE_LVL_INFO,
+             "No GPIO defined for Reset PoE MCU");
         sleep(5); // wait 5 seconds and return without GPIO reset
         return;
     }
@@ -2628,6 +2707,12 @@ void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst)
 
     // set poe io (pin_level) to '1'  - release poe mcu from reset
     (void)mesa_gpio_write(NULL, 0, private_data->tPoE_parameters.reset_poe_gpio_number, TRUE);
+}
+
+
+void meba_poe_ctrl_hw_gpio_reset(const meba_poe_ctrl_inst_t *const inst)
+{
+    meba_poe_io_reset(inst);
 }
 
 //----------------- Gen7 ---------------------//
@@ -2889,7 +2974,7 @@ mesa_rc Burn_gen7(const meba_poe_ctrl_inst_t *const inst, const char *hexdata, s
     int     bytesCounter = 0;
     int     last_percent = -1;
 
-    printf("\n\r");
+    printf("\n\rStarting firmware download\n\r");
 
     // printf("Line %d, Binary Data %ld bytes:\n", __LINE__, binaryDataLength);
     int i;
@@ -3033,6 +3118,9 @@ BOOL view_firmware_text_file_header(const meba_poe_ctrl_inst_t *const inst,
     return true;
 }
 
+// result buffer is 200 bytes (caller: get_firmware_file_info).
+// Two 64-char lines = 128 chars total + null fits in 200 bytes.
+#define STRIP_CONCAT_RESULT_SIZE 200
 BOOL stripAndConcatHexLines(const char *input, char *result)
 {
     const char *line = input;
@@ -3048,14 +3136,14 @@ BOOL stripAndConcatHexLines(const char *input, char *result)
             strncpy(temp, line + 9,
                     64);     // Skip the ':' and address part and take 64 characters of data
             temp[64] = '\0'; // Null terminate the string
-            strcat(result, temp);
+            strncat(result, temp, STRIP_CONCAT_RESULT_SIZE - strlen(result) - 1);
             foundFirstLine = 1;
         } else if (!foundSecondLine && strncmp(line, ":20202000", 9) == 0) {
             char temp[65];
             strncpy(temp, line + 9,
                     64);     // Skip the ':' and address part and take 64 characters of data
             temp[64] = '\0'; // Null terminate the string
-            strcat(result, temp);
+            strncat(result, temp, STRIP_CONCAT_RESULT_SIZE - strlen(result) - 1);
             foundSecondLine = 1;
         }
 
@@ -3110,7 +3198,7 @@ mesa_bool_t validate_firmware_checksum(const char *firmware, uint16_t expected_c
 
     // Ensure the byte array size does not exceed the fixed array size
     if (byte_array_size > 256) {
-        fprintf(stderr, "Hex string is too long\n");
+        printf("\n\rCannot find poe firmware header");
         return EXIT_FAILURE;
     }
 
@@ -6022,7 +6110,8 @@ mesa_rc meba_poe_ctrl_pd69200_prebt_port_status_get(const meba_poe_ctrl_inst_t *
 static mesa_bool_t check_report_key_ok(const meba_poe_ctrl_inst_t *const inst,
                                        uint8_t                          *rx_buf,
                                        uint8_t                           expected_seq_num,
-                                       char                             *msg)
+                                       char                             *msg,
+                                       int                               max_msg_buf_size)
 {
     // mesa_rc rc;
     mesa_bool_t report_key_ok_v = true;
@@ -6030,32 +6119,32 @@ static mesa_bool_t check_report_key_ok(const meba_poe_ctrl_inst_t *const inst,
     // First make sure that the checksum is correct
     if (pd_check_sum_ok(&rx_buf[0])) {
         if (rx_buf[0] != REPORT_KEY) {
-            sprintf(msg, "%sReport key error, rx0=%2X, REPORT_KEY=%2X \n\r", ALIGN_RESPONSE,
+            snprintf(msg, max_msg_buf_size, "%sReport key error, rx0=%2X, REPORT_KEY=%2X \n\r", ALIGN_RESPONSE,
                     rx_buf[0], REPORT_KEY);
             report_key_ok_v = false;
         } else if (rx_buf[2] == 0x00 && rx_buf[3] == 0x00) {
-            sprintf(msg, "%sCommand received/correctly executed \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sCommand received/correctly executed \n\r", ALIGN_RESPONSE);
             report_key_ok_v = true;
         } else if (rx_buf[2] == 0xFF && rx_buf[3] == 0xFF && rx_buf[4] == 0xFF &&
                    rx_buf[5] == 0xFF) {
-            sprintf(msg, "%sCommand Received/Wrong Checksum \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sCommand Received/Wrong Checksum \n\r", ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] > 0x0 && rx_buf[3] < 0x80) {
-            sprintf(msg, "%sFailed Execution/Conflict in Subject Bytes\n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Conflict in Subject Bytes\n\r", ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] > 0x80 && rx_buf[3] < 0x90) {
-            sprintf(msg, "%sFailed Execution/Wrong Data Byte Value \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Wrong Data Byte Value \n\r", ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] == 0xFF && rx_buf[3] == 0xFF) {
-            sprintf(msg, "%sFailed Execution/Undefined Key Value \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Undefined Key Value \n\r", ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else {
-            sprintf(msg, "%sUndefined revieved Value: rx2:%2X , rx3:%2X \n\r", ALIGN_RESPONSE,
+            snprintf(msg, max_msg_buf_size, "%sUndefined revieved Value: rx2:%2X , rx3:%2X \n\r", ALIGN_RESPONSE,
                     rx_buf[2], rx_buf[3]);
             report_key_ok_v = true;
         }
     } else {
-        sprintf(msg, "%sCalculated checksum error \n\r", ALIGN_RESPONSE);
+        snprintf(msg, max_msg_buf_size, "%sCalculated checksum error \n\r", ALIGN_RESPONSE);
         report_key_ok_v = false;
     }
 
@@ -6067,7 +6156,8 @@ static mesa_bool_t check_report_key_ok(const meba_poe_ctrl_inst_t *const inst,
 static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
                                          uint8_t                          *rx_buf,
                                          uint8_t                           expected_seq_num,
-                                         char                             *msg)
+                                         char                             *msg,
+                                         int                               max_msg_buf_size)
 {
     // mesa_rc rc;
 
@@ -6077,7 +6167,7 @@ static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "%s Failed, Invalid checksum: %s", __FUNCTION__,
               print_as_hex_string(rx_buf, PD_BUFFER_SIZE, dbg_txt, sizeof(dbg_txt)));
 
-        sprintf(msg, "%sTelemetry: Rx message checksum test failed \n\r", ALIGN_RESPONSE);
+        snprintf(msg, max_msg_buf_size, "%sTelemetry: Rx message checksum test failed \n\r", ALIGN_RESPONSE);
         return MESA_RC_ERROR;
     }
 
@@ -6086,7 +6176,7 @@ static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "%s Failed, Invalid key (%d): %s", __FUNCTION__, rx_buf[0],
               print_as_hex_string(rx_buf, PD_BUFFER_SIZE, dbg_txt, sizeof(dbg_txt)));
 
-        sprintf(msg, "%sTelemetry: Invalid key rx0:%2X \n\r", ALIGN_RESPONSE, rx_buf[0]);
+        snprintf(msg, max_msg_buf_size, "%sTelemetry: Invalid key rx0:%2X \n\r", ALIGN_RESPONSE, rx_buf[0]);
         return MESA_RC_ERROR;
     }
 
@@ -6097,7 +6187,8 @@ static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
 mesa_rc Check_reply_validation_debug(const meba_poe_ctrl_inst_t *const inst,
                                      uint8_t                          *tx_buf,
                                      uint8_t                          *rx_buf,
-                                     char                             *msg)
+                                     char                             *msg,
+                                     int                               max_msg_buf_size)
 {
     mesa_rc rc = MESA_RC_ERROR;
 
@@ -6115,14 +6206,14 @@ mesa_rc Check_reply_validation_debug(const meba_poe_ctrl_inst_t *const inst,
     // program
 
     if (rx_buf[0] == REPORT_KEY) { // check report message
-        if (check_report_key_ok(inst, rx_buf, tx_buf[1], msg)) {
+        if (check_report_key_ok(inst, rx_buf, tx_buf[1], msg, max_msg_buf_size)) {
             rc = MESA_RC_OK;
         } else {
             // DEBUG(inst, MEBA_TRACE_LVL_WARNING, "%s failed", __FUNCTION__);
         }
     } else if (rx_buf[0] == TELEMETRY_KEY) // check telemetry message
     {
-        rc = check_controller_response(inst, rx_buf, tx_buf[1], msg);
+        rc = check_controller_response(inst, rx_buf, tx_buf[1], msg, max_msg_buf_size);
     } else {
         // DEBUG(inst, MEBA_TRACE_LVL_WARNING, "%s Unknown RX message KEY: %2X
         // \n",  __FUNCTION__ , rx_buf[0]);
@@ -6233,9 +6324,16 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
     to_upper(var);
 
     // copy input arguments string to local char*
-    char str_args[str_len + 1];
+
+    #define STR_ARGS_MAX256 256
+    if (str_len > STR_ARGS_MAX256) {
+        snprintf(msg, max_msg_buf_size, "  Error: argument string too long (%u > %d)\n\r", str_len, STR_ARGS_MAX256);
+        return MESA_RC_ERROR;
+    }
+    char str_args[STR_ARGS_MAX256 + 1];
     strncpy(str_args, var, str_len);
     str_args[str_len] = 0;
+    #undef STR_ARGS_MAX256
 
     // count the number of arguments inside argument string
     for (i = 0; str_args[i] != '\0'; i++) {
@@ -6310,7 +6408,7 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
             {
                 valid_number_e eValidNum = check_argument(p_arg);
                 if (eValidNum != eValidNum_Decimal) {
-                    sprintf(msg, "  Error: argument #%d: %s is not a decimal number \n\r", i + 1,
+                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s is not a decimal number \n\r", i + 1,
                             p_arg);
                     return MESA_RC_ERROR;
                 }
@@ -6318,7 +6416,7 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
                 int dec_val = atoi(p_arg);
 
                 if (dec_val > 0xFF) {
-                    sprintf(msg, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
+                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
                             i + 1, p_arg);
                     return MESA_RC_ERROR;
                 }
@@ -6328,7 +6426,7 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
                 // can be  0x2D  0x22
                 valid_number_e eValidNum = check_argument(p + 2); // skip the 0x
                 if ((eValidNum != eValidNum_Hex) && (eValidNum != eValidNum_Decimal)) {
-                    sprintf(msg, "  Error: argument #%d: %s is not a hexadecimal number \n\r",
+                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s is not a hexadecimal number \n\r",
                             i + 1, p_arg);
                     return MESA_RC_ERROR;
                 }
@@ -6340,7 +6438,7 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
                 args_buf[i] = dec_val;
 
                 if (dec_val > 0xFF) {
-                    sprintf(msg, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
+                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
                             i + 1, p);
                     return MESA_RC_ERROR;
                 }
@@ -6369,10 +6467,10 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
             bUpdate_check_cum = TRUE;
         }
 
-        // sprintf(msg ,"\n\rstr: %s: args_count:%d , str_len:%d \n\r", s,
+        // snprintf(msg, max_msg_buf_size, "\n\rstr: %s: args_count:%d , str_len:%d \n\r", s,
         // args_count , str_len);
     } else {
-        sprintf(msg, "    Invalid 15 bytes arguments !!! str len:%d , #args:%d \n\r", str_len,
+        snprintf(msg, max_msg_buf_size, "    Invalid 15 bytes arguments !!! str len:%d , #args:%d \n\r", str_len,
                 args_count);
         return MESA_RC_ERROR;
     }
@@ -6413,7 +6511,7 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
             iBufIndex += 3;
         }
 
-        rc = Check_reply_validation_debug(inst, tx_buf, rx_buf, msg);
+        rc = Check_reply_validation_debug(inst, tx_buf, rx_buf, msg, max_msg_buf_size);
     } else {
         sprintf(msg, "%s Could not get 15bytes data from PoE MCU", POEBT_TITLE);
         // T_WG_PORT(VTSS_TRACE_POEBT_GRP_CUSTOM, port_index, "%s", "Could not read response");
@@ -6645,6 +6743,8 @@ uint8_t find_bt_pse_port_power_index(uint8_t port_mode_value, BOOL is_4p)
 void meba_pd69200_driver_init(meba_poe_ctrl_inst_t       *inst,
                               char const                 *adapter_name,
                               int                         adapter_fd,
+                              const char                 *i2c_device,
+                              uint8_t                     i2c_addr,
                               meba_poe_ctrl_cap_t         capabilities,
                               meba_poe_port_properties_t *port_map,
                               uint32_t                    port_map_length,
@@ -6682,14 +6782,30 @@ void meba_pd69200_driver_init(meba_poe_ctrl_inst_t       *inst,
     is_firmware_version_identical = is_gen6_firmware_version_identical;
 
     poe_driver_private_t *private_data = malloc(sizeof(poe_driver_private_t));
+    if (!private_data) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe_driver_private_t");
+        return;
+    }
     memset(private_data, 0, sizeof(poe_driver_private_t));
 
     private_data->is_bt = false;
     private_data->debug = debug;
     private_data->tPoE_parameters = tMeba_poe_parameters;
-    private_data->cfg.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
+    snprintf(private_data->i2c_device, sizeof(private_data->i2c_device), "%s",
+             i2c_device ? i2c_device : "");
+    private_data->i2c_addr         = i2c_addr;
+    private_data->cfg.ports        = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
     private_data->cfg_POEMCU.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
-    private_data->status.ports = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+    private_data->status.ports     = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+
+    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports || !private_data->status.ports) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe port arrays");
+        free(private_data->cfg.ports);
+        free(private_data->cfg_POEMCU.ports);
+        free(private_data->status.ports);
+        free(private_data);
+        return;
+    }
 
     memset(private_data->cfg.ports, 0, sizeof(*(private_data->cfg.ports)) * port_map_length);
     memset(private_data->cfg_POEMCU.ports, 0,
@@ -8251,6 +8367,9 @@ mesa_rc meba_poe_ctrl_pd_bt_port_status_get(const meba_poe_ctrl_inst_t *const in
         current_port_status->port_status.pse_data.layer2_execution_status =
             tBt_lldp_pse_data.layer2_execution_status;
 
+        current_port_status->port_status.pse_data.layer2_usage_status =
+            tBt_lldp_pse_data.layer2_usage_status;
+
         // Layer2 LLDP/CDP request not pending (0x1-Layer2 LLDP/CDP request pending)
         if (tBt_lldp_pse_data.layer2_execution_status != 1) {
             poe_controller[inst->index].lldp_ports_event[handle] = FALSE;
@@ -8878,6 +8997,8 @@ mesa_rc meba_poe_ctrl_pd_bt_chip_initialization(const meba_poe_ctrl_inst_t *cons
 void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
                             char const                 *adapter_name,
                             int                         adapter_fd,
+                            const char                 *i2c_device,
+                            uint8_t                     i2c_addr,
                             meba_poe_ctrl_cap_t         capabilities,
                             meba_poe_port_properties_t *port_map,
                             uint32_t                    port_map_length,
@@ -8919,11 +9040,24 @@ void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
     }
 
     poe_driver_private_t *private_data = malloc(sizeof(poe_driver_private_t));
+    if (!private_data) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe_driver_private_t");
+        return;
+    }
     memset(private_data, 0, sizeof(poe_driver_private_t));
 
-    private_data->cfg.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
+    private_data->cfg.ports        = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
     private_data->cfg_POEMCU.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
-    private_data->status.ports = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+    private_data->status.ports     = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+
+    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports || !private_data->status.ports) {
+        DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe port arrays");
+        free(private_data->cfg.ports);
+        free(private_data->cfg_POEMCU.ports);
+        free(private_data->status.ports);
+        free(private_data);
+        return;
+    }
 
     memset(private_data->cfg.ports, 0, sizeof(*(private_data->cfg.ports)) * port_map_length);
     memset(private_data->cfg_POEMCU.ports, 0,
@@ -8933,6 +9067,9 @@ void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
     private_data->is_bt = true;
     private_data->debug = debug;
     private_data->tPoE_parameters = tMeba_poe_parameters;
+    snprintf(private_data->i2c_device, sizeof(private_data->i2c_device), "%s",
+             i2c_device ? i2c_device : "");
+    private_data->i2c_addr = i2c_addr;
     private_data->status.global.chip_state = MEBA_POE_CHIPSET_DETECTION;
 
     for (i = 0; i < port_map_length; ++i) {

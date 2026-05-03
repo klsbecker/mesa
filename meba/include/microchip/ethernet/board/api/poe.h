@@ -113,6 +113,9 @@ typedef mesa_rc (*meba_poe_capabilities_get_t)(struct meba_inst    *inst,
 // Reset PoE controller.
 typedef mesa_rc (*meba_poe_reset_command_t)(struct meba_inst *inst);
 
+// Hardware GPIO reset of PoE MCU (toggles the MCU reset input pin).
+typedef mesa_rc (*meba_poe_hw_gpio_reset_t)(struct meba_inst *inst);
+
 // Save PoE controller parameters
 typedef mesa_rc (*meba_poe_save_command_t)(struct meba_inst *inst);
 
@@ -221,6 +224,7 @@ typedef mesa_rc (*meba_poe_version_get_t)(struct meba_inst *inst, uint32_t max_s
     X(meba_poe_status_get)                                                                         \
     X(meba_poe_capabilities_get)                                                                   \
     X(meba_poe_reset_command)                                                                      \
+    X(meba_poe_hw_gpio_reset)                                                                      \
     X(meba_poe_save_command)                                                                       \
     X(meba_poe_debug)                                                                              \
     X(meba_poe_firmware_upgrade)                                                                   \

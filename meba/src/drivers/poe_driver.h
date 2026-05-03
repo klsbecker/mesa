@@ -146,6 +146,8 @@ int meba_pd_i2c_adapter_open(const meba_poe_ctrl_inst_t *const inst,
 void meba_pd69200_driver_init(meba_poe_ctrl_inst_t       *inst,
                               char const                 *driver_name,
                               int                         adapter_fd,
+                              const char                 *i2c_device,
+                              uint8_t                     i2c_addr,
                               meba_poe_ctrl_cap_t         capabilities,
                               meba_poe_port_properties_t *port_map,
                               uint32_t                    port_map_length,
@@ -173,6 +175,8 @@ void meba_pd69200_driver_init(meba_poe_ctrl_inst_t       *inst,
 void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
                             char const                 *driver_name,
                             int                         adapter_fd,
+                            const char                 *i2c_device,
+                            uint8_t                     i2c_addr,
                             meba_poe_ctrl_cap_t         capabilities,
                             meba_poe_port_properties_t *port_map,
                             uint32_t                    port_map_length,
@@ -180,5 +184,13 @@ void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
                             uint32_t                    psu_map_length,
                             meba_debug_t                debug,
                             meba_poe_parameters_t       tMeba_poe_parameters);
+
+/**
+ * \brief Perform hardware GPIO reset of the PoE MCU.
+ *
+ * Drives the MCU reset pin low for 5 seconds then releases it.
+ * If no GPIO is configured (reset_poe_gpio_number == 0xFF) just waits.
+ */
+void meba_poe_ctrl_hw_gpio_reset(const meba_poe_ctrl_inst_t *const inst);
 
 #endif // _MICROCHIP_ETHERNET_BOARD_POE_DRIVER_H_

@@ -238,6 +238,8 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
                                meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                         sparx5_gen6_i2c_config[0].i2c_device,
                                                         sparx5_gen6_i2c_config[0].i2c_address),
+                               sparx5_gen6_i2c_config[0].i2c_device,
+                               sparx5_gen6_i2c_config[0].i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -264,6 +266,8 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
                                    meba_pd_i2c_adapter_open(&pd_system.controllers[1],
                                                             sparx5_gen6_i2c_config[1].i2c_device,
                                                             sparx5_gen6_i2c_config[1].i2c_address),
+                                   sparx5_gen6_i2c_config[1].i2c_device,
+                                   sparx5_gen6_i2c_config[1].i2c_address,
                                    MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                        MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                        MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -291,6 +295,8 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
                                meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                         sparx5_gen7_i2c_config[0].i2c_device,
                                                         sparx5_gen7_i2c_config[0].i2c_address),
+                               sparx5_gen7_i2c_config[0].i2c_device,
+                               sparx5_gen7_i2c_config[0].i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST,
@@ -316,6 +322,8 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
                                  meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                           sparx5_gen6_i2c_config[0].i2c_device,
                                                           sparx5_gen6_i2c_config[0].i2c_address),
+                                 sparx5_gen6_i2c_config[0].i2c_device,
+                                 sparx5_gen6_i2c_config[0].i2c_address,
                                  MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                      MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                      MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -341,6 +349,8 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
                                      meba_pd_i2c_adapter_open(&pd_system.controllers[1],
                                                               sparx5_gen6_i2c_config[1].i2c_device,
                                                               sparx5_gen6_i2c_config[1].i2c_address),
+                                     sparx5_gen6_i2c_config[1].i2c_device,
+                                     sparx5_gen6_i2c_config[1].i2c_address,
                                      MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                          MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                          MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -571,6 +581,8 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
                                meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                         laguna_gen6_i2c_config[0].i2c_device,
                                                         laguna_gen6_i2c_config[0].i2c_address),
+                               laguna_gen6_i2c_config[0].i2c_device,
+                               laguna_gen6_i2c_config[0].i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -597,6 +609,8 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
                                meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                         laguna_gen7_i2c_config[0].i2c_device,
                                                         laguna_gen7_i2c_config[0].i2c_address),
+                               laguna_gen7_i2c_config[0].i2c_device,
+                               laguna_gen7_i2c_config[0].i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST,
@@ -622,6 +636,8 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
                                  meba_pd_i2c_adapter_open(&pd_system.controllers[0],
                                                           laguna_gen6_i2c_config[0].i2c_device,
                                                           laguna_gen6_i2c_config[0].i2c_address),
+                                 laguna_gen6_i2c_config[0].i2c_device,
+                                 laguna_gen6_i2c_config[0].i2c_address,
                                  MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                      MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                      MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -707,6 +723,7 @@ static meba_api_poe_t public_functions = {
     .meba_poe_status_get = meba_poe_generic_status_get,
     .meba_poe_capabilities_get = meba_poe_generic_capabilities_get,
     .meba_poe_reset_command = meba_poe_generic_reset_command,
+    .meba_poe_hw_gpio_reset = meba_poe_generic_hw_gpio_reset,
     .meba_poe_save_command = meba_poe_generic_save_command,
     .meba_poe_debug = meba_poe_generic_debug,
     .meba_poe_firmware_upgrade = meba_poe_generic_firmware_upgrade,

@@ -669,6 +669,9 @@ typedef struct {
     // PoE port lldp execution status
     uint8_t layer2_execution_status;
 
+    // PoE port lldp usage status
+    uint8_t layer2_usage_status;
+
 } meba_poe_pse_data_t;
 
 // Power supply properties
