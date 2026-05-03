@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MICROCHIP_ETHERNET_PHY_API_TYPES_H_
-#define _MICROCHIP_ETHERNET_PHY_API_TYPES_H_
+#ifndef MICROCHIP_ETHERNET_PHY_API_TYPES_H
+#define MICROCHIP_ETHERNET_PHY_API_TYPES_H
 
 #include <microchip/ethernet/common.h>
 #include <microchip/ethernet/hdr_start.h>  /**< ALL INCLUDE ABOVE THIS LINE */
@@ -950,4 +950,4 @@ typedef enum {
 } mepa_cap_t;
 
 #include <microchip/ethernet/hdr_end.h>  /**< ALL INCLUDE ABOVE THIS LINE */
-#endif /**< _MICROCHIP_ETHERNET_PHY_API_TYPES_H_ */
+#endif /**< MICROCHIP_ETHERNET_PHY_API_TYPES_H */

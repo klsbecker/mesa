@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2021 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H_
-#define _MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H_
+#ifndef MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H
+#define MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H
 
 #include <mepa_os.h>
 #include <mepa_ts_driver.h>
@@ -1020,4 +1020,4 @@ mepa_drivers_t mepa_lan80xx_driver_init(void);
 mepa_drivers_t mepa_dummy_driver_init(void);
 
 #include <microchip/ethernet/hdr_end.h>
-#endif /**< _MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H_ */
+#endif /**< MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H */

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 
-#ifndef _MICROCHIP_ETHERNET_PHY_API_PHY_H_
-#define _MICROCHIP_ETHERNET_PHY_API_PHY_H_
+#ifndef MICROCHIP_ETHERNET_PHY_API_PHY_H
+#define MICROCHIP_ETHERNET_PHY_API_PHY_H
 
 #include <microchip/ethernet/phy/api.h>
 #include <microchip/ethernet/hdr_start.h>  /**< ALL INCLUDE ABOVE THIS LINE */

@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_TC10_DRV_API_H_
-#define _MEPA_TC10_DRV_API_H_
+#ifndef MEPA_TC10_DRV_API_H
+#define MEPA_TC10_DRV_API_H
 
 #include <microchip/ethernet/phy/api.h>
 
@@ -201,4 +201,4 @@ typedef struct mepa_tc10_driver {
     mepa_tc10_send_wake_request_t           mepa_driver_tc10_send_wake_request;
 } mepa_tc10_driver_t;
 
-#endif  /* _MEPA_TC10_DRV_API_H_ */
+#endif  /* MEPA_TC10_DRV_API_H */

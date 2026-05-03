@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_TS_API_H_
-#define _MEPA_TS_API_H_
+#ifndef MEPA_TS_API_H
+#define MEPA_TS_API_H
 
 #include <microchip/ethernet/phy/api/types.h>
 #include <microchip/ethernet/hdr_start.h>  /**< ALL INCLUDE ABOVE THIS LINE */
@@ -1041,4 +1041,4 @@ mepa_rc mepa_ts_csr_reg_write(struct mepa_device *dev, const uint16_t mmd,
                               const uint16_t csr_address, const uint32_t *const regvalue);
 
 #include <microchip/ethernet/hdr_end.h>
-#endif /**< _MEPA_TS_API_H_ */
+#endif /**< MEPA_TS_API_H */

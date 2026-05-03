@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_OS_VELOCITYSP_H_
-#define _MEPA_OS_VELOCITYSP_H_
+#ifndef MEPA_OS_VELOCITYSP_H
+#define MEPA_OS_VELOCITYSP_H
 
 #include "lm_utils.h"
 #include "lm_os.h"
@@ -64,4 +64,4 @@ typedef struct {
     MEPA_TIMERCMP((timer)->now, (timer)->timeout, >); \
 })
 
-#endif //  _MEPA_OS_VELOCITYSP_H_
+#endif //  MEPA_OS_VELOCITYSP_H

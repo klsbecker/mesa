@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_OS_H_
-#define _MEPA_OS_H_
+#ifndef MEPA_OS_H
+#define MEPA_OS_H
 
 // These files must ensure that the common stdint types (uint8_t, ...) and the
 // short (u8, ...) types are defined.
@@ -66,4 +66,4 @@ static inline uint8_t  to_uint8_t(uint8_t i)
 }
 
 
-#endif /* _MEPA_OS_H_ */
+#endif /* MEPA_OS_H */
