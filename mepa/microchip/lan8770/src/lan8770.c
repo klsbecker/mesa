@@ -1141,7 +1141,7 @@ static uint32_t lan8770_capability(mepa_device_t *const dev, uint32_t capability
     return c;
 }
 
-mepa_drivers_t mepa_lan8770_driver_init()
+mepa_drivers_t mepa_lan8770_driver_init(void)
 {
     mepa_drivers_t result = {0};
     static const int nr_lan8770_drivers = LAN8770_PHY_ID_MAX;

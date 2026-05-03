@@ -341,7 +341,7 @@ static uint32_t ksz_capability(mepa_device_t *dev, uint32_t capability)
     return 0;
 }
 
-mepa_drivers_t mepa_ksz9031_driver_init()
+mepa_drivers_t mepa_ksz9031_driver_init(void)
 {
     mepa_drivers_t res;
     static mepa_driver_t ksz_drivers[1] = {};

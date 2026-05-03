@@ -2153,7 +2153,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
     return MEPA_RC_OK;
 }
 
-mepa_drivers_t mepa_mscc_driver_init()
+mepa_drivers_t mepa_mscc_driver_init(void)
 {
     static const int nr_mscc_phy = 5;
     static mepa_driver_t mscc_drivers[] = {
@@ -2363,7 +2363,7 @@ mepa_drivers_t mepa_mscc_driver_init()
     return result;
 }
 
-mepa_drivers_t mepa_malibu_driver_init()
+mepa_drivers_t mepa_malibu_driver_init(void)
 {
     static const int nr_malibu_phy = 1;
     static mepa_driver_t malibu_drivers[] = {{
@@ -2410,7 +2410,7 @@ mepa_drivers_t mepa_malibu_driver_init()
     return result;
 }
 
-mepa_drivers_t mepa_venice_driver_init()
+mepa_drivers_t mepa_venice_driver_init(void)
 {
     static const int nr_venice_phy = 1;
     static mepa_driver_t venice_drivers[] = {{
@@ -2436,7 +2436,7 @@ mepa_drivers_t mepa_venice_driver_init()
     return result;
 }
 
-mepa_drivers_t mepa_default_phy_driver_init()
+mepa_drivers_t mepa_default_phy_driver_init(void)
 {
     static const int nr_default_drivers = 1;
     static mepa_driver_t default_drivers[] = {{

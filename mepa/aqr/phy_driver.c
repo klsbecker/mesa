@@ -659,7 +659,7 @@ static mepa_rc aqr_mmd_write(mepa_device_t *dev, uint32_t address, uint16_t valu
     return data->dev->callout->mmd_write(dev->callout_ctx, page_mmd, addr, value);
 }
 
-mepa_drivers_t mepa_aqr_driver_init()
+mepa_drivers_t mepa_aqr_driver_init(void)
 {
 #define NR_AQR_PHY 11
     mepa_drivers_t res;

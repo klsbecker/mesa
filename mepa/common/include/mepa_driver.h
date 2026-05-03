@@ -975,34 +975,34 @@ struct mepa_device *mepa_create_int(
 mepa_rc mepa_delete_int(mepa_device_t *dev);
 
 /** \brief Default driver that match any PHY */
-mepa_drivers_t mepa_default_phy_driver_init();
+mepa_drivers_t mepa_default_phy_driver_init(void);
 
 /** \brief Returns drivers for mscc PHY */
-mepa_drivers_t mepa_mscc_driver_init();
+mepa_drivers_t mepa_mscc_driver_init(void);
 
 /** \brief Returns drivers for malibu PHY */
-mepa_drivers_t mepa_malibu_driver_init();
+mepa_drivers_t mepa_malibu_driver_init(void);
 
 /** \brief Returns drivers for venice PHY */
-mepa_drivers_t mepa_venice_driver_init();
+mepa_drivers_t mepa_venice_driver_init(void);
 
 /** \brief Returns drivers for AQR PHY */
-mepa_drivers_t mepa_aqr_driver_init();
+mepa_drivers_t mepa_aqr_driver_init(void);
 
 /** \brief Returns drivers for intel PHY */
-mepa_drivers_t mepa_intel_driver_init();
+mepa_drivers_t mepa_intel_driver_init(void);
 
 /** \brief Returns drivers for ksz PHY */
-mepa_drivers_t mepa_ksz9031_driver_init();
+mepa_drivers_t mepa_ksz9031_driver_init(void);
 
 /** \brief Returns drivers for lan8814 PHY */
-mepa_drivers_t mepa_lan8814_driver_init();
+mepa_drivers_t mepa_lan8814_driver_init(void);
 
 /** \brief Returns drivers for lan8770 PHY */
-mepa_drivers_t mepa_lan8770_driver_init();
+mepa_drivers_t mepa_lan8770_driver_init(void);
 
 /** \brief Returns drivers for lan884x PHY */
-mepa_drivers_t mepa_lan884x_driver_init();
+mepa_drivers_t mepa_lan884x_driver_init(void);
 
 /** \brief Returns drivers for lan887x PHY */
 mepa_drivers_t mepa_lan887x_driver_init(void);
@@ -1014,10 +1014,10 @@ mepa_drivers_t mepa_lan8x8x_driver_init(void);
 mepa_drivers_t mepa_lan867x_driver_init(void);
 
 /** \brief Returns drivers for lan80xx PHY */
-mepa_drivers_t mepa_lan80xx_driver_init();
+mepa_drivers_t mepa_lan80xx_driver_init(void);
 
 /** \brief Dummy SW driver */
-mepa_drivers_t mepa_dummy_driver_init();
+mepa_drivers_t mepa_dummy_driver_init(void);
 
 #include <microchip/ethernet/hdr_end.h>
 #endif /**< _MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H_ */

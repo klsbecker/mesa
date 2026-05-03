@@ -3092,7 +3092,7 @@ do_exit:
 }
 #endif
 
-mepa_drivers_t mepa_lan8814_driver_init()
+mepa_drivers_t mepa_lan8814_driver_init(void)
 {
     // All the new drivers need to be added at the end of the array, otherwise
     // the lan8814_probe function might break as it is accessing directly this

@@ -611,7 +611,7 @@ static void lan80xx_driver_create(uint32_t id, mepa_driver_t *drv)
 }
 
 
-mepa_drivers_t mepa_lan80xx_driver_init()
+mepa_drivers_t mepa_lan80xx_driver_init(void)
 {
     static mepa_driver_t lan80xx_drivers[LAN80XX_DRIVERS_COUNT];
     uint8_t index = 0;

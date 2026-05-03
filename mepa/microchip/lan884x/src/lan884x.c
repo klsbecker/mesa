@@ -544,7 +544,7 @@ static mepa_rc pfe_debug_info_dump(struct mepa_device *dev,
     return rc;
 }
 
-mepa_drivers_t mepa_lan884x_driver_init()
+mepa_drivers_t mepa_lan884x_driver_init(void)
 {
     static const int nr_pfeiffer_drivers = 1;
     static mepa_driver_t pfeiffer_drivers[] = {

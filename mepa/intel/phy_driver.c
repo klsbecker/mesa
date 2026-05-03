@@ -512,7 +512,7 @@ static mepa_rc intl_debug_info_dump(struct mepa_device *dev,
 }
 
 
-mepa_drivers_t mepa_intel_driver_init()
+mepa_drivers_t mepa_intel_driver_init(void)
 {
 #define NR_INTL_PHY 1
     mepa_drivers_t res;

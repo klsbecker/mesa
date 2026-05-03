@@ -96,7 +96,7 @@ static mepa_device_t *dummy_probe(mepa_driver_t                       *drv,
     return dev;
 }
 
-mepa_drivers_t mepa_dummy_driver_init()
+mepa_drivers_t mepa_dummy_driver_init(void)
 {
     mepa_drivers_t res;
     static mepa_driver_t dummy[1] = {};
