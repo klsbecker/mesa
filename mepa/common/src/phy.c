@@ -68,9 +68,9 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     // TODO, this check would be more robust if we combine it with the values of
     // mmd=1 reg 2 and reg3 (on venice this is 0x0007 0x0400)
     if (callout->spi_read) {
-        callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3);
+        (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3);
     } else if (callout->mmd_read) {
-        callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, (uint16_t *)&reg3);
+        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, (uint16_t *)&reg3);
     }
     reg3 = (uint32_t)(reg3 & 0xFFFFU);
     for (i = 0; i < sizeof(special) / sizeof(special[0]); i++) {
@@ -83,9 +83,9 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
      * If A0 then considering it as LAN8044 PHY.
      */
     if (callout->spi_read) {
-        callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2);
+        (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2);
     } else if (callout->mmd_read) {
-        callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, (uint16_t *)&reg2);
+        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, (uint16_t *)&reg2);
     }
     reg2 = (uint32_t)(reg2 & 0xFFFFU);
     if ((reg3 == 0U) && (reg2 == 0xA0U)) {
@@ -96,25 +96,25 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     reg3 = 0;
 
     if (callout->miim_read) {
-        callout->miim_read(callout_ctx, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
-        callout->miim_read(callout_ctx, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
+        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
+        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
     }
 
     // Maybe it is a PHY responding to MMD and not MIIM
     if ((callout->mmd_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
-        callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
-        callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
+        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
+        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
     }
 
     // PHY responding to APB register access
     if ((callout->apb_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
-            callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), (uint16_t *)&reg2);
-            callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), (uint16_t *)&reg3);
+            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), (uint16_t *)&reg2);
+            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), (uint16_t *)&reg3);
             // Hallberg Standard registers are located at 0x30000, currently handle it as special case.
             // PHY_ID handling can be moved to "mepa_driver_get_phy_id" later for driver specific.
             if ((reg2 == 0U) && (reg3 == 0U)) {
-                callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), (uint16_t *)&reg2);
-                callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), (uint16_t *)&reg3);
+                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), (uint16_t *)&reg2);
+                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), (uint16_t *)&reg3);
             }
     }
 
@@ -630,7 +630,7 @@ mepa_rc mepa_phy_info_get(struct mepa_device *dev,
         return MESA_RC_NOT_IMPLEMENTED;
     }
 
-    memset(phy_info, 0, sizeof(mepa_phy_info_t));
+    (void)memset(phy_info, 0, sizeof(mepa_phy_info_t));
 
     return dev->drv->mepa_driver_phy_info_get(dev, phy_info);
 }
