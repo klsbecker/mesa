@@ -72,7 +72,7 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     } else if (callout->mmd_read) {
         callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, (uint16_t *)&reg3);
     }
-    reg3 = (uint32_t)(reg3 & 0xFFFF);
+    reg3 = (uint32_t)(reg3 & 0xFFFFU);
     for (i = 0; i < sizeof(special) / sizeof(special[0]); i++) {
         if (reg3 == special[i]) {
             return reg3;
@@ -87,8 +87,8 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     } else if (callout->mmd_read) {
         callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, (uint16_t *)&reg2);
     }
-    reg2 = (uint32_t)(reg2 & 0xFFFF);
-    if ((reg3 == 0) && (reg2 == 0xA0)) {
+    reg2 = (uint32_t)(reg2 & 0xFFFFU);
+    if ((reg3 == 0U) && (reg2 == 0xA0U)) {
         return 0x8044;
     }
 
@@ -101,35 +101,35 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     }
 
     // Maybe it is a PHY responding to MMD and not MIIM
-    if (callout->mmd_read && reg2 == 0 && reg3 == 0) {
+    if ((callout->mmd_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
         callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
         callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
     }
 
     // PHY responding to APB register access
-    if (callout->apb_read && reg2 == 0 && reg3 == 0) {
+    if ((callout->apb_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
             callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), (uint16_t *)&reg2);
             callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), (uint16_t *)&reg3);
             // Hallberg Standard registers are located at 0x30000, currently handle it as special case.
             // PHY_ID handling can be moved to "mepa_driver_get_phy_id" later for driver specific.
-            if (reg2 == 0 && reg3 == 0) {
+            if ((reg2 == 0U) && (reg3 == 0U)) {
                 callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), (uint16_t *)&reg2);
                 callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), (uint16_t *)&reg3);
             }
     }
 
-    reg2 = (uint32_t)(reg2 & 0xFFFF);
-    reg3 = (uint32_t)(reg3 & 0xFFFF);
+    reg2 = (uint32_t)(reg2 & 0xFFFFU);
+    reg3 = (uint32_t)(reg3 & 0xFFFFU);
     phy_id = (reg2 << 16) | reg3;
     return phy_id;
 }
 
 static size_t size_align(size_t s)
 {
-    if (s % 8) {
-        s /= 8;
-        s += 1;
-        s *= 8;
+    if ((s % 8U) != 0U) {
+        s /= 8U;
+        s += 1U;
+        s *= 8U;
     }
 
     return s;
@@ -143,7 +143,7 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     uint64_t *mem64;
     size_t cnt;
 
-    if (!callout->mem_alloc) {
+    if (callout->mem_alloc == NULL) {
         T_E("No mem_alloc callout");
         return 0;
     }
@@ -151,14 +151,14 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     size = size_align(size);
 
     mem = callout->mem_alloc(callout_ctx, size);
-    if (!mem) {
+    if (mem == NULL) {
         T_E("Out of memory? %z", size);
         return 0;
     }
 
     mem64 = (uint64_t *)mem;
 
-    size /= 8;
+    size /= 8U;
     for (cnt = 0; cnt < size; cnt++) {
         mem64[cnt] = 0;
     }
@@ -170,7 +170,7 @@ void mepa_mem_free_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
                        struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                        void                                    *ptr)
 {
-    if (!callout->mem_free) {
+    if (callout->mem_free == NULL) {
         return;
     }
 
@@ -192,7 +192,7 @@ struct mepa_device *mepa_create_int(
     size_t priv_aligned = size_align(size_of_private_data);
 
     mem = (char *)mepa_mem_alloc_int(callout, callout_ctx, dev_aligned + priv_aligned);
-    if (!mem) {
+    if (mem == NULL) {
         T_E("Alloc failed. Port: %d, size: %d", conf->numeric_handle, dev_aligned + priv_aligned);
         return NULL;
     }
@@ -225,7 +225,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
     mepa_device_t  *dev = 0;
 
     // Initialize all the drivers needed
-    if (!MEPA_init_done) {
+    if (MEPA_init_done == 0) {
         // Raise conditions does not matter here. Multiple threads can do this,
         // it will waste a bit of CPU, but do no harm.
         MEPA_init_done = 1;
@@ -280,7 +280,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
 
 
     }
-    if (conf->dummy_phy_cap > 0) {
+    if (conf->dummy_phy_cap > 0U) {
         phy_id = 0xdeadbeef;
     } else {
         phy_id = mepa_phy_id_get(callout, callout_ctx, conf->numeric_handle);
@@ -295,7 +295,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
         //    continue;
         //}
 
-        if (!MEPA_phy_lib[i].count || !MEPA_phy_lib[i].phy_drv) {
+        if ((MEPA_phy_lib[i].count == 0U) || (MEPA_phy_lib[i].phy_drv == NULL)) {
             continue;
         }
 
