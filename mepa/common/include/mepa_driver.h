@@ -974,6 +974,7 @@ struct mepa_device *mepa_create_int(
 
 mepa_rc mepa_delete_int(mepa_device_t *dev);
 
+#if defined(MEPA_HAS_VTSS)
 /** \brief Default driver that match any PHY */
 mepa_drivers_t mepa_default_phy_driver_init(void);
 
@@ -985,39 +986,62 @@ mepa_drivers_t mepa_malibu_driver_init(void);
 
 /** \brief Returns drivers for venice PHY */
 mepa_drivers_t mepa_venice_driver_init(void);
+#endif /* MEPA_HAS_VTSS */
 
+#if defined(MEPA_HAS_AQR)
 /** \brief Returns drivers for AQR PHY */
 mepa_drivers_t mepa_aqr_driver_init(void);
+#endif /* MEPA_HAS_AQR */
 
+#if defined(MEPA_HAS_GPY2211)
 /** \brief Returns drivers for intel PHY */
 mepa_drivers_t mepa_intel_driver_init(void);
+#endif /* MEPA_HAS_GPY2211 */
 
+#if defined(MEPA_HAS_KSZ9031)
 /** \brief Returns drivers for ksz PHY */
 mepa_drivers_t mepa_ksz9031_driver_init(void);
+#endif /* MEPA_HAS_KSZ9031 */
 
+#if defined(MEPA_HAS_LAN8814)
 /** \brief Returns drivers for lan8814 PHY */
 mepa_drivers_t mepa_lan8814_driver_init(void);
+#endif /* MEPA_HAS_LAN8814 */
 
+#if defined(MEPA_HAS_LAN8770)
 /** \brief Returns drivers for lan8770 PHY */
 mepa_drivers_t mepa_lan8770_driver_init(void);
+#endif /* MEPA_HAS_LAN8770 */
 
+#if defined(MEPA_HAS_LAN884x)
 /** \brief Returns drivers for lan884x PHY */
 mepa_drivers_t mepa_lan884x_driver_init(void);
+#endif /* MEPA_HAS_LAN884x */
 
+#if defined(MEPA_HAS_LAN887X)
 /** \brief Returns drivers for lan887x PHY */
 mepa_drivers_t mepa_lan887x_driver_init(void);
+#endif /* MEPA_HAS_LAN887X */
 
-/** \brief Returns drivers for lan887x PHY */
+#if defined(MEPA_HAS_LAN8X8X)
+/** \brief Returns drivers for lan8x8x PHY */
 mepa_drivers_t mepa_lan8x8x_driver_init(void);
+#endif /* MEPA_HAS_LAN8X8X */
 
+#if defined(MEPA_HAS_LAN867X)
 /** \brief Returns drivers for lan867x PHY */
 mepa_drivers_t mepa_lan867x_driver_init(void);
+#endif /* MEPA_HAS_LAN867X */
 
+#if defined(MEPA_HAS_LAN80XX)
 /** \brief Returns drivers for lan80xx PHY */
 mepa_drivers_t mepa_lan80xx_driver_init(void);
+#endif /* MEPA_HAS_LAN80XX */
 
+#if defined(MEPA_HAS_DUMMY_PHY)
 /** \brief Dummy SW driver */
 mepa_drivers_t mepa_dummy_driver_init(void);
+#endif /* MEPA_HAS_DUMMY_PHY */
 
 #include <microchip/ethernet/hdr_end.h>
 #endif /**< MICROCHIP_ETHERNET_PHY_API_PHY_DRV_H */

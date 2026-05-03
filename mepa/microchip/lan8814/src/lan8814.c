@@ -13,6 +13,8 @@
 
 extern mepa_ts_driver_t lan8814_ts_drivers;
 
+mepa_drivers_t mepa_lan8814_driver_init(void);
+
 
 // Return true if the PHY is the lan8814
 static mepa_bool_t lan8814_is_lan8814(mepa_device_t *dev)
