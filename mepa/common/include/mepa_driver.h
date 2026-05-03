@@ -868,7 +868,7 @@ typedef struct mepa_driver {
     mepa_driver_delete_t                 mepa_driver_delete;
     mepa_driver_reset_t                  mepa_driver_reset;
     mepa_driver_poll_t                   mepa_driver_poll;
-    mepa_capability_t                    mepa_capability;
+    mepa_capability_t                    mepa_driver_capability;
     mepa_driver_conf_set_t               mepa_driver_conf_set;
     mepa_driver_conf_get_t               mepa_driver_conf_get;
     mepa_driver_if_set_t                 mepa_driver_if_set;
@@ -903,7 +903,7 @@ typedef struct mepa_driver {
     mepa_driver_eee_mode_conf_set_t      mepa_driver_eee_mode_conf_set;
     mepa_driver_eee_mode_conf_get_t      mepa_driver_eee_mode_conf_get;
     mepa_driver_eee_status_get_t         mepa_driver_eee_status_get;
-    mepa_debug_info_dump_t               mepa_debug_info_dump;
+    mepa_debug_info_dump_t               mepa_driver_debug_info_dump;
     mepa_driver_phy_i2c_read_t           mepa_driver_phy_i2c_read;
     mepa_driver_phy_i2c_write_t          mepa_driver_phy_i2c_write;
     mepa_driver_phy_i2c_clock_select_t   mepa_driver_phy_i2c_clock_select;

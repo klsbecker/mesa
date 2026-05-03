@@ -2137,9 +2137,9 @@ static void fill_driver_info(uint32_t id, uint32_t mask, mepa_driver_t *drv_inst
     drv_inst->mepa_driver_sqi_read           = &lan8x8x_sqi_read;
     drv_inst->mepa_driver_loopback_set       = &lan8x8x_loopback_set;
     drv_inst->mepa_driver_loopback_get       = &lan8x8x_loopback_get;
-    drv_inst->mepa_capability                = &lan8x8x_capability;
+    drv_inst->mepa_driver_capability         = &lan8x8x_capability;
     drv_inst->mepa_driver_phy_info_get       = &lan8x8x_info_get;
-    drv_inst->mepa_debug_info_dump           = &lan8x8x_debug_info;
+    drv_inst->mepa_driver_debug_info_dump    = &lan8x8x_debug_info;
     drv_inst->mepa_driver_clause22_read      = &lan8x8x_reg_read;
     drv_inst->mepa_driver_clause22_write     = &lan8x8x_reg_write;
     drv_inst->mepa_driver_clause45_read      = &lan8x8x_mmd_reg_read;

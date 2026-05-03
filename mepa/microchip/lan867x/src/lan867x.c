@@ -345,9 +345,9 @@ mepa_drivers_t mepa_lan867x_driver_init(void)
     drv->mepa_driver_clause22_write     = lan867x_reg_write;
     drv->mepa_driver_clause45_read      = lan867x_mmd_reg_read;
     drv->mepa_driver_clause45_write     = lan867x_mmd_reg_write;
-    drv->mepa_capability                = lan867x_capability;
+    drv->mepa_driver_capability         = lan867x_capability;
     drv->mepa_driver_phy_info_get       = lan867x_info_get;
-    drv->mepa_debug_info_dump           = lan867x_debug_info;
+    drv->mepa_driver_debug_info_dump    = lan867x_debug_info;
     drv->mepa_t1s                       = &lan867x_t1s_driver;
 
     result.phy_drv = &lan867x_driver[0];

@@ -587,8 +587,8 @@ static void lan80xx_driver_create(uint32_t id, mepa_driver_t *drv)
     drv->mepa_driver_chip_temp_get        = lan80xx_chip_temp_get;
     drv->mepa_driver_warmrestart_conf_get = lan80xx_restart_conf_get;
     drv->mepa_driver_warmrestart_conf_set = lan80xx_restart_conf_set;
-    drv->mepa_capability                  = lan80xx_phy_capability;
-    drv->mepa_debug_info_dump             = lan80xx_debug_info_dump;
+    drv->mepa_driver_capability           = lan80xx_phy_capability;
+    drv->mepa_driver_debug_info_dump      = lan80xx_debug_info_dump;
     drv->mepa_driver_synce_clock_conf_set = lan80xx_synce_clk_conf_set;
     drv->mepa_driver_framepreempt_set     = lan80xx_framepreempt_set;
     drv->mepa_driver_framepreempt_get     = lan80xx_framepreempt_get;

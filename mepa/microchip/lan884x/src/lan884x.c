@@ -564,9 +564,9 @@ mepa_drivers_t mepa_lan884x_driver_init()
             .mepa_driver_clause22_write = pfe_direct_reg_write,
             .mepa_driver_clause45_read  = pfe_ext_mmd_reg_read,
             .mepa_driver_clause45_write = pfe_ext_mmd_reg_write,
-            .mepa_capability = pfe_capability,
+            .mepa_driver_capability = pfe_capability,
             .mepa_driver_phy_info_get = pfe_info_get,
-            .mepa_debug_info_dump = pfe_debug_info_dump,
+            .mepa_driver_debug_info_dump = pfe_debug_info_dump,
         },
     };
 

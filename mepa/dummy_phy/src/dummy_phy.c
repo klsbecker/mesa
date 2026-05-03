@@ -106,7 +106,7 @@ mepa_drivers_t mepa_dummy_driver_init()
     dummy[0].mepa_driver_poll = dummy_1g_poll;
     dummy[0].mepa_driver_conf_set = dummy_conf_set;
     dummy[0].mepa_driver_probe = dummy_probe;
-    dummy[0].mepa_capability = dummy_capability;
+    dummy[0].mepa_driver_capability = dummy_capability;
     dummy[0].mepa_driver_phy_info_get = dummy_info_get,
     dummy[0].mepa_driver_conf_get = dummy_conf_get;
     dummy[0].mepa_driver_reset = dummy_reset,

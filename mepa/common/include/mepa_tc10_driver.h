@@ -186,19 +186,19 @@ typedef mepa_rc (*mepa_tc10_send_wake_request_t)(struct mepa_device *dev);
 
 /** \brief PHY TC10 Driver */
 typedef struct mepa_tc10_driver {
-    mepa_tc10_set_sleep_support_t           mepa_tc10_set_sleep_support;
-    mepa_tc10_get_sleep_support_t           mepa_tc10_get_sleep_support;
-    mepa_tc10_set_wakeup_support_t          mepa_tc10_set_wakeup_support;
-    mepa_tc10_get_wakeup_support_t          mepa_tc10_get_wakeup_support;
-    mepa_tc10_set_wakeup_fwd_support_t      mepa_tc10_set_wakeup_fwd_support;
-    mepa_tc10_get_wakeup_fwd_support_t      mepa_tc10_get_wakeup_fwd_support;
-    mepa_tc10_set_wake_pin_polarity_t       mepa_tc10_set_wake_pin_polarity;
-    mepa_tc10_get_wake_pin_polarity_t       mepa_tc10_get_wake_pin_polarity;
-    mepa_tc10_set_pin_mode_t                mepa_tc10_set_pin_mode;
-    mepa_tc10_get_pin_mode_t                mepa_tc10_get_pin_mode;
-    mepa_tc10_send_sleep_request_t          mepa_tc10_send_sleep_request;
-    mepa_tc10_get_state_t                   mepa_tc10_get_state;
-    mepa_tc10_send_wake_request_t           mepa_tc10_send_wake_request;
+    mepa_tc10_set_sleep_support_t           mepa_driver_tc10_set_sleep_support;
+    mepa_tc10_get_sleep_support_t           mepa_driver_tc10_get_sleep_support;
+    mepa_tc10_set_wakeup_support_t          mepa_driver_tc10_set_wakeup_support;
+    mepa_tc10_get_wakeup_support_t          mepa_driver_tc10_get_wakeup_support;
+    mepa_tc10_set_wakeup_fwd_support_t      mepa_driver_tc10_set_wakeup_fwd_support;
+    mepa_tc10_get_wakeup_fwd_support_t      mepa_driver_tc10_get_wakeup_fwd_support;
+    mepa_tc10_set_wake_pin_polarity_t       mepa_driver_tc10_set_wake_pin_polarity;
+    mepa_tc10_get_wake_pin_polarity_t       mepa_driver_tc10_get_wake_pin_polarity;
+    mepa_tc10_set_pin_mode_t                mepa_driver_tc10_set_pin_mode;
+    mepa_tc10_get_pin_mode_t                mepa_driver_tc10_get_pin_mode;
+    mepa_tc10_send_sleep_request_t          mepa_driver_tc10_send_sleep_request;
+    mepa_tc10_get_state_t                   mepa_driver_tc10_get_state;
+    mepa_tc10_send_wake_request_t           mepa_driver_tc10_send_wake_request;
 } mepa_tc10_driver_t;
 
 #endif  /* _MEPA_TC10_DRV_API_H_ */

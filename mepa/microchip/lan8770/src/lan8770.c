@@ -1170,9 +1170,9 @@ mepa_drivers_t mepa_lan8770_driver_init()
             .mepa_driver_gpio_mode_set      = lan8770_gpio_mode_set,
             .mepa_driver_phy_info_get       = lan8770_info_get,
             .mepa_driver_isolate_mode_conf  = lan8770_isolate_mode_set,
-            .mepa_debug_info_dump           = lan8770_debug_info,
+            .mepa_driver_debug_info_dump    = lan8770_debug_info,
             .mepa_driver_sqi_read           = lan8770_sqi_read,
-            .mepa_capability                = lan8770_capability,
+            .mepa_driver_capability         = lan8770_capability,
             .mepa_tc10                      = &lan8770_tc10_drivers
         },
         {
@@ -1199,9 +1199,9 @@ mepa_drivers_t mepa_lan8770_driver_init()
             .mepa_driver_gpio_mode_set      = lan8770_gpio_mode_set,
             .mepa_driver_phy_info_get       = lan8770_info_get,
             .mepa_driver_isolate_mode_conf  = lan8770_isolate_mode_set,
-            .mepa_debug_info_dump           = lan8770_debug_info,
+            .mepa_driver_debug_info_dump    = lan8770_debug_info,
             .mepa_driver_sqi_read           = lan8770_sqi_read,
-            .mepa_capability                = lan8770_capability,
+            .mepa_driver_capability         = lan8770_capability,
             .mepa_tc10                      = &lan8770_tc10_drivers
         },
         {
@@ -1228,9 +1228,9 @@ mepa_drivers_t mepa_lan8770_driver_init()
             .mepa_driver_gpio_mode_set      = lan8770_gpio_mode_set,
             .mepa_driver_phy_info_get       = lan8770_info_get,
             .mepa_driver_isolate_mode_conf  = lan8770_isolate_mode_set,
-            .mepa_debug_info_dump           = lan8770_debug_info,
+            .mepa_driver_debug_info_dump    = lan8770_debug_info,
             .mepa_driver_sqi_read           = lan8770_sqi_read,
-            .mepa_capability                = lan8770_capability,
+            .mepa_driver_capability         = lan8770_capability,
             .mepa_tc10                      = &lan8770_tc10_drivers
         },
         {
@@ -1257,9 +1257,9 @@ mepa_drivers_t mepa_lan8770_driver_init()
             .mepa_driver_gpio_mode_set      = lan8770_gpio_mode_set,
             .mepa_driver_phy_info_get       = lan8770_info_get,
             .mepa_driver_isolate_mode_conf  = lan8770_isolate_mode_set,
-            .mepa_debug_info_dump           = lan8770_debug_info,
+            .mepa_driver_debug_info_dump    = lan8770_debug_info,
             .mepa_driver_sqi_read           = lan8770_sqi_read,
-            .mepa_capability                = lan8770_capability,
+            .mepa_driver_capability         = lan8770_capability,
             .mepa_tc10                      = &lan8770_tc10_drivers
         },
     };
