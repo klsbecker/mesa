@@ -56,6 +56,8 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     uint32_t phy_id = 0;
     uint32_t reg2 = 0;
     uint32_t reg3 = 0;
+    uint16_t reg2_16 = 0U;
+    uint16_t reg3_16 = 0U;
     // 8488, Venice and Malibu are special and does not report the PHY on the
     // normal addresses.
     const uint16_t special[] = { 0x8484, 0x8487, 0x8488, 0x8489, 0x8490, 0x8491,
@@ -69,10 +71,11 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     // mmd=1 reg 2 and reg3 (on venice this is 0x0007 0x0400)
     if (callout->spi_read) {
         (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3);
+        reg3 = (uint32_t)(reg3 & 0xFFFFU);
     } else if (callout->mmd_read) {
-        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, (uint16_t *)&reg3);
+        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3_16);
+        reg3 = (uint32_t)reg3_16;
     }
-    reg3 = (uint32_t)(reg3 & 0xFFFFU);
     for (i = 0; i < sizeof(special) / sizeof(special[0]); i++) {
         if (reg3 == special[i]) {
             return reg3;
@@ -84,37 +87,46 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
      */
     if (callout->spi_read) {
         (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2);
+        reg2 = (uint32_t)(reg2 & 0xFFFFU);
     } else if (callout->mmd_read) {
-        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, (uint16_t *)&reg2);
+        (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2_16);
+        reg2 = (uint32_t)reg2_16;
     }
-    reg2 = (uint32_t)(reg2 & 0xFFFFU);
     if ((reg3 == 0U) && (reg2 == 0xA0U)) {
         return 0x8044;
     }
 
-    reg2 = 0;
-    reg3 = 0;
+    reg2_16 = 0U;
+    reg3_16 = 0U;
 
     if (callout->miim_read) {
-        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
-        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
+        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_2, &reg2_16);
+        (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_3, &reg3_16);
+        reg2 = (uint32_t)reg2_16;
+        reg3 = (uint32_t)reg3_16;
     }
 
     // Maybe it is a PHY responding to MMD and not MIIM
     if ((callout->mmd_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
-        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, (uint16_t *)&reg2);
-        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, (uint16_t *)&reg3);
+        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_2, &reg2_16);
+        (void)callout->mmd_read(callout_ctx, MEPA_REG_DEV_ID_1, MEPA_REG_ADDR_3, &reg3_16);
+        reg2 = (uint32_t)reg2_16;
+        reg3 = (uint32_t)reg3_16;
     }
 
     // PHY responding to APB register access
     if ((callout->apb_read != NULL) && (reg2 == 0U) && (reg3 == 0U)) {
-            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), (uint16_t *)&reg2);
-            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), (uint16_t *)&reg3);
+            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_2 * 4), &reg2_16);
+            (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, (MEPA_REG_ADDR_3 * 4), &reg3_16);
+            reg2 = (uint32_t)reg2_16;
+            reg3 = (uint32_t)reg3_16;
             // Hallberg Standard registers are located at 0x30000, currently handle it as special case.
             // PHY_ID handling can be moved to "mepa_driver_get_phy_id" later for driver specific.
             if ((reg2 == 0U) && (reg3 == 0U)) {
-                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), (uint16_t *)&reg2);
-                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), (uint16_t *)&reg3);
+                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_2) * 4), &reg2_16);
+                (void)callout->apb_read(callout_ctx, MEPA_REGACC_APB_PORT_BASE_ADDR_IDX, ((0x30000 + MEPA_REG_ADDR_3) * 4), &reg3_16);
+                reg2 = (uint32_t)reg2_16;
+                reg3 = (uint32_t)reg3_16;
             }
     }
 
@@ -184,21 +196,21 @@ struct mepa_device *mepa_create_int(
     struct mepa_board_conf  *conf,
     int size_of_private_data)
 {
-    char            *mem;
+    void            *mem;
     mepa_device_t   *dev;
     void            *priv;
 
     size_t dev_aligned = size_align(sizeof(mepa_device_t));
     size_t priv_aligned = size_align(size_of_private_data);
 
-    mem = (char *)mepa_mem_alloc_int(callout, callout_ctx, dev_aligned + priv_aligned);
+    mem = mepa_mem_alloc_int(callout, callout_ctx, dev_aligned + priv_aligned);
     if (mem == NULL) {
         T_E("Alloc failed. Port: %d, size: %d", conf->numeric_handle, dev_aligned + priv_aligned);
         return NULL;
     }
 
     dev = (mepa_device_t *)mem;
-    priv = (void *)(mem + dev_aligned);
+    priv = (void *)((uint8_t *)mem + dev_aligned);
 
     dev->drv = drv;
     dev->data = priv;
