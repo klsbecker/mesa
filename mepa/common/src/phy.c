@@ -297,7 +297,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
 
     }
     if (conf->dummy_phy_cap > 0U) {
-        phy_id = 0xdeadbeef;
+        phy_id = 0xDEADBEEFU;
     } else {
         phy_id = mepa_phy_id_get(callout, callout_ctx, conf->numeric_handle);
     }
