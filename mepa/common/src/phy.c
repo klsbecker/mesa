@@ -2038,6 +2038,9 @@ mepa_rc mepa_macsec_tx_seca_get(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_tx_seca_get(dev, port, an, next_pn, confidentiality, sak, active, ssci);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_controlled_counters_get(struct mepa_device *dev,
                                             const mepa_macsec_port_t port,
                                             mepa_macsec_secy_port_counters_t *const counters)
@@ -2053,6 +2056,9 @@ mepa_rc mepa_macsec_controlled_counters_get(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_controlled_counters_get(dev, port, counters);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_uncontrolled_counters_get(struct mepa_device                   *dev,
                                               const mepa_port_no_t                port_no,
                                               mepa_macsec_uncontrolled_counters_t *const counters)
@@ -2205,6 +2211,9 @@ mepa_rc mepa_macsec_rx_sa_counters_get(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_rx_sa_counters_get(dev, port, sci, an, counters);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_control_frame_match_conf_set(struct mepa_device *dev,
                                                  const mepa_port_no_t port_no,
                                                  const mepa_macsec_control_frame_match_conf_t *const conf,
@@ -2236,6 +2245,9 @@ mepa_rc mepa_macsec_control_frame_match_conf_del(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_control_frame_match_conf_del(dev, port_no, rule_id);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_control_frame_match_conf_get(struct mepa_device *dev,
                                                  const mepa_port_no_t port_no,
                                                  mepa_macsec_control_frame_match_conf_t *const conf,
@@ -2500,6 +2512,9 @@ mepa_rc mepa_macsec_event_poll(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_event_poll(dev, port_no, ev_mask);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_event_seq_threshold_set(struct mepa_device *dev,
                                             const mepa_port_no_t port_no,
                                             const uint32_t threshold)
@@ -2530,6 +2545,9 @@ mepa_rc mepa_macsec_event_seq_threshold_get(struct mepa_device *dev,
     return dev->drv->mepa_macsec->mepa_driver_macsec_event_seq_threshold_get(dev, port_no, threshold);
 }
 
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 5.1"                                                    \
+    "MACsec API identifiers share long common prefixes; names are part of the public API"
 mepa_rc mepa_macsec_event_xpn_seq_threshold_set(struct mepa_device *dev,
                                                 const mepa_port_no_t port_no,
                                                 const uint64_t threshold)
