@@ -75,6 +75,8 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     } else if (callout->mmd_read != NULL) {
         (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3_16);
         reg3 = (uint32_t)reg3_16;
+    } else {
+        /* no read method available */
     }
     for (i = 0; i < sizeof(special) / sizeof(special[0]); i++) {
         if (reg3 == special[i]) {
@@ -91,6 +93,8 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     } else if (callout->mmd_read != NULL) {
         (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2_16);
         reg2 = (uint32_t)reg2_16;
+    } else {
+        /* no read method available */
     }
     if ((reg3 == 0U) && (reg2 == 0xA0U)) {
         return 0x8044;
