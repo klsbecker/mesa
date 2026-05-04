@@ -21,7 +21,7 @@
 
 static mepa_drivers_t MEPA_phy_lib[PHY_FAMILIES] = {};
 static int MEPA_init_done = 0;
-mepa_trace_func_t MEPA_TRACE_FUNCTION = 0;
+mepa_trace_func_t MEPA_TRACE_FUNCTION = NULL;
 
 void MEPA_trace(mepa_trace_group_t  group,
                 mepa_trace_level_t  level,
@@ -157,7 +157,7 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
 
     if (callout->mem_alloc == NULL) {
         T_E("No mem_alloc callout");
-        return 0;
+        return NULL;
     }
 
     size = size_align(size);
@@ -165,7 +165,7 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     mem = callout->mem_alloc(callout_ctx, size);
     if (mem == NULL) {
         T_E("Out of memory? %z", size);
-        return 0;
+        return NULL;
     }
 
     mem64 = (uint64_t *)mem;
@@ -234,7 +234,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
                                 struct mepa_board_conf  *conf)
 {
     uint32_t phy_id = 0;
-    mepa_device_t  *dev = 0;
+    mepa_device_t  *dev = NULL;
 
     // Initialize all the drivers needed
     if (MEPA_init_done == 0) {
@@ -326,7 +326,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
     }
 
     //T_I(inst, "No probing");
-    return 0;
+    return NULL;
 }
 
 mepa_rc mepa_delete(struct mepa_device *dev)
