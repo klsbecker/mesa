@@ -18,7 +18,6 @@ typedef unsigned short     u16;
 typedef unsigned int       u32;
 typedef unsigned long long u64;
 typedef unsigned char      BOOL;
-//typedef unsigned int       uintptr_t; /**< Unsigned integer big enough to hold pointers */
 
 #define MEPA_DIV64(dividend, divisor) ((dividend) / (divisor))
 #define MEPA_MOD64(dividend, divisor) ((dividend) % (divisor))
