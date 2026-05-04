@@ -41,7 +41,7 @@ void MEPA_trace(mepa_trace_group_t  group,
         .format   = format,
     };
 
-    if (MEPA_TRACE_FUNCTION) {
+    if (MEPA_TRACE_FUNCTION != NULL) {
         va_start(args, format);
         MEPA_TRACE_FUNCTION(&data, args);
         va_end(args);
@@ -69,10 +69,10 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
 
     // TODO, this check would be more robust if we combine it with the values of
     // mmd=1 reg 2 and reg3 (on venice this is 0x0007 0x0400)
-    if (callout->spi_read) {
+    if (callout->spi_read != NULL) {
         (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3);
         reg3 = (uint32_t)(reg3 & 0xFFFFU);
-    } else if (callout->mmd_read) {
+    } else if (callout->mmd_read != NULL) {
         (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_REG_ADDR_0, &reg3_16);
         reg3 = (uint32_t)reg3_16;
     }
@@ -85,10 +85,10 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
      * A0 silicon of LAN80XX PHYs have DEVICE_ID = 0, so read Revision ID register and check whether it is A0
      * If A0 then considering it as LAN8044 PHY.
      */
-    if (callout->spi_read) {
+    if (callout->spi_read != NULL) {
         (void)callout->spi_read(callout_ctx,  port_no, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2);
         reg2 = (uint32_t)(reg2 & 0xFFFFU);
-    } else if (callout->mmd_read) {
+    } else if (callout->mmd_read != NULL) {
         (void)callout->mmd_read(callout_ctx, MEPA_GLOBAL_REG_DEV_ID, MEPA_SILICON_REVISION_REG, &reg2_16);
         reg2 = (uint32_t)reg2_16;
     }
@@ -99,7 +99,7 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     reg2_16 = 0U;
     reg3_16 = 0U;
 
-    if (callout->miim_read) {
+    if (callout->miim_read != NULL) {
         (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_2, &reg2_16);
         (void)callout->miim_read(callout_ctx, MEPA_REG_ADDR_3, &reg3_16);
         reg2 = (uint32_t)reg2_16;
@@ -317,7 +317,7 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
 
             if ((driver->id & driver->mask) == (phy_id & driver->mask)) {
                 dev = driver->mepa_driver_probe(driver, callout, callout_ctx, conf);
-                if (dev) {
+                if (dev != NULL) {
                     T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, phy_id, i, j);
                     return dev;
                 }
