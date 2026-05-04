@@ -840,18 +840,6 @@ mepa_rc mepa_sqi_read(struct mepa_device *dev, uint32_t *const value);
 **/
 
 /**
- * \brief Set FEFI configuration
- *
- *  \param dev     [IN]    Driver instance.
- *  \temp          [OUT]   Stored chip temperature value.
- *
- *  \return
- *    MEPA_RC_NOT_IMPLEMENTED when not supported.\n
- *    MEPA_RC_OK on success.
- **/
-mepa_rc mepa_chip_temp_get(struct mepa_device *dev, int16_t *const temp);
-
-/**
  * \brief PHY write SOF value
  * \param dev   [IN]   Driver instance.
  * \param fefi_conf   [IN]   FEFI mode as input.
