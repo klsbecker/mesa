@@ -42,8 +42,14 @@ void MEPA_trace(mepa_trace_group_t  group,
     };
 
     if (MEPA_TRACE_FUNCTION != NULL) {
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 17.1"                                                   \
+    "va_start required to forward variadic args to the trace callback"
         va_start(args, format);
         MEPA_TRACE_FUNCTION(&data, args);
+#pragma coverity compliance deviate                                            \
+    "MISRA C-2023 Rule 17.1"                                                   \
+    "va_end required to match va_start for variadic args forwarding"
         va_end(args);
     }
 }
