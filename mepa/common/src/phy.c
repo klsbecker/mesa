@@ -205,7 +205,7 @@ struct mepa_device *mepa_create_int(
     void            *priv;
 
     size_t dev_aligned = size_align(sizeof(mepa_device_t));
-    size_t priv_aligned = size_align(size_of_private_data);
+    size_t priv_aligned = size_align((size_t)size_of_private_data);
 
     mem = mepa_mem_alloc_int(callout, callout_ctx, dev_aligned + priv_aligned);
     if (mem == NULL) {
