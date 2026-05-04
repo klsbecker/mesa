@@ -285,9 +285,32 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                 struct mepa_board_conf  *conf);
 
+
 uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
                          struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                          uint32_t                                 port_no);
+
+/** \brief Create a new MEPA instance based on driver id. In this case the
+ *   function will NOT try to read PHY id of the device and then find the
+ *   MEPA driver that matches the specific PHY. In this case it would create a
+ *   new MEPA instance and will assigned the MEPA driver that has the same ID
+ *   as the argument.
+ *
+ *   NOTE: 'callout' and 'callout_ctx' pointers must be considered as SHARED,
+ *   meaning that they must remain valid until all MEPA instances are deleted.
+ *   MEPA will use these poiner values in sub-sequence MEPA calls.
+ *   The same instance of the callout should be used for all MEPA instances.
+ *   Each PHY should have a unique callout_ctx which contains mdio address
+ *   controllers etc.
+ *
+ *   NOTE: Use this function only if you know exactly which driver do you want
+ *   to use for the PHY, otherwise use mepa_create
+ *   */
+
+struct mepa_device *mepa_create_by_driver_id(const mepa_callout_t    MEPA_SHARED_PTR *callout,
+                                             struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
+                                             struct mepa_board_conf  *conf,
+                                             uint32_t id);
 
 /**
  * \brief Clears up the data allocated in the probe function.

@@ -230,14 +230,8 @@ mepa_rc mepa_delete_int(mepa_device_t *dev)
     return MEPA_RC_OK;
 }
 
-
-struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout,
-                                struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
-                                struct mepa_board_conf  *conf)
+static void mepa_initialize_libraries(void)
 {
-    uint32_t phy_id = 0;
-    mepa_device_t  *dev = NULL;
-
     // Initialize all the drivers needed
     if (MEPA_init_done == 0) {
         // Raise conditions does not matter here. Multiple threads can do this,
@@ -291,44 +285,74 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
 #if defined(MEPA_HAS_VTSS)
         MEPA_phy_lib[14] = mepa_default_phy_driver_init();
 #endif
-
-
     }
-    if (conf->dummy_phy_cap > 0U) {
-        phy_id = 0xDEADBEEFU;
-    } else {
-        phy_id = mepa_phy_id_get(callout, callout_ctx, conf->numeric_handle);
-    }
+}
 
-    //if (phy_id != conf->id) {
-    //    T_E("PHY IDs does not match");
-    //}
+struct mepa_device *mepa_probe_phy(const mepa_callout_t    MEPA_SHARED_PTR *callout,
+                                   struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
+                                   struct mepa_board_conf  *conf,
+                                   uint32_t id,
+                                   mesa_bool_t driver_id)
+{
+    mepa_device_t *dev = NULL;
 
-    for (int i = 0; i < PHY_FAMILIES; i++) {
-        //if (!MEPA_phy_lib[i]) {
-        //    continue;
-        //}
-
+    for (uint32_t i = 0; i < PHY_FAMILIES; i++) {
         if ((MEPA_phy_lib[i].count == 0U) || (MEPA_phy_lib[i].phy_drv == NULL)) {
             continue;
         }
 
         for (uint32_t j = 0; j < MEPA_phy_lib[i].count; j++) {
             mepa_driver_t *driver = &MEPA_phy_lib[i].phy_drv[j];
+            mesa_bool_t match = 0U;
 
+            if (driver_id) {
+                if (driver->id == id) {
+                    match = 1U;
+                }
+            } else {
+                if ((driver->id & driver->mask) == (id & driver->mask)) {
+                    match = 1U;
+                }
+            }
 
-            if ((driver->id & driver->mask) == (phy_id & driver->mask)) {
+            if (match == 1U) {
                 dev = driver->mepa_driver_probe(driver, callout, callout_ctx, conf);
                 if (dev != NULL) {
-                    T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, phy_id, i, j);
+                    T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, id, i, j);
                     return dev;
                 }
             }
         }
     }
 
-    //T_I(inst, "No probing");
     return NULL;
+}
+
+struct mepa_device *mepa_create_by_driver_id(const mepa_callout_t    MEPA_SHARED_PTR *callout,
+                                             struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
+                                             struct mepa_board_conf  *conf,
+                                             uint32_t driver_id)
+{
+    mepa_initialize_libraries();
+
+    return mepa_probe_phy(callout, callout_ctx, conf, driver_id, 1U);
+}
+
+struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout,
+                                struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
+                                struct mepa_board_conf  *conf)
+{
+    uint32_t phy_id;
+
+    mepa_initialize_libraries();
+
+    if (conf->dummy_phy_cap > 0) {
+        phy_id = 0xdeadbeef;
+    } else {
+        phy_id = mepa_phy_id_get(callout, callout_ctx, conf->numeric_handle);
+    }
+
+    return mepa_probe_phy(callout, callout_ctx, conf, phy_id, 0U);
 }
 
 mepa_rc mepa_delete(struct mepa_device *dev)
