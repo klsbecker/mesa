@@ -1086,29 +1086,153 @@ static mepa_rc venice_10g_reset(mepa_device_t *dev,
     return vtss_phy_10g_mode_set(data->vtss_instance, data->port_no, &oper_mode);
 }
 
+/* CuSFP in 1G_MODE non-repeater with SGMII on both PCS1G blocks. PCS1G_LINK_STATUS reflects only
+ * symbol sync. The real RJ-45 link/fdx/speed come from the Line-side SGMII partner page. When
+ * partner speed changes, re-run sgmii_mode_set so the host side re-advertises the new speed to the
+ * switch MAC. Sub-1G cannot cross Malibu-internal MACs on Rev D silicon (no byte-decimation
+ * circuit) — link is forced down and an error is logged once per speed change. */
+static mepa_rc phy_10g_malibu_1g_sgmii_status(mepa_device_t *dev, mepa_status_t *status)
+{
+    phy_data_t                 *data = (phy_data_t *)dev->data;
+    vtss_inst_t                 vtss_inst = data->vtss_instance;
+    vtss_phy_10g_sgmii_status_t sgmii = {};
+
+    if (vtss_phy_10g_sgmii_status_get(vtss_inst, data->port_no, &sgmii) != VTSS_RC_OK) {
+        return MEPA_RC_ERROR;
+    }
+
+    status->link = sgmii.link;
+    if (!sgmii.link) {
+        data->sgmii_passthru_spd = VTSS_SPEED_UNDEFINED;
+        return MEPA_RC_OK;
+    }
+
+    status->fdx = sgmii.fdx;
+
+    if (sgmii.speed != VTSS_SPEED_1G) {
+        /* Sub-1G CuSFP: silicon cannot de-duplicate the byte-repeated SGMII
+         * stream. Force link down; warn on each speed transition. */
+        if (data->sgmii_passthru_spd != sgmii.speed) {
+            const char *spd_str = (sgmii.speed == VTSS_SPEED_10M)    ? "10M"
+                                  : (sgmii.speed == VTSS_SPEED_100M) ? "100M"
+                                                                     : "sub-1G";
+            T_E(data, MEPA_TRACE_GRP_GEN,
+                "port %u: CuSFP negotiated %s - not supported in 1G_MODE "
+                "non-repeater on Malibu-10. Use REPEATER mode for sub-1G "
+                "(loses MACsec/1588).",
+                data->port_no, spd_str);
+            data->sgmii_passthru_spd = sgmii.speed;
+        }
+        status->link = 0;
+        return MEPA_RC_OK;
+    }
+
+    status->speed = sgmii.speed;
+
+    if (data->sgmii_passthru_spd != sgmii.speed) {
+        if (vtss_phy_10g_sgmii_mode_set(vtss_inst, data->port_no, TRUE) != VTSS_RC_OK) {
+            T_E(data, MEPA_TRACE_GRP_GEN,
+                "port %u: failed to re-apply SGMII mode after speed change", data->port_no);
+            return MEPA_RC_ERROR;
+        }
+        data->sgmii_passthru_spd = sgmii.speed;
+    }
+
+    return MEPA_RC_OK;
+}
+
 static mepa_rc phy_10g_poll(mepa_device_t *dev,
                             mepa_status_t *status)
 {
     phy_data_t *data = (phy_data_t *)dev->data;
     vtss_phy_10g_status_t status_10g;
-    vtss_phy_10g_clause_37_control_t control;
+    vtss_phy_10g_mode_t mode_cur = {};
+
+    memset(status, 0, sizeof(*status));
 
     if (vtss_phy_10g_status_get(data->vtss_instance, data->port_no, &status_10g) != VTSS_RC_OK) {
         return MEPA_RC_ERROR;
     }
-    memset(status, 0, sizeof(*status));
-    status->link = status_10g.status;
-    if (status_10g.pma.rx_link && status_10g.hpma.rx_link && status_10g.pcs.rx_link && status_10g.hpcs.rx_link)
-    {
-        status->speed = MESA_SPEED_10G;
-        status->fiber = 1;
-        status->fdx = 1;
+
+    if (vtss_phy_10g_mode_get(data->vtss_instance, data->port_no, &mode_cur)) {
+        return MEPA_RC_ERROR;
     }
-    else if (status_10g.pma.rx_link && status_10g.hpma.rx_link && status_10g.lpcs_1g && status_10g.hpcs_1g)
-    {
-        vtss_phy_10g_clause_37_control_get(data->vtss_instance, data->port_no, &control);
-        status->speed = MESA_SPEED_1G;
-        status->fdx = control.advertisement.fdx;
+
+    if (mode_cur.oper_mode == VTSS_PHY_REPEATER_MODE) {
+        /* PCS is bypassed in repeater; link reflects PMA sync only.
+         * Speed/fdx/aneg come from the MAC (meba_port_status_get handles this). */
+        status->link = status_10g.pma.rx_link && status_10g.hpma.rx_link;
+    } else {
+        status->link = status_10g.status;
+        if (status_10g.pma.rx_link && status_10g.hpma.rx_link && status_10g.pcs.rx_link && status_10g.hpcs.rx_link)
+        {
+            status->speed = MESA_SPEED_10G;
+            status->fiber = 1;
+            status->fdx = 1;
+        }
+        else if (status_10g.pma.rx_link && status_10g.hpma.rx_link && status_10g.lpcs_1g && status_10g.hpcs_1g)
+        {
+            /* 1000BASE-X Clause 37 supports FDX only. Reading clause-37 advertisement.fdx
+             * is unreliable when ANEG is disabled, so hardcode FDX here. */
+            status->speed = MESA_SPEED_1G;
+            status->fdx = 1;
+        }
+    }
+
+    if (mode_cur.oper_mode == VTSS_PHY_1G_MODE && mode_cur.enable_pass_thru) {
+        return phy_10g_malibu_1g_sgmii_status(dev, status);
+    }
+    return MEPA_RC_OK;
+}
+
+/* 1G / AUTO path for Malibu-10: always repeater at 1.25 Gbps regardless of SFP
+ * type. Works for CuSFP (SGMII 10/100/1000M), 1000BASE-X fiber, DAC, and
+ * 100BASE-FX — the line OB enable added by MEPA-1354 in
+ * malibu_phy_10g_lane_sync_set_internal makes this safe on all SFPs. */
+static mepa_rc phy_10g_1g_mode_set(mepa_device_t             *dev,
+                                   const mepa_conf_t         *config,
+                                   vtss_phy_10g_mode_t *const mode)
+{
+    phy_data_t *data = (phy_data_t *)dev->data;
+    vtss_inst_t vtss_inst = data->vtss_instance;
+
+    /* Flip lanes to match JR XAUI-lane-0 / 8487 XAUI-lane-0 for XAUI MACs. */
+    mode->xaui_lane_flip = true;
+
+    if (data->mac_if == MESA_PORT_INTERFACE_SGMII_CISCO) {
+        /* CuSFP (1G): use the 1 GbE data path (datasheet Figure 99) with
+         * both Line and Host PCS in SGMII mode. Host MAC / MACsec / 1588
+         * blocks are engaged instead of being bypassed, so PHY features
+         * become usable. The vtss_phy_10g_sgmii_mode_set() call reads the
+         * CuSFP's partner SGMII aneg page on the line side and programs
+         * the matching advertisement on the host side toward the MAC. */
+        mode->oper_mode = VTSS_PHY_1G_MODE;
+        if (vtss_phy_10g_mode_set(vtss_inst, data->port_no, mode) != VTSS_RC_OK) {
+            return MEPA_RC_ERROR;
+        }
+        if (vtss_phy_10g_sgmii_mode_set(vtss_inst, data->port_no, TRUE) != VTSS_RC_OK) {
+            return MEPA_RC_ERROR;
+        }
+        return MEPA_RC_OK;
+    }
+
+    /* Fiber / DAC: non-repeater 1000BASE-X with clause-37 aneg. Keeps
+     * PHY-level features (MACsec / PTP / 1588) available. */
+    mode->oper_mode = VTSS_PHY_1G_MODE;
+    if (vtss_phy_10g_mode_set(vtss_inst, data->port_no, mode) != MEPA_RC_OK) {
+        return MEPA_RC_ERROR;
+    }
+
+    vtss_phy_10g_clause_37_control_t ctrl = {};
+    ctrl.enable = (config->speed == MESA_SPEED_AUTO) ? 1 : 0;
+    ctrl.advertisement.fdx = 1;
+    ctrl.advertisement.symmetric_pause = config->flow_control;
+    ctrl.advertisement.asymmetric_pause = config->flow_control;
+    ctrl.advertisement.remote_fault = (config->admin.enable ? VTSS_PHY_10G_CLAUSE_37_RF_LINK_OK
+                                                            : VTSS_PHY_10G_CLAUSE_37_RF_OFFLINE);
+    ctrl.l_h = true;
+    if (vtss_phy_10g_clause_37_control_set(vtss_inst, data->port_no, &ctrl) != MEPA_RC_OK) {
+        return MEPA_RC_ERROR;
     }
     return MEPA_RC_OK;
 }
@@ -1140,31 +1264,7 @@ static mepa_rc phy_10g_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
     mode.h_clk_src.is_high_amp = config->conf_10g.h_clk_src_is_high_amp;
     mode.l_clk_src.is_high_amp = config->conf_10g.l_clk_src_is_high_amp;
     if (config->speed == MESA_SPEED_1G || config->speed == MESA_SPEED_AUTO) {
-        /* Need to flip the lanes to match JR XAUI-lane-0 and 8487 XAUI-lane-0
-         * This only applies to PHY's with a XAUI MAC Interface  */
-        mode.xaui_lane_flip = true;
-
-        /* Speed controls oper_mode */
-        mode.oper_mode = VTSS_PHY_1G_MODE;
-        if (vtss_phy_10g_mode_set(data->vtss_instance, data->port_no, &mode) != MEPA_RC_OK) {
-            return MEPA_RC_ERROR;
-        }
-
-        /* Enable/disable 1G Clause 37 aneg */
-        vtss_phy_10g_clause_37_control_t ctrl = {};
-        ctrl.enable = (config->speed == MESA_SPEED_AUTO) ? 1 : 0;
-        ctrl.advertisement.fdx = 1;
-        ctrl.advertisement.symmetric_pause = config->flow_control;
-        ctrl.advertisement.asymmetric_pause = config->flow_control;
-        ctrl.advertisement.remote_fault =
-            (config->admin.enable ? VTSS_PHY_10G_CLAUSE_37_RF_LINK_OK
-             : VTSS_PHY_10G_CLAUSE_37_RF_OFFLINE);
-        ctrl.l_h = true;
-        if (vtss_phy_10g_clause_37_control_set(data->vtss_instance, data->port_no,
-                                               &ctrl) != MEPA_RC_OK) {
-            return MEPA_RC_ERROR;
-        }
-        return MEPA_RC_OK;
+        return phy_10g_1g_mode_set(dev, config, &mode);
     } else if (config->speed == MESA_SPEED_10G) {
         // mode.oper_mode is set by the application
         if (vtss_phy_10g_mode_set(data->vtss_instance, data->port_no, &mode) != MEPA_RC_OK) {
@@ -1309,6 +1409,7 @@ static mepa_device_t *phy_10g_probe(mepa_driver_t *drv,
     data->vtss_instance = board_conf->vtss_instance_ptr;
     data->port_no = board_conf->numeric_handle;
     data->cap = PHY_CAP_10G;
+    data->sgmii_passthru_spd = VTSS_SPEED_UNDEFINED;
 
     return dev;
 }

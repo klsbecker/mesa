@@ -79,5 +79,6 @@ typedef struct {
     mepa_device_t *ts_alt_dev;
     vtss_inst_t    vtss_instance;
     mepa_bool_t    temp_init_flag;// Used for initializing temperature only once for a port.
+    vtss_port_speed_t sgmii_passthru_spd; // Last observed CuSFP SGMII partner speed; VTSS_SPEED_UNDEFINED = unset.
 } phy_data_t;
 
