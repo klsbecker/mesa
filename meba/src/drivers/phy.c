@@ -600,12 +600,35 @@ mepa_rc meba_port_status_get(meba_inst_t               inst,
     }
 
     if (meba_phy_status_poll(inst, port_no, &status_mepa) == MESA_RC_OK) {
-        status->link = status_mepa.link;
-        status->speed = status_mepa.speed;
-        status->fdx = status_mepa.fdx;
-        status->aneg = status_mepa.aneg;
-        status->copper = status_mepa.copper;
-        status->fiber = status_mepa.fiber;
+        mepa_bool_t phy_in_repeater = false;
+        mepa_bool_t phy_in_1g_mode = false;
+        if (meba_phy_conf_get(inst, port_no, &mode) == MESA_RC_OK) {
+            phy_in_repeater = (mode.conf_10g.oper_mode == MEPA_PHY_REPEATER_MODE);
+            phy_in_1g_mode = (mode.conf_10g.oper_mode == MEPA_PHY_1G_MODE);
+        }
+
+        if (conf.if_type == MESA_PORT_INTERFACE_SGMII_CISCO && phy_in_1g_mode) {
+            /* CuSFP in 1G_MODE non-repeater (Malibu internal MACs bridge line↔host):
+             *   - PHY Line-side SGMII partner page carries the true RJ-45 link state and speed.
+             *   - Switch MAC PCS against Malibu host is unreliable here — trust the PHY. */
+            status->link = status_mepa.link;
+            status->speed = status_mepa.speed;
+            status->fdx = status_mepa.fdx;
+            status->aneg = status_mepa.aneg;
+            status->copper = status_mepa.copper;
+            status->fiber = status_mepa.fiber;
+        } else if (conf.if_type == MESA_PORT_INTERFACE_SGMII_CISCO || phy_in_repeater) {
+            /* CuSFP via repeater mode (bit-level SerDes relay):
+             *   - switch MAC owns speed; PHY contributes only link (PMA sync). */
+            status->link = status->link && status_mepa.link;
+        } else {
+            status->link = status_mepa.link;
+            status->speed = status_mepa.speed;
+            status->fdx = status_mepa.fdx;
+            status->aneg = status_mepa.aneg;
+            status->copper = status_mepa.copper;
+            status->fiber = status_mepa.fiber;
+        }
     }
 
     return MESA_RC_OK;
