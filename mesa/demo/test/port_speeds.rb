@@ -59,6 +59,16 @@ cmd += "tx #{$ts.pc.p[$port_tx2]} name f#{$port_tx2} "
 cmd += "rx #{$ts.pc.p[$port_tx2]} name f#{$port_tx1} "
 cmd += "rx #{$ts.pc.p[$port_tx1]} name f#{$port_tx2} "
 
+cmd_hdx =  "sudo ef "
+cmd_hdx += "name f#{$port_tx1} eth dmac #{$frame_dmac} smac #{$frame_smac} et 0x0800 data pattern cnt #{sz} "
+cmd_hdx += "tx #{$ts.pc.p[$port_tx1]} name f#{$port_tx1} "
+cmd_hdx += "rx #{$ts.pc.p[$port_tx2]} name f#{$port_tx1} "
+
+cmd_hdx_rev =  "sudo ef "
+cmd_hdx_rev += "name f#{$port_tx2} eth dmac #{$frame_smac} smac #{$frame_dmac} et 0x0800 data pattern cnt #{sz} "
+cmd_hdx_rev += "tx #{$ts.pc.p[$port_tx2]} name f#{$port_tx2} "
+cmd_hdx_rev += "rx #{$ts.pc.p[$port_tx1]} name f#{$port_tx2} "
+
 $speed_list.each do |spd_entry|
     test "Mode:'#{spd_entry[:speed]}#{spd_entry[:dpx]} Sending #{$num_of_frames} #{$frame_size} byte frames between ports #{$port_tx1} and #{$port_tx2}" do
         if spd_entry[:dpx] == "hdx" && !hdx_support
@@ -80,7 +90,12 @@ $speed_list.each do |spd_entry|
         end
         # Get port statis in case of failures
         $ts.dut.run("mesa-cmd port statis clear")
-        $ts.pc.run cmd
+        if duplex == "hdx"
+            $ts.pc.run cmd_hdx
+            $ts.pc.run cmd_hdx_rev
+        else
+            $ts.pc.run cmd
+        end
         $ts.dut.run("mesa-cmd port statis pac")
     end
 end
