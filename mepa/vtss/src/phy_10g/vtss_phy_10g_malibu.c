@@ -18189,6 +18189,36 @@ static vtss_rc malibu_phy_10g_sgmii_mode_set(struct vtss_state_s *vtss_state,
 
     return VTSS_RC_OK;
 }
+
+/* SGMII partner page layout (Cisco SGMII) inside LINE PCS1G_ANEG_STATUS2.LP_ADV_ABILITY. */
+#define SGMII_LP_ADV_LINK_BIT   15
+#define SGMII_LP_ADV_FDX_BIT    12
+#define SGMII_LP_ADV_SPEED_POS  10
+#define SGMII_LP_ADV_SPEED_MASK 0x3
+#define SGMII_LP_ADV_SPEED_10M  0
+#define SGMII_LP_ADV_SPEED_100M 1
+#define SGMII_LP_ADV_SPEED_1G   2
+
+static vtss_rc malibu_phy_10g_sgmii_status_get(struct vtss_state_s         *vtss_state,
+                                               const vtss_port_no_t         port_no,
+                                               vtss_phy_10g_sgmii_status_t *status)
+{
+    u32 value, lp_adv;
+
+    CSR_RD(port_no, VTSS_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS2, &value);
+    lp_adv = VTSS_X_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_STATUS2_LP_ADV_ABILITY(value);
+
+    status->link = (lp_adv >> SGMII_LP_ADV_LINK_BIT) & 0x1;
+    status->fdx = (lp_adv >> SGMII_LP_ADV_FDX_BIT) & 0x1;
+    switch ((lp_adv >> SGMII_LP_ADV_SPEED_POS) & SGMII_LP_ADV_SPEED_MASK) {
+    case SGMII_LP_ADV_SPEED_10M:  status->speed = VTSS_SPEED_10M; break;
+    case SGMII_LP_ADV_SPEED_100M: status->speed = VTSS_SPEED_100M; break;
+    case SGMII_LP_ADV_SPEED_1G:   status->speed = VTSS_SPEED_1G; break;
+    default:                      status->speed = VTSS_SPEED_UNDEFINED; break;
+    }
+    return VTSS_RC_OK;
+}
+
 vtss_rc malibu_phy_10g_jitter_conf_set( struct vtss_state_s *vtss_state,
                                         const vtss_port_no_t port_no,
                                         const BOOL is_host,
@@ -18293,6 +18323,7 @@ vtss_rc vtss_phy_10g_inst_malibu_create(vtss_state_t *vtss_state)
     func->malibu_phy_10g_jitter_status_get = malibu_phy_10g_jitter_status_get;
     func->malibu_phy_10g_serdes_status_get = malibu_phy_10g_serdes_status_get;
     func->malibu_phy_10g_sgmii_mode_set = malibu_phy_10g_sgmii_mode_set;
+    func->malibu_phy_10g_sgmii_status_get = malibu_phy_10g_sgmii_status_get;
     func->malibu_phy_10g_debug_reg_dump = malibu_10g_debug_reg_dump;
     func->malibu_phy_10g_base_kr_conf_set = malibu_phy_10g_base_kr_conf_set;
     func->malibu_phy_10g_base_kr_host_conf_set = malibu_phy_10g_base_kr_host_conf_set;

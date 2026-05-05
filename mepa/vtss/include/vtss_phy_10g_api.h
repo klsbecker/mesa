@@ -3041,6 +3041,32 @@ vtss_rc vtss_phy_10g_sgmii_mode_set(const vtss_inst_t                       inst
         const vtss_port_no_t                    port_no,
         BOOL enable);
 
+/** \brief SGMII pass-through status decoded from the line-side partner page */
+typedef struct {
+    BOOL              link;   /**< RJ-side link state (partner page bit 15) */
+    BOOL              fdx;    /**< partner duplex (bit 12) */
+    vtss_port_speed_t speed;  /**< partner speed (bits 11:10): 10M / 100M / 1G */
+} vtss_phy_10g_sgmii_status_t;
+
+/**
+ * \brief Read SGMII pass-through status from the Line side.
+ *
+ * Decodes the line-side SGMII partner aneg page for PHYs running in 1G_MODE
+ * with pass-through enabled (see vtss_phy_10g_sgmii_mode_set). The partner
+ * page is the authoritative indication of the RJ-side link state for CuSFPs
+ * (PCS1G_LINK_STATUS only tracks symbol sync, which stays up while the
+ * CuSFP is emitting SGMII regardless of the RJ cable state).
+ *
+ * \param inst    [IN]   Target instance reference.
+ * \param port_no [IN]   Port number.
+ * \param status  [OUT]  Decoded link / duplex / speed.
+ *
+ * \return Return code.
+ **/
+vtss_rc vtss_phy_10g_sgmii_status_get(const vtss_inst_t                  inst,
+                                      const vtss_port_no_t               port_no,
+                                      vtss_phy_10g_sgmii_status_t *const status);
+
 /**
  * \brief  i2c reset
  *

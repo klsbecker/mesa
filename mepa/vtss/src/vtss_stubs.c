@@ -952,6 +952,12 @@ vtss_rc vtss_phy_10g_sgmii_mode_set(const vtss_inst_t inst, const vtss_port_no_t
     return VTSS_RC_NOT_IMPLEMENTED;
 }
 
+vtss_rc vtss_phy_10g_sgmii_status_get(const vtss_inst_t inst, const vtss_port_no_t port_no,
+                                      vtss_phy_10g_sgmii_status_t *const status)
+{
+    return VTSS_RC_NOT_IMPLEMENTED;
+}
+
 vtss_rc vtss_phy_10g_i2c_read(const vtss_inst_t inst, const vtss_port_no_t port_no, const u8 addr, u8 *const value)
 {
     return VTSS_RC_NOT_IMPLEMENTED;

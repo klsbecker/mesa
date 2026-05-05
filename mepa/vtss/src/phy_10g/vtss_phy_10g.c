@@ -3138,6 +3138,28 @@ vtss_rc vtss_phy_10g_sgmii_mode_set(const vtss_inst_t                       inst
     return rc;
 }
 
+vtss_rc vtss_phy_10g_sgmii_status_get(const vtss_inst_t                  inst,
+                                      const vtss_port_no_t               port_no,
+                                      vtss_phy_10g_sgmii_status_t *const status)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc      rc;
+
+    if (status == NULL) {
+        return VTSS_RC_ERROR;
+    }
+    VTSS_ENTER();
+    if ((rc = vtss_inst_phy_10G_no_check_private(inst, &vtss_state, port_no)) == VTSS_RC_OK) {
+        if (vtss_state->phy_10g_state[port_no].family == VTSS_PHY_FAMILY_MALIBU) {
+            rc = VTSS_FUNC_COLD(cil.malibu_phy_10g_sgmii_status_get, port_no, status);
+        } else {
+            rc = VTSS_RC_NOT_IMPLEMENTED;
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
 static vtss_rc vtss_phy_10g_debug_reg_dump_private(vtss_state_t *vtss_state,
                                                    const vtss_debug_printf_t pr,
                                                    BOOL clear,

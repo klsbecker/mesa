@@ -287,6 +287,9 @@ typedef struct {
                                     vtss_port_no_t port_no);
     vtss_rc (* malibu_phy_10g_sgmii_mode_set) ( struct vtss_state_s *vtss_state,
                                                 vtss_port_no_t port_no);
+    vtss_rc (* malibu_phy_10g_sgmii_status_get) ( struct vtss_state_s *vtss_state,
+                                                  vtss_port_no_t port_no,
+                                                  vtss_phy_10g_sgmii_status_t *status);
 #endif /* VTSS_CHIP_10G_PHY */
 #if defined(VTSS_FEATURE_WIS)
     vtss_rc (* ewis_events_conf_set)(struct vtss_state_s *vtss_state,
