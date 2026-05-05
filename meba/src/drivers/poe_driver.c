@@ -813,7 +813,7 @@ void check_reading_byte(uint8_t data, poe_driver_private_t *private_data)
         private_data->iFF_byte_counter = 0;
 }
 
-// declaration 
+// declaration
 static void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst);
 
 // Function for writing data from the MicroSemi micro-controller.
@@ -849,8 +849,8 @@ static mesa_rc pd_wr(const meba_poe_ctrl_inst_t *const inst,
     DEBUG(inst, MEBA_TRACE_LVL_WARNING,
           "%s: %s write failed cnt=%d/%d errno=%d (%s) TxErrCnt=%u ConsecErr=%d/%d",
           inst->adapter_name, data_description, cnt, size, write_errno, strerror(write_errno),
-          private_data->status.global.i2c_tx_error_counter,
-          private_data->i2c_consecutive_tx_errors, I2C_RECOVERY_THRESHOLD);
+          private_data->status.global.i2c_tx_error_counter, private_data->i2c_consecutive_tx_errors,
+          I2C_RECOVERY_THRESHOLD);
 
     // Only attempt recovery after 10 consecutive failures — a single transient
     // error does not justify a bus reset which disrupts all ongoing PoE traffic.
@@ -909,8 +909,8 @@ static mesa_rc pd_wr(const meba_poe_ctrl_inst_t *const inst,
     }
 
     DEBUG(inst, MEBA_TRACE_LVL_ERROR,
-          "%s: %s write failed even after GPIO reset cnt=%d/%d errno=%d (%s)",
-          inst->adapter_name, data_description, cnt, size, errno, strerror(errno));
+          "%s: %s write failed even after GPIO reset cnt=%d/%d errno=%d (%s)", inst->adapter_name,
+          data_description, cnt, size, errno, strerror(errno));
     return MESA_RC_ERROR;
 }
 
@@ -2682,15 +2682,13 @@ char *get_port_max_power_string(const meba_poe_ctrl_inst_t *const inst,
     }
 }
 
-
 static void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst)
 {
     poe_driver_private_t *private_data = (poe_driver_private_t *)(inst->private_data);
 
     // no gpio for reseting poe mcu
     if (private_data->tPoE_parameters.reset_poe_gpio_number == 0xFF) {
-        DEBUG(inst, MEBA_TRACE_LVL_INFO,
-             "No GPIO defined for Reset PoE MCU");
+        DEBUG(inst, MEBA_TRACE_LVL_INFO, "No GPIO defined for Reset PoE MCU");
         sleep(5); // wait 5 seconds and return without GPIO reset
         return;
     }
@@ -2708,7 +2706,6 @@ static void meba_poe_io_reset(const meba_poe_ctrl_inst_t *const inst)
     // set poe io (pin_level) to '1'  - release poe mcu from reset
     (void)mesa_gpio_write(NULL, 0, private_data->tPoE_parameters.reset_poe_gpio_number, TRUE);
 }
-
 
 void meba_poe_ctrl_hw_gpio_reset(const meba_poe_ctrl_inst_t *const inst)
 {
@@ -6119,28 +6116,33 @@ static mesa_bool_t check_report_key_ok(const meba_poe_ctrl_inst_t *const inst,
     // First make sure that the checksum is correct
     if (pd_check_sum_ok(&rx_buf[0])) {
         if (rx_buf[0] != REPORT_KEY) {
-            snprintf(msg, max_msg_buf_size, "%sReport key error, rx0=%2X, REPORT_KEY=%2X \n\r", ALIGN_RESPONSE,
-                    rx_buf[0], REPORT_KEY);
+            snprintf(msg, max_msg_buf_size, "%sReport key error, rx0=%2X, REPORT_KEY=%2X \n\r",
+                     ALIGN_RESPONSE, rx_buf[0], REPORT_KEY);
             report_key_ok_v = false;
         } else if (rx_buf[2] == 0x00 && rx_buf[3] == 0x00) {
-            snprintf(msg, max_msg_buf_size, "%sCommand received/correctly executed \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sCommand received/correctly executed \n\r",
+                     ALIGN_RESPONSE);
             report_key_ok_v = true;
         } else if (rx_buf[2] == 0xFF && rx_buf[3] == 0xFF && rx_buf[4] == 0xFF &&
                    rx_buf[5] == 0xFF) {
-            snprintf(msg, max_msg_buf_size, "%sCommand Received/Wrong Checksum \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sCommand Received/Wrong Checksum \n\r",
+                     ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] > 0x0 && rx_buf[3] < 0x80) {
-            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Conflict in Subject Bytes\n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Conflict in Subject Bytes\n\r",
+                     ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] > 0x80 && rx_buf[3] < 0x90) {
-            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Wrong Data Byte Value \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Wrong Data Byte Value \n\r",
+                     ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else if (rx_buf[2] == 0xFF && rx_buf[3] == 0xFF) {
-            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Undefined Key Value \n\r", ALIGN_RESPONSE);
+            snprintf(msg, max_msg_buf_size, "%sFailed Execution/Undefined Key Value \n\r",
+                     ALIGN_RESPONSE);
             report_key_ok_v = false;
         } else {
-            snprintf(msg, max_msg_buf_size, "%sUndefined revieved Value: rx2:%2X , rx3:%2X \n\r", ALIGN_RESPONSE,
-                    rx_buf[2], rx_buf[3]);
+            snprintf(msg, max_msg_buf_size, "%sUndefined revieved Value: rx2:%2X , rx3:%2X \n\r",
+                     ALIGN_RESPONSE, rx_buf[2], rx_buf[3]);
             report_key_ok_v = true;
         }
     } else {
@@ -6167,7 +6169,8 @@ static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "%s Failed, Invalid checksum: %s", __FUNCTION__,
               print_as_hex_string(rx_buf, PD_BUFFER_SIZE, dbg_txt, sizeof(dbg_txt)));
 
-        snprintf(msg, max_msg_buf_size, "%sTelemetry: Rx message checksum test failed \n\r", ALIGN_RESPONSE);
+        snprintf(msg, max_msg_buf_size, "%sTelemetry: Rx message checksum test failed \n\r",
+                 ALIGN_RESPONSE);
         return MESA_RC_ERROR;
     }
 
@@ -6176,7 +6179,8 @@ static mesa_rc check_controller_response(const meba_poe_ctrl_inst_t *const inst,
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "%s Failed, Invalid key (%d): %s", __FUNCTION__, rx_buf[0],
               print_as_hex_string(rx_buf, PD_BUFFER_SIZE, dbg_txt, sizeof(dbg_txt)));
 
-        snprintf(msg, max_msg_buf_size, "%sTelemetry: Invalid key rx0:%2X \n\r", ALIGN_RESPONSE, rx_buf[0]);
+        snprintf(msg, max_msg_buf_size, "%sTelemetry: Invalid key rx0:%2X \n\r", ALIGN_RESPONSE,
+                 rx_buf[0]);
         return MESA_RC_ERROR;
     }
 
@@ -6325,15 +6329,16 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
 
     // copy input arguments string to local char*
 
-    #define STR_ARGS_MAX256 256
+#define STR_ARGS_MAX256 256
     if (str_len > STR_ARGS_MAX256) {
-        snprintf(msg, max_msg_buf_size, "  Error: argument string too long (%u > %d)\n\r", str_len, STR_ARGS_MAX256);
+        snprintf(msg, max_msg_buf_size, "  Error: argument string too long (%u > %d)\n\r", str_len,
+                 STR_ARGS_MAX256);
         return MESA_RC_ERROR;
     }
     char str_args[STR_ARGS_MAX256 + 1];
     strncpy(str_args, var, str_len);
     str_args[str_len] = 0;
-    #undef STR_ARGS_MAX256
+#undef STR_ARGS_MAX256
 
     // count the number of arguments inside argument string
     for (i = 0; str_args[i] != '\0'; i++) {
@@ -6408,16 +6413,18 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
             {
                 valid_number_e eValidNum = check_argument(p_arg);
                 if (eValidNum != eValidNum_Decimal) {
-                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s is not a decimal number \n\r", i + 1,
-                            p_arg);
+                    snprintf(msg, max_msg_buf_size,
+                             "  Error: argument #%d: %s is not a decimal number \n\r", i + 1,
+                             p_arg);
                     return MESA_RC_ERROR;
                 }
 
                 int dec_val = atoi(p_arg);
 
                 if (dec_val > 0xFF) {
-                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
-                            i + 1, p_arg);
+                    snprintf(msg, max_msg_buf_size,
+                             "  Error: argument #%d: %s value is out of range (0xFF) \n\r", i + 1,
+                             p_arg);
                     return MESA_RC_ERROR;
                 }
 
@@ -6426,8 +6433,9 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
                 // can be  0x2D  0x22
                 valid_number_e eValidNum = check_argument(p + 2); // skip the 0x
                 if ((eValidNum != eValidNum_Hex) && (eValidNum != eValidNum_Decimal)) {
-                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s is not a hexadecimal number \n\r",
-                            i + 1, p_arg);
+                    snprintf(msg, max_msg_buf_size,
+                             "  Error: argument #%d: %s is not a hexadecimal number \n\r", i + 1,
+                             p_arg);
                     return MESA_RC_ERROR;
                 }
 
@@ -6438,8 +6446,9 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
                 args_buf[i] = dec_val;
 
                 if (dec_val > 0xFF) {
-                    snprintf(msg, max_msg_buf_size, "  Error: argument #%d: %s value is out of range (0xFF) \n\r",
-                            i + 1, p);
+                    snprintf(msg, max_msg_buf_size,
+                             "  Error: argument #%d: %s value is out of range (0xFF) \n\r", i + 1,
+                             p);
                     return MESA_RC_ERROR;
                 }
             }
@@ -6470,8 +6479,9 @@ mesa_rc meba_poe_ctrl_pd_debug(const meba_poe_ctrl_inst_t *const inst,
         // snprintf(msg, max_msg_buf_size, "\n\rstr: %s: args_count:%d , str_len:%d \n\r", s,
         // args_count , str_len);
     } else {
-        snprintf(msg, max_msg_buf_size, "    Invalid 15 bytes arguments !!! str len:%d , #args:%d \n\r", str_len,
-                args_count);
+        snprintf(msg, max_msg_buf_size,
+                 "    Invalid 15 bytes arguments !!! str len:%d , #args:%d \n\r", str_len,
+                 args_count);
         return MESA_RC_ERROR;
     }
 
@@ -6793,12 +6803,13 @@ void meba_pd69200_driver_init(meba_poe_ctrl_inst_t       *inst,
     private_data->tPoE_parameters = tMeba_poe_parameters;
     snprintf(private_data->i2c_device, sizeof(private_data->i2c_device), "%s",
              i2c_device ? i2c_device : "");
-    private_data->i2c_addr         = i2c_addr;
-    private_data->cfg.ports        = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
+    private_data->i2c_addr = i2c_addr;
+    private_data->cfg.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
     private_data->cfg_POEMCU.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
-    private_data->status.ports     = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+    private_data->status.ports = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
 
-    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports || !private_data->status.ports) {
+    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports ||
+        !private_data->status.ports) {
         DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe port arrays");
         free(private_data->cfg.ports);
         free(private_data->cfg_POEMCU.ports);
@@ -9046,11 +9057,12 @@ void meba_pd_bt_driver_init(meba_poe_ctrl_inst_t       *inst,
     }
     memset(private_data, 0, sizeof(poe_driver_private_t));
 
-    private_data->cfg.ports        = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
+    private_data->cfg.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
     private_data->cfg_POEMCU.ports = malloc(sizeof(meba_poe_port_cfg_t) * port_map_length);
-    private_data->status.ports     = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
+    private_data->status.ports = malloc(sizeof(meba_poe_port_private_status_t) * port_map_length);
 
-    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports || !private_data->status.ports) {
+    if (!private_data->cfg.ports || !private_data->cfg_POEMCU.ports ||
+        !private_data->status.ports) {
         DEBUG(inst, MEBA_TRACE_LVL_ERROR, "malloc failed for poe port arrays");
         free(private_data->cfg.ports);
         free(private_data->cfg_POEMCU.ports);

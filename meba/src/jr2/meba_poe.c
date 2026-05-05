@@ -195,8 +195,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
                                meba_pd_i2c_adapter_open(&jr2_pd69200_system.controllers[0],
                                                         jr2_i2c_config[0].i2c_device,
                                                         jr2_i2c_config[0].i2c_address),
-                               jr2_i2c_config[0].i2c_device,
-                               jr2_i2c_config[0].i2c_address,
+                               jr2_i2c_config[0].i2c_device, jr2_i2c_config[0].i2c_address,
                                MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                    MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                    MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -223,8 +222,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
                                    meba_pd_i2c_adapter_open(&jr2_pd69200_system.controllers[1],
                                                             jr2_i2c_config[1].i2c_device,
                                                             jr2_i2c_config[1].i2c_address),
-                                   jr2_i2c_config[1].i2c_device,
-                                   jr2_i2c_config[1].i2c_address,
+                                   jr2_i2c_config[1].i2c_device, jr2_i2c_config[1].i2c_address,
                                    MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                        MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                        MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -252,8 +250,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
                                  meba_pd_i2c_adapter_open(&jr2_pd69200_system.controllers[0],
                                                           jr2_i2c_config[0].i2c_device,
                                                           jr2_i2c_config[0].i2c_address),
-                                 jr2_i2c_config[0].i2c_device,
-                                 jr2_i2c_config[0].i2c_address,
+                                 jr2_i2c_config[0].i2c_device, jr2_i2c_config[0].i2c_address,
                                  MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                      MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                      MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -278,8 +275,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
                                      meba_pd_i2c_adapter_open(&jr2_pd69200_system.controllers[1],
                                                               jr2_i2c_config[1].i2c_device,
                                                               jr2_i2c_config[1].i2c_address),
-                                     jr2_i2c_config[1].i2c_device,
-                                     jr2_i2c_config[1].i2c_address,
+                                     jr2_i2c_config[1].i2c_device, jr2_i2c_config[1].i2c_address,
                                      MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                          MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                          MEBA_POE_CTRL_INTERRUPTIBLE_POWER,

@@ -1132,8 +1132,8 @@ static int update_ts_classifier_encap(mepa_ts_classifier_t *ts_classifier, uint1
                 "Enter First Layer IPv6 address (format - x:x:x:x:x:x:x:x): ",
                 "Enter Second Layer IPv6 address (format - x:x:x:x:x:x:x:x): "};
 
-            uint32_t (*addresses[])[4] = {&ts_classifier->ip_class_conf.ip_addr.ipv6.addr,
-                                          &ts_classifier->ip2_class_conf.ip_addr.ipv6.addr};
+            uint32_t(*addresses[])[4] = {&ts_classifier->ip_class_conf.ip_addr.ipv6.addr,
+                                         &ts_classifier->ip2_class_conf.ip_addr.ipv6.addr};
 
             for (uint i = 0; i < nheaderreq && i < 2; i++) {
                 cli_printf("\n %s", prompts[i]);

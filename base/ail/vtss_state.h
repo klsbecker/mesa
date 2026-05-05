@@ -167,7 +167,7 @@ extern const char *vtss_func;
 
 #define VTSS_BOOL(expr) (((expr) != 0) ? TRUE : FALSE)
 
-#define VTSS_CHIP_PORT(port_no)                   (uint32_t)vtss_state->port.map[port_no].chip_port
+#define VTSS_CHIP_PORT(port_no)                   (uint32_t) vtss_state->port.map[port_no].chip_port
 #define VTSS_CHIP_NO(port_no)                     vtss_state->port.map[port_no].chip_no
 #define VTSS_CHIP_PORT_FROM_STATE(state, port_no) (uint32_t)(state)->port.map[port_no].chip_port
 #define VTSS_CHIP_NO_FROM_STATE(state, port_no)   (state)->port.map[port_no].chip_no
@@ -558,15 +558,9 @@ VTSS_TRACE_TYPES
 
 // Special handling of uintptr_t formating
 #if defined(__arm__) && !defined(__linux__)
-#define VTSS_TRACE_GENERIC_SINGLE_UINTPTR                                                          \
-    uintptr_t:                                                                                     \
-    vtss_trace_single_i32,
-#define VTSS_TRACE_GENERIC_FIRST_UINTPTR                                                           \
-    uintptr_t:                                                                                     \
-    vtss_trace_first_i32,
-#define VTSS_TRACE_GENERIC_LAST_UINTPTR                                                            \
-    uintptr_t:                                                                                     \
-    vtss_trace_last_i32,
+#define VTSS_TRACE_GENERIC_SINGLE_UINTPTR uintptr_t : vtss_trace_single_i32,
+#define VTSS_TRACE_GENERIC_FIRST_UINTPTR  uintptr_t : vtss_trace_first_i32,
+#define VTSS_TRACE_GENERIC_LAST_UINTPTR   uintptr_t : vtss_trace_last_i32,
 #else
 // Need to be empty to avoid clashing with uint32_t/uint64_t
 #define VTSS_TRACE_GENERIC_SINGLE_UINTPTR

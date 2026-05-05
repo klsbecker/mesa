@@ -45,8 +45,11 @@
 #define MESA_SYNCE_ARG_1_3(a, b, c, ...)          a, b, c
 #define MESA_SYNCE_ARG_4_6(a, b, c, d, e, f, ...) d, e, f
 
-#define MESA_SYNCE_ATTR_(dev_type, dev_id, dev_idx, type, val) {dev_id, dev_idx, type, val}
-#define MESA_SYNCE_ATTR(...)                                   MESA_SYNCE_ATTR_(__VA_ARGS__)
+#define MESA_SYNCE_ATTR_(dev_type, dev_id, dev_idx, type, val)                                     \
+    {                                                                                              \
+        dev_id, dev_idx, type, val                                                                 \
+    }
+#define MESA_SYNCE_ATTR(...) MESA_SYNCE_ATTR_(__VA_ARGS__)
 
 #define MESA_SYNCE_DEV_PORT(dev_id, idx) MEBA_SYNCE_DEV_TYPE_PORT, dev_id, idx
 

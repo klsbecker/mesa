@@ -192,8 +192,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
                                    meba_pd_i2c_adapter_open(&caracal_pd69200_system.controllers[0],
                                                             pds408g_i2c_config.i2c_device,
                                                             pds408g_i2c_config.i2c_address),
-                                   pds408g_i2c_config.i2c_device,
-                                   pds408g_i2c_config.i2c_address,
+                                   pds408g_i2c_config.i2c_device, pds408g_i2c_config.i2c_address,
                                    MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                        MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                        MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -221,8 +220,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
                                      meba_pd_i2c_adapter_open(&caracal_pd69200_system.controllers[0],
                                                               pds408g_i2c_config.i2c_device,
                                                               pds408g_i2c_config.i2c_address),
-                                     pds408g_i2c_config.i2c_device,
-                                     pds408g_i2c_config.i2c_address,
+                                     pds408g_i2c_config.i2c_device, pds408g_i2c_config.i2c_address,
                                      MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                          MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                          MEBA_POE_CTRL_INTERRUPTIBLE_POWER,
@@ -279,8 +277,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
                                    meba_pd_i2c_adapter_open(&caracal_pd69200_system.controllers[0],
                                                             caracal_i2c_config.i2c_device,
                                                             caracal_i2c_config.i2c_address),
-                                   caracal_i2c_config.i2c_device,
-                                   caracal_i2c_config.i2c_address,
+                                   caracal_i2c_config.i2c_device, caracal_i2c_config.i2c_address,
                                    MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                        MEBA_POE_CTRL_INTERRUPTIBLE_POWER |
                                        MEBA_POE_CTRL_PD_AUTO_CLASS_REQUEST |
@@ -308,8 +305,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
                                      meba_pd_i2c_adapter_open(&caracal_pd69200_system.controllers[0],
                                                               caracal_i2c_config.i2c_device,
                                                               caracal_i2c_config.i2c_address),
-                                     caracal_i2c_config.i2c_device,
-                                     caracal_i2c_config.i2c_address,
+                                     caracal_i2c_config.i2c_device, caracal_i2c_config.i2c_address,
                                      MEBA_POE_CTRL_CAP_POWER_MANAGEMENT |
                                          MEBA_POE_CTRL_CAP_PD_LEGACY_DETECTION |
                                          MEBA_POE_CTRL_INTERRUPTIBLE_POWER,

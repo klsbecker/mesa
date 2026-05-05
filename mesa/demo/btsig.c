@@ -24,8 +24,11 @@
 #define FALSE 0
 #define TRUE  1
 
-#define CAPTURE(_sig_, _abort_) {.sig = _sig_, .name = #_sig_, .abort = _abort_}
-#define ARRSZ(_x_)              (sizeof(_x_) / sizeof((_x_)[0]))
+#define CAPTURE(_sig_, _abort_)                                                                    \
+    {                                                                                              \
+        .sig = _sig_, .name = #_sig_, .abort = _abort_                                             \
+    }
+#define ARRSZ(_x_) (sizeof(_x_) / sizeof((_x_)[0]))
 
 typedef struct {
     int   sig;
