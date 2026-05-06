@@ -1,0 +1,12 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+:sectnums:
+
+== Simple ACL Example
+
+The Simple ACL example demonstrates how to setup a basic ACL that only allows and forwards specific frames through to another port
+
+* ACE1 matches on IPV4, TCP and destination port 80. It forwards frames from port0 to port1
+* ACE2 drops every other packet
+* A ruby testing script "example_simple_acl.rb" has been created under the test folder, sending IPv4 over TCP frames with dport ranging from 70 to 90. Only the frames with dport 80 get through to port1

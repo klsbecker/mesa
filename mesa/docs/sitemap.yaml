@@ -174,7 +174,13 @@ pages:
           - src: "mesa/docs/examples/l3-ipv4-uc.adoc"
             name: "Description"
           - src: "mesa/demo/examples/l3-ipv4-uc.c"
-
+        
+        - name: "Simple ACL"
+          pages:
+          - src: "mesa/docs/examples/simple-acl.adoc"
+            name: "Description"
+          - src: "mesa/demo/examples/simple-acl.c"
+        
         - name: "Packet Extraction/Injection"
           pages:
           - src: "mesa/docs/examples/packet-rx-tx.adoc"

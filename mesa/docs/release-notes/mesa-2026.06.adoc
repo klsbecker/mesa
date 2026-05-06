@@ -23,3 +23,7 @@ The general BUM policer properties are controlled using the `mesa_bum_conf_t` st
 Each policer consists on three buckets controlled using the `mesa_bum_policer_conf_t` struct.
 Counters per policer are available in the `mesa_bum_policer_counters_t` struct.
 SKUs: VSC741X, VSC743X, VSC744X, VSC746X, VSC754X, VSC755X and LAN969X.
+
+=== MESA-DOC: Example added
+
+A Simple ACL example has been added in MESA-DOC. Read link:#mesa/docs/examples/simple-acl[Simple ACL] section to learn more about this.
