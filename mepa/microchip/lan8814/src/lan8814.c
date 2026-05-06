@@ -1020,7 +1020,7 @@ static void lan8814_cab_diag_read_result(mepa_device_t *dev, uint8_t pair)
     status = LAN8814_X_CABLE_DIAG_STATUS(value);
     if ((status == LAN8814_CABLE_OPEN) || (status == LAN8814_CABLE_SHORT)) {
         res->status[pair] = (status == LAN8814_CABLE_SHORT) ? MEPA_CABLE_DIAG_STATUS_SHORT : MEPA_CABLE_DIAG_STATUS_OPEN;
-        res->length[pair] = 0.8 * MEPA_ABS((LAN8814_X_CABLE_DIAG_DATA(value) - 22));
+        res->length[pair] = 8 * MEPA_ABS((LAN8814_X_CABLE_DIAG_DATA(value) - 22)) / 10;
         T_I(MEPA_TRACE_GRP_GEN, "pair=%d status=%d length=%d\n", pair, res->status[pair], res->length[pair]);
     } else if (status == LAN8814_CABLE_FAIL) {
         res->status[pair] = MEPA_CABLE_DIAG_STATUS_ABNORM;
