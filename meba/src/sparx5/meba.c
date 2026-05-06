@@ -423,11 +423,13 @@ static const port_map_t port_table_npi_port[] = {
      MEBA_PORT_CAP_SFP_DETECT)
 
 #define EV57U67A_PORT_MAP_ROW(chip, miim, base)                                                    \
-    {                                                                                              \
-        .chip_port = (chip), .miim_addr = (miim), .miim_controller = MESA_MIIM_CONTROLLER_0,       \
-        .mac_if = MESA_PORT_INTERFACE_SFI, .max_bw = MESA_BW_25G, .cap = MEBA_CAP_EV57U67A,        \
-        .phy_base_port = (base)                                                                    \
-    }
+    {.chip_port = (chip),                                                                          \
+     .miim_addr = (miim),                                                                          \
+     .miim_controller = MESA_MIIM_CONTROLLER_0,                                                    \
+     .mac_if = MESA_PORT_INTERFACE_SFI,                                                            \
+     .max_bw = MESA_BW_25G,                                                                        \
+     .cap = MEBA_CAP_EV57U67A,                                                                     \
+     .phy_base_port = (base)}
 
 static const port_map_t port_table_ev57u67a_slot_1[] = {
     EV57U67A_PORT_MAP_ROW(56, 27, 0),
@@ -448,11 +450,13 @@ static const port_map_t port_table_ev57u67a_slot_2[] = {
      MEBA_PORT_CAP_1G_FDX | MEBA_PORT_CAP_AUTONEG | MEBA_PORT_CAP_SFP_DETECT)
 
 #define EV96D50A_PORT_MAP_ROW(chip, miim, base)                                                    \
-    {                                                                                              \
-        .chip_port = (chip), .miim_addr = (miim), .miim_controller = MESA_MIIM_CONTROLLER_0,       \
-        .mac_if = MESA_PORT_INTERFACE_SFI, .max_bw = MESA_BW_10G, .cap = MEBA_CAP_ev96d50a,        \
-        .phy_base_port = (base)                                                                    \
-    }
+    {.chip_port = (chip),                                                                          \
+     .miim_addr = (miim),                                                                          \
+     .miim_controller = MESA_MIIM_CONTROLLER_0,                                                    \
+     .mac_if = MESA_PORT_INTERFACE_SFI,                                                            \
+     .max_bw = MESA_BW_10G,                                                                        \
+     .cap = MEBA_CAP_ev96d50a,                                                                     \
+     .phy_base_port = (base)}
 
 static const port_map_t port_table_ev96d50a_slot_1[] = {
     EV96D50A_PORT_MAP_ROW(56, 27, 0),

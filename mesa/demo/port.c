@@ -879,7 +879,7 @@ static meba_sfp_driver_t *sfp_driver_search(meba_sfp_device_info_t *device_info)
 #define PR_CAP(x)                                                                                  \
     {                                                                                              \
         if (cap_all & MEBA_PORT_CAP_##x)                                                           \
-            cli_printf("%-*s  ", strlen(#x), cap &MEBA_PORT_CAP_##x ? #x : "-");                   \
+            cli_printf("%-*s  ", strlen(#x), cap & MEBA_PORT_CAP_##x ? #x : "-");                  \
     }
 
 static void cli_cmd_port_cap(cli_req_t *req)

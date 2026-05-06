@@ -706,9 +706,7 @@ typedef struct {
 } vtss_vid_mac_t;
 
 #define MAC_ADDR_BROADCAST                                                                         \
-    {                                                                                              \
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF                                                         \
-    }                                                                                              \
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}                                                           \
     /**< Broadcast address used for addr in the vtss_mac_t struct */
 
 #ifndef _VTSS_MAIN_TYPES_H_

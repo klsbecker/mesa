@@ -2220,7 +2220,7 @@ static mesa_rc jr2_sfp_i2c_xfer(meba_inst_t    inst,
     if (board->malibu_present && (port_no >= 24 && port_no < 28)) {
         if (write) {
             for (idx = 0; idx < cnt; idx++) {
-                value = (uint16_t) * (data + idx);
+                value = (uint16_t)*(data + idx);
                 rc = vtss_phy_10g_i2c_write(NULL, port_no, (uint16_t)(addr + idx), &value);
                 if (rc != MESA_RC_OK)
                     return rc;
