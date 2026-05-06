@@ -456,6 +456,7 @@ typedef struct {
     mesa_bool_t                     fdx;
     uint32_t                        max_length;
     uint32_t                        adv_dis;
+    phy10g_oper_mode_t              oper_mode_10g;
     mesa_port_serdes_prbs_pattern_t prbs_test_pattern;
 
     mesa_bool_t auto_keyword;
@@ -1465,6 +1466,60 @@ static void cli_cmd_phy_dump(cli_req_t *req)
     }
 }
 
+static const char *phy10g_mode_txt(phy10g_oper_mode_t m)
+{
+    switch (m) {
+    case MEPA_PHY_LAN_MODE:      return "lan (10G)";
+    case MEPA_PHY_1G_MODE:       return "1g non-repeater";
+    case MEPA_PHY_REPEATER_MODE: return "repeater";
+    default:                     return "?";
+    }
+}
+
+static void cli_cmd_deb_port_10g_mode(cli_req_t *req)
+{
+    port_cli_req_t *mreq = req->module_req;
+    mesa_port_no_t  uport, iport;
+    mepa_conf_t     conf;
+    mepa_phy_info_t info;
+    mesa_bool_t     first = TRUE;
+
+    for (iport = 0; iport < mesa_port_cnt(NULL); iport++) {
+        uport = iport2uport(iport);
+        if (req->port_list[uport] == 0) {
+            continue;
+        }
+
+        if (meba_phy_info_get(meba_global_inst, iport, &info) != MEPA_RC_OK) {
+            if (!(info.cap & MEPA_CAP_SPEED_MASK_10G)) {
+                continue; /* not a 10G PHY — command does not apply */
+            }
+        }
+
+        if (meba_phy_conf_get(meba_global_inst, iport, &conf) != MESA_RC_OK) {
+            cli_printf("Port %u: meba_phy_conf_get failed\n", uport);
+            continue;
+        }
+
+        if (req->set) {
+            phy10g_oper_mode_t old = conf.conf_10g.oper_mode;
+            conf.conf_10g.oper_mode = mreq->oper_mode_10g;
+            cli_printf("Port %u: oper_mode %s -> %s\n", uport, phy10g_mode_txt(old),
+                       phy10g_mode_txt(mreq->oper_mode_10g));
+            if (meba_phy_conf_set(meba_global_inst, iport, &conf) != MESA_RC_OK) {
+                cli_printf("Port %u: meba_phy_conf_set FAILED\n", uport);
+                continue;
+            }
+        } else {
+            if (first) {
+                cli_table_header("Port  Oper Mode");
+                first = FALSE;
+            }
+            cli_printf("%-6u%s\n", uport, phy10g_mode_txt(conf.conf_10g.oper_mode));
+        }
+    }
+}
+
 static cli_cmd_t cli_cmd_table[] = {
     {"Port State [<port_list>] [enable|disable]", "Set or show the port administrative state",
      cli_cmd_port_state},
@@ -1497,6 +1552,8 @@ static cli_cmd_t cli_cmd_table[] = {
      cli_cmd_phy_scan},
     {"Debug phy id", "Shows all probed phys", cli_cmd_phy_id},
     {"Debug phy dump [<port_list>]", "Dumps debug info for phy", cli_cmd_phy_dump},
+    {"Debug Port 10G oper-mode [<port_list>] [lan|1g|repeater]",
+     "Get or set 10G PHY operating mode (lan=10G, 1g=non-repeater, repeater)", cli_cmd_deb_port_10g_mode},
 };
 
 static int cli_parm_max_frame(cli_req_t *req)
@@ -1608,6 +1665,12 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS15;
     } else if (!strncasecmp(found, "prbs7", 5)) {
         mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS7;
+    } else if (!strncasecmp(found, "lan", 3)) {
+        mreq->oper_mode_10g = MEPA_PHY_LAN_MODE;
+    } else if (!strncasecmp(found, "repeater", 8)) {
+        mreq->oper_mode_10g = MEPA_PHY_REPEATER_MODE;
+    } else if (!strncasecmp(found, "1g", 2)) {
+        mreq->oper_mode_10g = MEPA_PHY_1G_MODE;
     } else {
         cli_printf("no match: %s\n", found);
     }
@@ -1615,6 +1678,11 @@ static int cli_parm_keyword(cli_req_t *req)
 }
 
 static cli_parm_t cli_parm_table[] = {
+    {"lan|1g|repeater",
+     "lan        : 10G LAN mode\n"
+     "1g         : 1G non-repeater mode (Line/Host MAC + MACsec/1588 engaged)\n"
+     "repeater   : Bit-level SerDes repeater (PHY features bypassed)\n"
+     "(default: Show current oper mode)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
     {"10hdx|10fdx|100hdx|100fdx|1000fdx|2500|5g|10g|25g|auto",
      "10hdx      : 10 Mbps, half duplex\n"
      "10fdx      : 10 Mbps, full duplex\n"

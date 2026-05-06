@@ -1199,6 +1199,18 @@ static mepa_rc phy_10g_1g_mode_set(mepa_device_t             *dev,
     /* Flip lanes to match JR XAUI-lane-0 / 8487 XAUI-lane-0 for XAUI MACs. */
     mode->xaui_lane_flip = true;
 
+    /* Repeater is a bit-level SerDes relay; PCS1G is bypassed on both sides,
+     * so clause-37 aneg / sgmii_mode_set are not applicable here. For CuSFP /
+     * 1G media the SerDes rate must be 1.25 Gbps — without it the default
+     * 10.3125 Gbps rate has no link to the 1G partner. oper_mode is already
+     * carried in from config->conf_10g.oper_mode; skip the SFP-type branches
+     * below so they don't overwrite it to 1G_MODE. */
+    if (config->conf_10g.oper_mode == MEPA_PHY_REPEATER_MODE &&
+        data->mac_if == MESA_PORT_INTERFACE_SGMII_CISCO) {
+        mode->rate = VTSS_RPTR_RATE_1_25;
+        return vtss_phy_10g_mode_set(vtss_inst, data->port_no, mode);
+    }
+
     if (data->mac_if == MESA_PORT_INTERFACE_SGMII_CISCO) {
         /* CuSFP (1G): use the 1 GbE data path (datasheet Figure 99) with
          * both Line and Host PCS in SGMII mode. Host MAC / MACsec / 1588
