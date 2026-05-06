@@ -2590,7 +2590,7 @@ static mepa_rc lan8814_debug_info_dump(struct mepa_device *dev,
     mepa_port_interface_t mac_if;
 
     (void)lan8814_info_get(dev, &phy_info);
-    (void)lan8814_if_get(dev, MEPA_SPEED_1G,  &mac_if);
+    (void)dev->drv->mepa_driver_if_get(dev, MEPA_SPEED_1G, &mac_if);
 
     MEPA_ENTER(dev);
     if (info->layer == MEPA_DEBUG_LAYER_AIL || info->layer == MEPA_DEBUG_LAYER_ALL) {
