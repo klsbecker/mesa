@@ -1,7 +1,8 @@
 
 MEPA_DRV(LIB_NAME mepa_drv_ksz9031
          SRCS     phy_driver.c
-         INCL_PUB ../../me/include ../include
+                  ../microchip/common/src/phy_lib.c
+         INCL_PUB ../../me/include ../include ../microchip/common/include
          INCL_PRI .)
 
 option(MEPA_ksz9031 "Add KSZ9031 phy support in libmeba" OFF)

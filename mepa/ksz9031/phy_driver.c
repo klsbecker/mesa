@@ -10,11 +10,8 @@
 #include <mepa_driver.h>
 #include <mepa_ts_driver.h>
 
-#define T_N(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_NOISE, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_D(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_I(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__,format, ##__VA_ARGS__);
-#define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
+#include "phy_driver.h"
+#include <phy_lib.h>
 
 #define TRUE 1
 #define FALSE 0
@@ -22,6 +19,7 @@
 #define MSLEEP(sec)                             usleep(sec*1000)
 
 #define KSZ9031_PHY_CHIPID 0x00221622
+#define KSZ9131_PHY_CHIPID 0x00221642
 
 #define KSZ_2_MESA_RC(aq_rc)                    ((aq_rc == AQ_RET_OK) ? MESA_RC_OK : MESA_RC_ERROR)
 
@@ -39,20 +37,6 @@
 
 #define AUTONEG_DISABLE     0x00
 #define AUTONEG_ENABLE      0x01
-
-#define MII_BMCR        0x00    /* Basic mode control register */
-#define MII_BMSR        0x01    /* Basic mode status register  */
-#define MII_CTRL1000        0x09    /* 1000BASE-T control          */
-#define BMCR_ISOLATE        0x0400  /* Isolate data paths from MII */
-#define BMCR_ANENABLE       0x1000  /* Enable auto negotiation     */
-#define BMCR_ANRESTART      0x0200  /* Auto negotiation restart    */
-#define BMSR_LSTATUS        0x0004  /* Link status                 */
-#define BMSR_ANEGCOMPLETE   0x0020  /* Auto-negotiation complete   */
-#define BMCR_FULLDPLX       0x0100  /* Full duplex                 */
-#define BMCR_SPEED1000      0x0040  /* MSB of Speed (1000)         */
-#define BMCR_SPEED100       0x2000  /* Select 100Mbps              */
-#define CTL1000_AS_MASTER   0x0800
-#define CTL1000_ENABLE_MASTER   0x1000
 
 #define MII_KSZ9031RN_FLP_BURST_TX_LO   3
 #define MII_KSZ9031RN_FLP_BURST_TX_HI   4
@@ -274,7 +258,7 @@ static mesa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 {
     phy_device *phydev = &((priv_data_t *)dev->data)->phydev;
 
-    T_N("Enter  port_no %u", dev->numeric_handle);
+    T_D("Enter  port_no %u", dev->numeric_handle);
 
     if (genphy_read_status(dev)) {
         return MESA_RC_ERROR;
@@ -341,10 +325,96 @@ static uint32_t ksz_capability(mepa_device_t *dev, uint32_t capability)
     return 0;
 }
 
+static mepa_rc ksz9131_rgmii_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
+                                    mesa_port_interface_t *mac_if)
+{
+    u16 rxcdll_val, txcdll_val;
+    mepa_rc rc;
+
+    rc = phy_mmd_reg_rd(dev, KSZ9131RN_MMD_COMMON_CTRL_REG, KSZ9131RN_RXC_DLL_CTRL,
+                        &rxcdll_val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_rd(dev, KSZ9131RN_MMD_COMMON_CTRL_REG, KSZ9131RN_TXC_DLL_CTRL,
+                        &txcdll_val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    if ((rxcdll_val & KSZ9131RN_DLL_DISABLE_DELAY) && (txcdll_val & KSZ9131RN_DLL_DISABLE_DELAY)) {
+        *mac_if = MESA_PORT_INTERFACE_RGMII;
+    } else if (!(rxcdll_val & KSZ9131RN_DLL_DISABLE_DELAY) && (txcdll_val & KSZ9131RN_DLL_DISABLE_DELAY)) {
+        *mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
+    } else if ((rxcdll_val & KSZ9131RN_DLL_DISABLE_DELAY) && !(txcdll_val & KSZ9131RN_DLL_DISABLE_DELAY)) {
+        *mac_if = MESA_PORT_INTERFACE_RGMII_TXID;
+    } else {
+        *mac_if = MESA_PORT_INTERFACE_RGMII_ID;
+    }
+
+    return MEPA_RC_OK;
+}
+
+static mepa_rc ksz_config_rgmii_delay(mepa_device_t *dev, mesa_port_interface_t mac_if)
+{
+    u16 rxcdll_val, txcdll_val;
+    mepa_rc rc;
+
+    switch (mac_if) {
+    case MESA_PORT_INTERFACE_RGMII:
+        rxcdll_val = KSZ9131RN_DLL_DISABLE_DELAY;
+        txcdll_val = KSZ9131RN_DLL_DISABLE_DELAY;
+        break;
+    case MESA_PORT_INTERFACE_RGMII_ID:
+        rxcdll_val = KSZ9131RN_DLL_ENABLE_DELAY;
+        txcdll_val = KSZ9131RN_DLL_ENABLE_DELAY;
+        break;
+    case MESA_PORT_INTERFACE_RGMII_RXID:
+        rxcdll_val = KSZ9131RN_DLL_ENABLE_DELAY;
+        txcdll_val = KSZ9131RN_DLL_DISABLE_DELAY;
+        break;
+    case MESA_PORT_INTERFACE_RGMII_TXID:
+        rxcdll_val = KSZ9131RN_DLL_DISABLE_DELAY;
+        txcdll_val = KSZ9131RN_DLL_ENABLE_DELAY;
+        break;
+    default:
+        return MEPA_RC_ERROR;
+    }
+
+    rc = phy_mmd_reg_modify(dev, KSZ9131RN_MMD_COMMON_CTRL_REG,
+                            KSZ9131RN_RXC_DLL_CTRL,
+                            KSZ9131RN_DLL_MASK, rxcdll_val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    rc = phy_mmd_reg_modify(dev, KSZ9131RN_MMD_COMMON_CTRL_REG,
+                            KSZ9131RN_TXC_DLL_CTRL,
+                            KSZ9131RN_DLL_MASK, txcdll_val);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    return MEPA_RC_OK;
+}
+
+static mepa_rc ksz9131_rgmii_if_set(mepa_device_t *dev, mepa_port_interface_t mac_if)
+{
+    if (mac_if != MESA_PORT_INTERFACE_RGMII &&
+        mac_if != MESA_PORT_INTERFACE_RGMII_ID &&
+        mac_if != MESA_PORT_INTERFACE_RGMII_RXID &&
+        mac_if != MESA_PORT_INTERFACE_RGMII_TXID) {
+        return MEPA_RC_ERROR;
+    }
+
+    return ksz_config_rgmii_delay(dev, mac_if);
+}
+
 mepa_drivers_t mepa_ksz9031_driver_init(void)
 {
     mepa_drivers_t res;
-    static mepa_driver_t ksz_drivers[1] = {};
+    static mepa_driver_t ksz_drivers[2] = {};
 
     ksz_drivers[0].id = KSZ9031_PHY_CHIPID;
     ksz_drivers[0].mask = 0xfffffff0;
@@ -361,8 +431,24 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[0].mepa_driver_aneg_status_get = ksz_status_1g_get;
     ksz_drivers[0].mepa_driver_capability = ksz_capability;
 
+    ksz_drivers[1].id = KSZ9131_PHY_CHIPID;
+    ksz_drivers[1].mask = 0xfffffff0;
+    ksz_drivers[1].mepa_driver_delete = ksz_delete;
+    ksz_drivers[1].mepa_driver_reset = NULL;
+    ksz_drivers[1].mepa_driver_poll = ksz_poll;
+    ksz_drivers[1].mepa_driver_conf_set = ksz_conf_set;
+    ksz_drivers[1].mepa_driver_if_set = ksz9131_rgmii_if_set;
+    ksz_drivers[1].mepa_driver_if_get = ksz9131_rgmii_if_get;
+    ksz_drivers[1].mepa_driver_power_set = NULL;
+    ksz_drivers[1].mepa_driver_cable_diag_start = NULL;
+    ksz_drivers[1].mepa_driver_cable_diag_get = NULL;
+    ksz_drivers[1].mepa_driver_media_set = NULL;
+    ksz_drivers[1].mepa_driver_probe = ksz_probe;
+    ksz_drivers[1].mepa_driver_aneg_status_get = ksz_status_1g_get;
+    ksz_drivers[1].mepa_driver_capability = ksz_capability;
+
     res.phy_drv = ksz_drivers;
-    res.count = 1;
+    res.count = 2;
 
     return res;
 }
