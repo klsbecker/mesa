@@ -4218,51 +4218,61 @@ vtss_rc fla_port_loopback_set(vtss_state_t *vtss_state, const vtss_port_no_t por
     vtss_port_lb_t    lb = vtss_state->port.test_conf[port_no].loopback;
     vtss_port_conf_t *conf = &vtss_state->port.conf[port_no];
     u32               port = VTSS_CHIP_PORT(port_no);
-    u32               pcs = VTSS_TO_PCS_TGT(port);
+    u32               pcs = 0;
     u32               sd_indx, sd_type, sd_tgt;
 
+    if (VTSS_PORT_IS_10G(port) || VTSS_PORT_IS_25G(port)) {
+        pcs = VTSS_TO_PCS_TGT(port);
+    }
     VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
 
     if (sd_type == FA_SERDES_TYPE_10G) {
         sd_tgt = VTSS_TO_SD10G_LANE(sd_indx);
+
+        // Clear the loopback
+        REG_WRM_CLR(VTSS_SD10G_LANE_TARGET_LANE_06(sd_tgt),
+                    VTSS_M_SD10G_LANE_TARGET_LANE_06_CFG_TX2RX_LP_EN |
+                        VTSS_M_SD10G_LANE_TARGET_LANE_06_CFG_RX2TX_LP_EN);
+        REG_WRM_CLR(VTSS_SD10G_LANE_TARGET_LANE_0E(sd_tgt),
+                    VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_TXLB_EN |
+                        VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_RXLB_EN);
+        REG_WRM_CLR(VTSS_SD10G_LANE_TARGET_LANE_91(sd_tgt),
+                    VTSS_M_SD10G_LANE_TARGET_LANE_91_R_LBSLV_IN_PMAD);
+
+        REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
+                VTSS_F_SD10G_LANE_TARGET_LANE_83_R_RX_POL_INV(!conf->serdes.rx_invert),
+                VTSS_M_SD10G_LANE_TARGET_LANE_83_R_RX_POL_INV);
+
+        if (VTSS_PORT_IS_10G(port)) {
+            REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
+                    VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(conf->sd_enable),
+                    VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+        }
+
         switch (lb) {
         case VTSS_PORT_LB_NEAR_END:
         case VTSS_PORT_LB_EQUIPMENT:
-            REG_WR(VTSS_SD10G_LANE_TARGET_LANE_06(sd_tgt),
-                   VTSS_F_SD10G_LANE_TARGET_LANE_06_CFG_TX2RX_LP_EN(1));
-            REG_WR(VTSS_SD10G_LANE_TARGET_LANE_0E(sd_tgt),
-                   VTSS_F_SD10G_LANE_TARGET_LANE_0E_CFG_EQC_FORCE_3_0(0xF) |
-                       VTSS_F_SD10G_LANE_TARGET_LANE_0E_CFG_TXLB_EN(1) |
-                       VTSS_F_SD10G_LANE_TARGET_LANE_0E_CFG_SUM_SETCM_EN(1));
-            REG_WR(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
-                   VTSS_F_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN(1) |
-                       VTSS_F_SD10G_LANE_TARGET_LANE_83_R_CDR_RSTN(1) |
-                       VTSS_F_SD10G_LANE_TARGET_LANE_83_R_CTLE_RSTN(1));
-            REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs), VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(0),
-                    VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            REG_WRM_SET(VTSS_SD10G_LANE_TARGET_LANE_06(sd_tgt),
+                        VTSS_M_SD10G_LANE_TARGET_LANE_06_CFG_TX2RX_LP_EN);
+            REG_WRM_SET(VTSS_SD10G_LANE_TARGET_LANE_0E(sd_tgt),
+                        VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_TXLB_EN);
+            /*  LM1 loopback */
+            REG_WRM_CLR(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt),
+                        VTSS_M_SD10G_LANE_TARGET_LANE_83_R_RX_POL_INV);
+
+            if (VTSS_PORT_IS_10G(port)) {
+                // Ignore Signal detect
+                REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
+                        VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(0),
+                        VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            }
             break;
         case VTSS_PORT_LB_FAR_END:
         case VTSS_PORT_LB_FACILITY:
             REG_WR(VTSS_SD10G_LANE_TARGET_LANE_91(sd_tgt),
                    VTSS_F_SD10G_LANE_TARGET_LANE_91_R_LBSLV_IN_PMAD(1));
             break;
-        default:
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_06(sd_tgt), 0,
-                    VTSS_M_SD10G_LANE_TARGET_LANE_06_CFG_TX2RX_LP_EN);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_0E(sd_tgt), 0,
-                    VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_EQC_FORCE_3_0 |
-                        VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_TXLB_EN |
-                        VTSS_M_SD10G_LANE_TARGET_LANE_0E_CFG_SUM_SETCM_EN);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_91(sd_tgt), 0,
-                    VTSS_M_SD10G_LANE_TARGET_LANE_91_R_LBSLV_IN_PMAD);
-            REG_WRM(VTSS_SD10G_LANE_TARGET_LANE_83(sd_tgt), 0,
-                    VTSS_M_SD10G_LANE_TARGET_LANE_83_R_DFE_RSTN |
-                        VTSS_M_SD10G_LANE_TARGET_LANE_83_R_CDR_RSTN |
-                        VTSS_M_SD10G_LANE_TARGET_LANE_83_R_CTLE_RSTN);
-            REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
-                    VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(conf->sd_enable),
-                    VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
-            break;
+        default: break;
         }
 #if defined(VTSS_FEATURE_SD_25G)
     } else if (sd_type == FA_SERDES_TYPE_25G) {
@@ -4285,8 +4295,11 @@ vtss_rc fla_port_loopback_set(vtss_state_t *vtss_state, const vtss_port_no_t por
                        VTSS_F_SD25G_TARGET_LANE_40_LN_R_CTLE_RSTN(1));
             REG_WRM(VTSS_DEV10G_PCS25G_SD_CFG(tgt), VTSS_F_DEV10G_PCS25G_SD_CFG_SD_ENA(0),
                     VTSS_M_DEV10G_PCS25G_SD_CFG_SD_ENA);
-            REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs), VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(0),
-                    VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            if (VTSS_PORT_IS_25G(port)) {
+                REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
+                        VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(0),
+                        VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            }
             break;
         case VTSS_PORT_LB_FAR_END:
         case VTSS_PORT_LB_FACILITY:
@@ -4325,9 +4338,11 @@ vtss_rc fla_port_loopback_set(vtss_state_t *vtss_state, const vtss_port_no_t por
             REG_WRM(VTSS_DEV10G_PCS25G_SD_CFG(tgt),
                     VTSS_F_DEV10G_PCS25G_SD_CFG_SD_ENA(conf->sd_enable),
                     VTSS_M_DEV10G_PCS25G_SD_CFG_SD_ENA);
-            REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
-                    VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(conf->sd_enable),
-                    VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            if (VTSS_PORT_IS_25G(port)) {
+                REG_WRM(VTSS_PCS_10GBASE_R_PCS_SD_CFG(pcs),
+                        VTSS_F_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA(conf->sd_enable),
+                        VTSS_M_PCS_10GBASE_R_PCS_SD_CFG_SD_ENA);
+            }
             break;
         }
 #endif
