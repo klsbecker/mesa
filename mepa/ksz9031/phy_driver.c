@@ -43,72 +43,25 @@ typedef struct {
     phy_device    phydev;
 } priv_data_t;
 
-static int phy_read(mepa_device_t *dev, uint32_t regnum)
-{
-    uint16_t  value;
-
-    if (dev->callout->miim_read(dev->callout_ctx, regnum, &value) != MEPA_RC_OK) {
-        return -1;
-    }
-    return value;
-}
-
-static int phy_write(mepa_device_t *dev, uint32_t regnum, uint16_t val)
-{
-    if (dev->callout->miim_write(dev->callout_ctx, regnum, val) != MEPA_RC_OK) {
-        return -1;
-    }
-    return 0;
-}
-
-static int phy_modify(mepa_device_t *dev, uint32_t regnum, uint16_t mask, uint16_t set)
-{
-    uint16_t  value;
-
-    value = phy_read(dev, regnum);
-
-    value &= ~mask;
-    value |= (set & mask);
-
-    value = phy_write(dev, regnum, value);
-
-    return 0;
-}
-
-static int phy_write_mmd(mepa_device_t *dev, int devad, uint32_t regnum, uint16_t val)
-{
-    if (dev->callout->mmd_write(dev->callout_ctx, devad, regnum, val) != MEPA_RC_OK) {
-        return -1;
-    }
-    return 0;
-}
-
-/**
- * genphy_restart_aneg - Enable and Restart Autonegotiation
- * @phydev: target phy_device struct
- */
-static int ksz_restart_aneg(mepa_device_t  *dev)
-{
-    /* Don't isolate the PHY if we're negotiating */
-    return phy_modify(dev, MII_BMCR, BMCR_ISOLATE,
-                      BMCR_ANENABLE | BMCR_ANRESTART);
-}
-
 /* Center KSZ9031RNX FLP timing at 16ms. */
-static int ksz_center_flp_timing(mepa_device_t  *dev)
+static mepa_rc ksz_restart_aneg(mepa_device_t *dev)
 {
-    int result;
+    return phy_reg_modify(dev, MII_BMCR, BMCR_ISOLATE | BMCR_ANENABLE | BMCR_ANRESTART,
+                          BMCR_ANENABLE | BMCR_ANRESTART);
+}
 
-    result = phy_write_mmd(dev, 0, MII_KSZ9031RN_FLP_BURST_TX_HI,
-                           0x0006);
-    if (result) {
-        return result;
+static mepa_rc ksz_center_flp_timing(mepa_device_t  *dev)
+{
+    mepa_rc rc;
+
+    rc = phy_mmd_reg_wr(dev, 0, MII_KSZ9031RN_FLP_BURST_TX_HI, 0x0006);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
-    result = phy_write_mmd(dev, 0, MII_KSZ9031RN_FLP_BURST_TX_LO,
-                           0x1A80);
-    if (result) {
-        return result;
+    rc = phy_mmd_reg_wr(dev, 0, MII_KSZ9031RN_FLP_BURST_TX_LO, 0x1A80);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     return ksz_restart_aneg(dev);
@@ -122,14 +75,15 @@ static int ksz_center_flp_timing(mepa_device_t  *dev)
  *   current link value.  In order to do this, we need to read
  *   the status register twice, keeping the second value.
  */
-static int ksz_update_link(mepa_device_t  *dev)
+static mepa_rc ksz_update_link(mepa_device_t  *dev)
 {
     phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
-    int status = 0, bmcr;
+    uint16_t status = 0, bmcr;
+    mepa_rc rc;
 
-    bmcr = phy_read(dev, MII_BMCR);
-    if (bmcr < 0) {
-        return bmcr;
+    rc = phy_reg_rd(dev, MII_BMCR, &bmcr);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     /* Autoneg is being started, therefore disregard BMSR value and
@@ -140,9 +94,9 @@ static int ksz_update_link(mepa_device_t  *dev)
     }
 
     /* Read link and autonegotiation status */
-    status = phy_read(dev, MII_BMSR);
-    if (status < 0) {
-        return status;
+    rc = phy_reg_rd(dev, MII_BMSR, &status);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 done:
     phydev->link = status & BMSR_LSTATUS ? 1 : 0;
@@ -155,18 +109,20 @@ done:
         phydev->link = 0;
     }
 
-    return 0;
+    return MEPA_RC_OK;
 }
 
-static int ksz_read_status(mepa_device_t  *dev)
+static mepa_rc ksz_read_status(mepa_device_t  *dev)
 {
     phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
-    int err, old_link = phydev->link;
+    int old_link = phydev->link;
+    uint16_t bmcr;
+    mepa_rc rc;
 
     /* Update the link, but return if there was an error */
-    err = ksz_update_link(dev);
-    if (err) {
-        return err;
+    rc = ksz_update_link(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     /* why bother the PHY if nothing can have changed */
@@ -177,10 +133,9 @@ static int ksz_read_status(mepa_device_t  *dev)
     phydev->speed = SPEED_UNKNOWN;
     phydev->duplex = DUPLEX_UNKNOWN;
 
-    int bmcr = phy_read(dev, MII_BMCR);
-
-    if (bmcr < 0) {
-        return bmcr;
+    rc = phy_reg_rd(dev, MII_BMCR, &bmcr);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     if (bmcr & BMCR_FULLDPLX) {
@@ -197,17 +152,19 @@ static int ksz_read_status(mepa_device_t  *dev)
         phydev->speed = SPEED_10;
     }
 
-    return 0;
+    return MEPA_RC_OK;
 }
 
 static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 {
     phy_device *phydev = &((priv_data_t *)dev->data)->phydev;
+    mepa_rc rc;
 
     T_D("Enter  port_no %u", dev->numeric_handle);
 
-    if (ksz_read_status(dev)) {
-        return MEPA_RC_ERROR;
+    rc = ksz_read_status(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     status->link = phydev->link;
@@ -228,15 +185,12 @@ static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                 struct mepa_board_conf              *board_conf)
 {
-    priv_data_t *priv;
     mepa_device_t *dev;
 
     dev = mepa_create_int(drv, callout, callout_ctx, board_conf, sizeof(priv_data_t));
     if (!dev) {
         return 0;
     }
-
-    priv = dev->data;
 
     return dev;
 }
