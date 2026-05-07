@@ -171,7 +171,9 @@ typedef struct {
 } mesa_vid_mac_t;
 
 // Broadcast address used for addr in the mesa_mac_t struct
+#ifndef MAC_ADDR_BROADCAST
 #define MAC_ADDR_BROADCAST {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+#endif
 
 typedef uint32_t mesa_isdx_t; // Ingress Service Index type
 #define MESA_ISDX_NONE (0)    // Ingress Service Index number none
