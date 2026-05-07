@@ -69,6 +69,7 @@
 
 #define MII_BMSR                (0x01U)     /* Basic mode status register  */
 #define BMSR_LSTATUS            (0x0004U)   /* Link status                 */
+#define BMSR_ANEGCOMPLETE       (0x0020U)   /* Auto-negotiation complete   */
 
 #define MII_PHYSID1         (0x02U)     /* PHYS ID 1                   */
 #define MII_PHYSID2         (0x03U)     /* PHYS ID 2                   */
