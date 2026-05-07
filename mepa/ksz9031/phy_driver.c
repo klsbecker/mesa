@@ -16,15 +16,6 @@
 #define KSZ9031_PHY_CHIPID 0x00221622
 #define KSZ9131_PHY_CHIPID 0x00221642
 
-#define DUPLEX_HALF        0x00
-#define DUPLEX_FULL        0x01
-#define DUPLEX_UNKNOWN        0xff
-
-#define SPEED_10        10
-#define SPEED_100        100
-#define SPEED_1000        1000
-#define SPEED_UNKNOWN        -1
-
 #define AUTONEG_ENABLE      0x01
 
 #define MII_KSZ9031RN_FLP_BURST_TX_LO   3
@@ -36,7 +27,7 @@ typedef struct {
     unsigned link;
     unsigned autoneg_complete;
     int speed;
-    int duplex;
+    BOOL duplex;
 } phy_device;
 
 typedef struct {
@@ -130,8 +121,8 @@ static mepa_rc ksz_read_status(mepa_device_t  *dev)
         return 0;
     }
 
-    phydev->speed = SPEED_UNKNOWN;
-    phydev->duplex = DUPLEX_UNKNOWN;
+    phydev->speed = MEPA_SPEED_UNDEFINED;
+    phydev->duplex = 1U;
 
     rc = phy_reg_rd(dev, MII_BMCR, &bmcr);
     if (rc != MEPA_RC_OK) {
@@ -139,17 +130,17 @@ static mepa_rc ksz_read_status(mepa_device_t  *dev)
     }
 
     if (bmcr & BMCR_FULLDPLX) {
-        phydev->duplex = DUPLEX_FULL;
+        phydev->duplex = 1U;
     } else {
-        phydev->duplex = DUPLEX_HALF;
+        phydev->duplex = 0U;
     }
 
     if (bmcr & BMCR_SPEED1000) {
-        phydev->speed = SPEED_1000;
+        phydev->speed = MEPA_SPEED_1G;
     } else if (bmcr & BMCR_SPEED100) {
-        phydev->speed = SPEED_100;
+        phydev->speed = MEPA_SPEED_100M;
     } else {
-        phydev->speed = SPEED_10;
+        phydev->speed = MEPA_SPEED_10M;
     }
 
     return MEPA_RC_OK;
@@ -168,8 +159,8 @@ static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
     }
 
     status->link = phydev->link;
-    status->speed = (phydev->speed == SPEED_10) ? MESA_SPEED_10M : (phydev->speed == SPEED_100) ? MESA_SPEED_100M : MESA_SPEED_1G;
-    status->fdx = (phydev->duplex == DUPLEX_FULL) ? 1 : 0;
+    status->speed = phydev->speed;
+    status->fdx = phydev->duplex;
 
     return MEPA_RC_OK;
 }
