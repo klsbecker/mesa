@@ -13,18 +13,8 @@
 #include "phy_driver.h"
 #include <phy_lib.h>
 
-#define TRUE 1
-#define FALSE 0
-
-#define MSLEEP(sec)                             usleep(sec*1000)
-
 #define KSZ9031_PHY_CHIPID 0x00221622
 #define KSZ9131_PHY_CHIPID 0x00221642
-
-#define KSZ_2_MESA_RC(aq_rc)                    ((aq_rc == AQ_RET_OK) ? MESA_RC_OK : MESA_RC_ERROR)
-
-#define PHY_POLL        -1
-#define PHY_IGNORE_INTERRUPT    -2
 
 #define DUPLEX_HALF        0x00
 #define DUPLEX_FULL        0x01
@@ -35,39 +25,29 @@
 #define SPEED_1000        1000
 #define SPEED_UNKNOWN        -1
 
-#define AUTONEG_DISABLE     0x00
 #define AUTONEG_ENABLE      0x01
 
 #define MII_KSZ9031RN_FLP_BURST_TX_LO   3
 #define MII_KSZ9031RN_FLP_BURST_TX_HI   4
-
 
 typedef struct {
     unsigned autoneg;
     /* The most recently read link state */
     unsigned link;
     unsigned autoneg_complete;
-    int irq;
     int speed;
     int duplex;
-    int pause;
-    int asym_pause;
 } phy_device;
 
 typedef struct {
     phy_device    phydev;
 } priv_data_t;
 
-//static int phy_modify(phy_device *phydev, uint32_t regnum, uint16_t mask, uint16_t set)
-//{
-//    return 0;
-//}
-
 static int phy_read(mepa_device_t *dev, uint32_t regnum)
 {
     uint16_t  value;
 
-    if (dev->callout->miim_read(dev->callout_ctx, regnum, &value) != MESA_RC_OK) {
+    if (dev->callout->miim_read(dev->callout_ctx, regnum, &value) != MEPA_RC_OK) {
         return -1;
     }
     return value;
@@ -75,13 +55,13 @@ static int phy_read(mepa_device_t *dev, uint32_t regnum)
 
 static int phy_write(mepa_device_t *dev, uint32_t regnum, uint16_t val)
 {
-    if (dev->callout->miim_write(dev->callout_ctx, regnum, val) != MESA_RC_OK) {
+    if (dev->callout->miim_write(dev->callout_ctx, regnum, val) != MEPA_RC_OK) {
         return -1;
     }
     return 0;
 }
 
-int phy_modify(mepa_device_t *dev, uint32_t regnum, uint16_t mask, uint16_t set)
+static int phy_modify(mepa_device_t *dev, uint32_t regnum, uint16_t mask, uint16_t set)
 {
     uint16_t  value;
 
@@ -95,9 +75,9 @@ int phy_modify(mepa_device_t *dev, uint32_t regnum, uint16_t mask, uint16_t set)
     return 0;
 }
 
-int phy_write_mmd(mepa_device_t *dev, int devad, uint32_t regnum, uint16_t val)
+static int phy_write_mmd(mepa_device_t *dev, int devad, uint32_t regnum, uint16_t val)
 {
-    if (dev->callout->mmd_write(dev->callout_ctx, devad, regnum, val) != MESA_RC_OK) {
+    if (dev->callout->mmd_write(dev->callout_ctx, devad, regnum, val) != MEPA_RC_OK) {
         return -1;
     }
     return 0;
@@ -107,7 +87,7 @@ int phy_write_mmd(mepa_device_t *dev, int devad, uint32_t regnum, uint16_t val)
  * genphy_restart_aneg - Enable and Restart Autonegotiation
  * @phydev: target phy_device struct
  */
-static int genphy_restart_aneg(mepa_device_t  *dev)
+static int ksz_restart_aneg(mepa_device_t  *dev)
 {
     /* Don't isolate the PHY if we're negotiating */
     return phy_modify(dev, MII_BMCR, BMCR_ISOLATE,
@@ -115,7 +95,7 @@ static int genphy_restart_aneg(mepa_device_t  *dev)
 }
 
 /* Center KSZ9031RNX FLP timing at 16ms. */
-static int center_flp_timing(mepa_device_t  *dev)
+static int ksz_center_flp_timing(mepa_device_t  *dev)
 {
     int result;
 
@@ -131,18 +111,7 @@ static int center_flp_timing(mepa_device_t  *dev)
         return result;
     }
 
-    return genphy_restart_aneg(dev);
-}
-
-/**
- * phy_polling_mode - Convenience function for testing whether polling is
- * used to detect PHY status changes
- * @phydev: the phy_device struct
- */
-static inline bool phy_polling_mode(mepa_device_t  *dev)
-{
-    phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
-    return phydev->irq == PHY_POLL;
+    return ksz_restart_aneg(dev);
 }
 
 /**
@@ -153,7 +122,7 @@ static inline bool phy_polling_mode(mepa_device_t  *dev)
  *   current link value.  In order to do this, we need to read
  *   the status register twice, keeping the second value.
  */
-static int genphy_update_link(mepa_device_t  *dev)
+static int ksz_update_link(mepa_device_t  *dev)
 {
     phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
     int status = 0, bmcr;
@@ -168,19 +137,6 @@ static int genphy_update_link(mepa_device_t  *dev)
      */
     if (bmcr & BMCR_ANRESTART) {
         goto done;
-    }
-
-    /* The link state is latched low so that momentary link
-     * drops can be detected. Do not double-read the status
-     * in polling mode to detect such short link drops.
-     */
-    if (!phy_polling_mode(dev)) {
-        status = phy_read(dev, MII_BMSR);
-        if (status < 0) {
-            return status;
-        } else if (status & BMSR_LSTATUS) {
-            goto done;
-        }
     }
 
     /* Read link and autonegotiation status */
@@ -202,13 +158,13 @@ done:
     return 0;
 }
 
-static int genphy_read_status(mepa_device_t  *dev)
+static int ksz_read_status(mepa_device_t  *dev)
 {
     phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
     int err, old_link = phydev->link;
 
     /* Update the link, but return if there was an error */
-    err = genphy_update_link(dev);
+    err = ksz_update_link(dev);
     if (err) {
         return err;
     }
@@ -220,16 +176,7 @@ static int genphy_read_status(mepa_device_t  *dev)
 
     phydev->speed = SPEED_UNKNOWN;
     phydev->duplex = DUPLEX_UNKNOWN;
-    phydev->pause = 0;
-    phydev->asym_pause = 0;
 
-//    err = genphy_read_lpa(dev);
-//    if (err < 0)
-//        return err;
-
-//    if (dev->autoneg == AUTONEG_ENABLE && phydev->autoneg_complete) {
-//        phy_resolve_aneg_linkmode(dev);
-//    } else if (dev->autoneg == AUTONEG_DISABLE) {
     int bmcr = phy_read(dev, MII_BMCR);
 
     if (bmcr < 0) {
@@ -249,32 +196,31 @@ static int genphy_read_status(mepa_device_t  *dev)
     } else {
         phydev->speed = SPEED_10;
     }
-//    }
 
     return 0;
 }
 
-static mesa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
+static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 {
     phy_device *phydev = &((priv_data_t *)dev->data)->phydev;
 
     T_D("Enter  port_no %u", dev->numeric_handle);
 
-    if (genphy_read_status(dev)) {
-        return MESA_RC_ERROR;
+    if (ksz_read_status(dev)) {
+        return MEPA_RC_ERROR;
     }
 
     status->link = phydev->link;
     status->speed = (phydev->speed == SPEED_10) ? MESA_SPEED_10M : (phydev->speed == SPEED_100) ? MESA_SPEED_100M : MESA_SPEED_1G;
     status->fdx = (phydev->duplex == DUPLEX_FULL) ? 1 : 0;
 
-    return MESA_RC_OK;
+    return MEPA_RC_OK;
 }
 
-static mesa_rc ksz_conf_set(mepa_device_t      *dev,
+static mepa_rc ksz_conf_set(mepa_device_t      *dev,
                             const mepa_conf_t  *config)
 {
-    return center_flp_timing(dev);
+    return ksz_center_flp_timing(dev);
 }
 
 static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
@@ -291,27 +237,26 @@ static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
     }
 
     priv = dev->data;
-    priv->phydev.irq = PHY_POLL;
 
     return dev;
 }
 
-static mesa_rc ksz_status_1g_get(mepa_device_t *dev, mesa_phy_status_1g_t *status)
+static mepa_rc ksz_status_1g_get(mepa_device_t *dev, mesa_phy_status_1g_t *status)
 {
-    return MESA_RC_OK;
+    return MEPA_RC_OK;
 }
 
-static mesa_rc ksz_1g_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
+static mepa_rc ksz_1g_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
                              mesa_port_interface_t *mac_if)
 {
 
     *mac_if = MESA_PORT_INTERFACE_GMII;
 
-    return MESA_RC_OK;
+    return MEPA_RC_OK;
 }
 
 
-static mesa_rc ksz_delete(mepa_device_t *dev)
+static mepa_rc ksz_delete(mepa_device_t *dev)
 {
     return mepa_delete_int(dev);
 }
