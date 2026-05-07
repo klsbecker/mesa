@@ -388,6 +388,9 @@ static inline u32 fa_ioreg(u32 t, u32 o, u32 gi, u32 gw, u32 ri, u32 rw, u32 gc,
 // Determine instance count based on register field
 #define REG_FLD_CNT(name) (VTSS_X_##name(VTSS_M_##name) + 1U)
 
+// Register field mask
+#define REG_FLD_MSK(name) VTSS_X_##name(VTSS_M_##name)
+
 // RedBox target offset
 #define RB_TGT(i) (VTSS_TO_RB_0 + (i) * (VTSS_TO_RB_1 - VTSS_TO_RB_0))
 

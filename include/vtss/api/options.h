@@ -299,6 +299,7 @@
                                                     control support */
 #define VTSS_FEATURE_QOS_QUEUE_POLICER           /**< QoS: Has Ingress Queue Policers */
 #define VTSS_FEATURE_QOS_QUEUE_TX                /**< QoS: Has TX Queue support */
+#define VTSS_FEATURE_QOS_BUM_POLICER             /**< QoS: BUM policer */
 #define VTSS_FEATURE_QOS_SCHEDULER_V2            /**< QoS: 2. version of scheduler */
 #define VTSS_FEATURE_QOS_TAG_REMARK_V2           /**< QoS: 2. version of tag priority              \
                                                     remarking */
@@ -478,6 +479,7 @@
                                                         2 support */
 #define VTSS_FEATURE_QOS_QUEUE_POLICER               /**< QoS: Has Ingress Queue Policers */
 #define VTSS_FEATURE_QOS_QUEUE_TX                    /**< QoS: Has TX Queue support */
+#define VTSS_FEATURE_QOS_BUM_POLICER                 /**< QoS: BUM policer */
 #define VTSS_FEATURE_QOS_SCHEDULER_V2                /**< QoS: 2. version of scheduler */
 #define VTSS_FEATURE_QOS_SCHEDULER_DWRR_CNT          /**< QoS: Scheduler supports                  \
                                                         variable number of DWRR inputs    */

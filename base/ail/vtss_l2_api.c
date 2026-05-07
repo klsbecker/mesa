@@ -4037,6 +4037,114 @@ vtss_rc vtss_dlb_policer_status_get(const vtss_inst_t                inst,
 
 #endif /* VTSS_FEATURE_XDLB */
 
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+
+/* - BUM policers -------------------------------------------------- */
+
+vtss_rc vtss_bum_conf_get(const vtss_inst_t inst, vtss_bum_conf_t *const conf)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        *conf = vtss_state->l2.bum.conf;
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_bum_conf_set(const vtss_inst_t inst, const vtss_bum_conf_t *const conf)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        vtss_state->l2.bum.conf = *conf;
+        rc = vtss_cil_l2_bum_conf_set(vtss_state);
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+static vtss_rc vtss_bum_policer_id_check(vtss_state_t *vtss_state, const vtss_bum_policer_id_t id)
+{
+    if (id < VTSS_BUM_POLICER_CNT) {
+        return VTSS_RC_OK;
+    }
+    VTSS_E("illegal bum policer id: %u", id);
+    return VTSS_RC_ERROR;
+}
+
+vtss_rc vtss_bum_policer_conf_get(const vtss_inst_t              inst,
+                                  const vtss_bum_policer_id_t    id,
+                                  vtss_bum_policer_conf_t *const conf)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        if ((rc = vtss_bum_policer_id_check(vtss_state, id)) == VTSS_RC_OK) {
+            *conf = vtss_state->l2.bum.pol_conf[id];
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_bum_policer_conf_set(const vtss_inst_t                    inst,
+                                  const vtss_bum_policer_id_t          id,
+                                  const vtss_bum_policer_conf_t *const conf)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        if ((rc = vtss_bum_policer_id_check(vtss_state, id)) == VTSS_RC_OK) {
+            vtss_state->l2.bum.pol_conf[id] = *conf;
+            rc = vtss_cil_l2_bum_policer_conf_set(vtss_state, id);
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_bum_policer_cnt_get(const vtss_inst_t                  inst,
+                                 const vtss_bum_policer_id_t        id,
+                                 vtss_bum_policer_counters_t *const cnt)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        if ((rc = vtss_bum_policer_id_check(vtss_state, id)) == VTSS_RC_OK) {
+            rc = vtss_cil_l2_bum_cnt_get(vtss_state, id, cnt);
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_bum_policer_cnt_clear(const vtss_inst_t inst, const vtss_bum_policer_id_t id)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc       rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_check(inst, &vtss_state)) == VTSS_RC_OK) {
+        if ((rc = vtss_bum_policer_id_check(vtss_state, id)) == VTSS_RC_OK) {
+            rc = vtss_cil_l2_bum_cnt_get(vtss_state, id, NULL);
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+#endif // VTSS_FEATURE_QOS_BUM_POLICER
+
 #if defined(VTSS_FEATURE_FRER)
 static vtss_rc vtss_frer_cstream_id_check(vtss_state_t *vtss_state, const vtss_frer_cstream_id_t id)
 {
@@ -6681,6 +6789,9 @@ static void vtss_debug_print_iflow(vtss_state_t                  *vtss_state,
 #if defined(VTSS_FEATURE_XDLB)
             pr("DLB   ");
 #endif
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+            pr("BUM   ");
+#endif
 #if defined(VTSS_FEATURE_VOP)
             pr("VOE   ");
 #endif
@@ -6708,6 +6819,9 @@ static void vtss_debug_print_iflow(vtss_state_t                  *vtss_state,
 #endif
 #if defined(VTSS_FEATURE_XDLB)
         vtss_debug_print_w6(ss, conf->dlb_enable, conf->dlb_id);
+#endif
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+        vtss_debug_print_w6(ss, conf->bum_enable, conf->bum_id);
 #endif
 #if defined(VTSS_FEATURE_VOP)
         vtss_debug_print_w6(ss, conf->voe_idx != VTSS_VOE_IDX_NONE, conf->voe_idx);
@@ -6990,6 +7104,70 @@ static void vtss_debug_print_dlb(vtss_state_t                  *vtss_state,
                    conf->drop_yellow ? 1U : 0U);
             }
 #endif
+            pr("\n");
+        }
+    }
+    if (!first) {
+        pr("\n");
+    }
+}
+#endif
+
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+static void vtss_debug_print_bum(vtss_state_t                  *vtss_state,
+                                 lmu_ss_t                      *ss,
+                                 const vtss_debug_info_t *const info)
+{
+    vtss_bum_bucket_conf_t     *b;
+    vtss_bum_policer_conf_t    *c;
+    vtss_bum_policer_counters_t cnt;
+    u16                         i, j;
+    u8                          pol_valid[VTSS_BF_SIZE(VTSS_BUM_POLICER_CNT)] = {};
+    vtss_sdx_entry_t           *sdx;
+    BOOL                        first = TRUE;
+
+    pr("BUM Policers:\n\n");
+    pr("IDX  Known UC/MC/BC  Unknown UC/MC/BC\n");
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        b = &vtss_state->l2.bum.conf.bucket[i];
+        pr("%-5u%u/%u/%-12u%u/%u/%u\n", i, b->known_unicast ? 1 : 0, b->known_multicast ? 1 : 0,
+           b->known_broadcast ? 1 : 0, b->unknown_unicast ? 1 : 0, b->unknown_multicast ? 1 : 0,
+           b->unknown_broadcast ? 1 : 0);
+    }
+    pr("\n");
+
+    // Show policers mapped by an ingress flow
+    for (sdx = vtss_state->l2.sdx_info.iflow; sdx != NULL; sdx = sdx->next) {
+        if (sdx->conf.bum_enable) {
+            VTSS_BF_SET(pol_valid, sdx->conf.bum_id, TRUE);
+        }
+    }
+    for (i = 0; i < VTSS_BUM_POLICER_CNT; i++) {
+        if (!VTSS_BF_GET(pol_valid, i)) {
+            continue;
+        }
+        if (first) {
+            first = FALSE;
+            pr("%-38sPassed   Discarded\n", "");
+            pr("ID    Mode   IDX  Rate        Level   UC/MC/BC-UC/MC/BC\n");
+        }
+        c = &vtss_state->l2.bum.pol_conf[i];
+        for (j = 0; j < VTSS_BUM_BUCKET_CNT; j++) {
+            if (j == 0) {
+                pr("%-6u%-7s", i,
+                   c->mode == VTSS_POLICER_MODE_LINE   ? "Line"
+                   : c->mode == VTSS_POLICER_MODE_DATA ? "Data"
+                                                       : "Frame");
+            } else {
+                pr("%-13s", "");
+            }
+            pr("%-5u%-12u%-8u", j, c->bucket[j].rate, c->bucket[j].level);
+            if (j == 0 && vtss_cil_l2_bum_cnt_get(vtss_state, i, &cnt) == VTSS_RC_OK) {
+                pr("%" PRIu64 "/%" PRIu64 "/%" PRIu64 "-", cnt.uc_passed, cnt.mc_passed,
+                   cnt.bc_passed);
+                pr("%" PRIu64 "/%" PRIu64 "/%" PRIu64, cnt.uc_discarded, cnt.mc_discarded,
+                   cnt.bc_discarded);
+            }
             pr("\n");
         }
     }
@@ -7378,6 +7556,9 @@ static void vtss_debug_print_vlan_trans(vtss_state_t                  *vtss_stat
 #if defined(VTSS_FEATURE_XDLB)
     if (a == 0U || a == 7U) {
         vtss_debug_print_dlb(vtss_state, ss, info);
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+        vtss_debug_print_bum(vtss_state, ss, info);
+#endif
     }
 #endif
 #if defined(VTSS_FEATURE_XFLOW)

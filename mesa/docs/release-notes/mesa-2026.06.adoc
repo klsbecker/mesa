@@ -16,4 +16,10 @@
 
 Support for port mux mode 4 has been added for LAN9662.
 
+=== BUM policers
 
+Support for mapping ingress flows to BUM policers with associated counters has been added.
+The general BUM policer properties are controlled using the `mesa_bum_conf_t` struct.
+Each policer consists on three buckets controlled using the `mesa_bum_policer_conf_t` struct.
+Counters per policer are available in the `mesa_bum_policer_counters_t` struct.
+SKUs: VSC741X, VSC743X, VSC744X, VSC746X, VSC754X, VSC755X and LAN969X.

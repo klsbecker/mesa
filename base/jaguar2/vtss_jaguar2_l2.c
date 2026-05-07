@@ -838,17 +838,23 @@ vtss_rc vtss_cil_l2_vcl_port_conf_set(vtss_state_t *vtss_state, vtss_port_no_t p
                                       FALSE);
 }
 
-vtss_rc vtss_jr2_isdx_set(vtss_state_t     *vtss_state,
-                          vtss_sdx_entry_t *sdx,
-                          u64               pmask,
-                          u32               l2cp_idx,
-                          u32               voe_idx,
-                          u32               mip_idx,
-                          BOOL              vsi_enable,
-                          u32               vsi,
-                          BOOL              independent_mel)
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+static u16 jr2_bum_pol_id(const vtss_bum_policer_id_t id) { return (id + 1U); }
+#endif
+
+vtss_rc vtss_cil_l2_iflow_conf_set(vtss_state_t *vtss_state, const vtss_iflow_id_t id)
 {
-    u32 isdx = sdx->sdx;
+    vtss_sdx_entry_t  *sdx = vtss_iflow_lookup(vtss_state, id);
+    vtss_iflow_conf_t *conf;
+    u64                pmask = 0xffffffffffffffff;
+    u32                isdx, val = 0, voe_idx, mip_idx;
+
+    if (sdx == NULL) {
+        return VTSS_RC_ERROR;
+    }
+
+    isdx = sdx->sdx;
+    conf = &sdx->conf;
 
     JR2_WRX_PMASK(VTSS_ANA_L2_ISDX_PORT_MASK_CFG, isdx, pmask);
 
@@ -859,55 +865,34 @@ vtss_rc vtss_jr2_isdx_set(vtss_state_t     *vtss_state,
     /* DLB/ISDX mappings */
     VTSS_RC(vtss_cil_l2_isdx_update(vtss_state, sdx));
 
-    /* L2CP IDX */
-    JR2_WR(VTSS_ANA_CL_IPT_ISDX_CFG(isdx), VTSS_F_ANA_CL_IPT_ISDX_CFG_L2CP_IDX(l2cp_idx));
+    // BUM policer mapping
+    if (conf->bum_enable) {
+        val = (VTSS_M_ANA_L2_ISDX_MISC_CFG_BUM_SLB_ENA |
+               VTSS_F_ANA_L2_ISDX_MISC_CFG_BUM_SLB_IDX(jr2_bum_pol_id(conf->bum_id)));
+    }
+    JR2_WR(VTSS_ANA_L2_ISDX_MISC_CFG(isdx), val);
 
     /* Independent_mel */
+    voe_idx = conf->voe_idx;
     JR2_WRM(VTSS_ANA_CL_IPT_OAM_MEP_CFG(isdx),
-            VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_INDEPENDENT_MEL_ENA(independent_mel),
+            VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_INDEPENDENT_MEL_ENA(voe_idx == VTSS_VOE_IDX_NONE ? 1 : 0),
             VTSS_M_ANA_CL_IPT_OAM_MEP_CFG_INDEPENDENT_MEL_ENA);
 
-    /* VOE reference */
-    JR2_WRM(VTSS_ANA_CL_IPT_OAM_MEP_CFG(isdx),
-            VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX_ENA((voe_idx == VTSS_VOE_IDX_NONE) ||
-                                                              (voe_idx >= VTSS_PORT_VOE_BASE_IDX)
-                                                          ? 0
-                                                          : 1), /* Do not point to a Port VOE */
+    /* VOE reference (avoid pointing to a Port VOE) */
+    val = (voe_idx < VTSS_PORT_VOE_BASE_IDX ? 1 : 0);
+    JR2_WRM(VTSS_ANA_CL_IPT_OAM_MEP_CFG(isdx), VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX_ENA(val),
             VTSS_M_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX_ENA);
-
     JR2_WRM(VTSS_ANA_CL_IPT_OAM_MEP_CFG(isdx),
-            VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX((voe_idx == VTSS_VOE_IDX_NONE) ||
-                                                          (voe_idx >= VTSS_PORT_VOE_BASE_IDX)
-                                                      ? 0
-                                                      : voe_idx),
+            VTSS_F_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX(val ? voe_idx : 0),
             VTSS_M_ANA_CL_IPT_OAM_MEP_CFG_MEP_IDX);
 
     /* MIP reference */
+    mip_idx = vtss_j2_voi_idx_to_mip_idx(conf->voi_idx);
     JR2_WRM(VTSS_ANA_CL_IPT_ISDX_CFG(isdx),
             VTSS_F_ANA_CL_IPT_ISDX_CFG_MIP_IDX(mip_idx == VTSS_VOI_IDX_NONE ? 0 : mip_idx),
             VTSS_M_ANA_CL_IPT_ISDX_CFG_MIP_IDX);
 
-    /* VSI */
-    JR2_WR(VTSS_ANA_CL_IPT_VSI_CFG(isdx),
-           VTSS_F_ANA_CL_IPT_VSI_CFG_VSI_ENA(vsi_enable) | VTSS_F_ANA_CL_IPT_VSI_CFG_VSI_VAL(vsi));
     return VTSS_RC_OK;
-}
-
-vtss_rc vtss_cil_l2_iflow_conf_set(vtss_state_t *vtss_state, const vtss_iflow_id_t id)
-{
-    vtss_sdx_entry_t *sdx = vtss_iflow_lookup(vtss_state, id);
-    u64               pmask = 0xffffffffffffffff;
-
-    if (sdx == NULL) {
-        return VTSS_RC_ERROR;
-    }
-
-    return vtss_jr2_isdx_set(vtss_state, sdx, pmask, 0, sdx->conf.voe_idx,
-                             vtss_j2_voi_idx_to_mip_idx(sdx->conf.voi_idx), 0, 0,
-                             (sdx->conf.voe_idx == VTSS_VOE_IDX_NONE)
-                                 ? TRUE
-                                 : FALSE); /* Independent MEL when no pointer to
-                                              active VOE */
 }
 
 vtss_rc vtss_cil_l2_icnt_get(vtss_state_t *vtss_state, u16 idx, vtss_ingress_counters_t *counters)
@@ -1299,6 +1284,197 @@ vtss_rc vtss_cil_l2_sflow_port_conf_set(vtss_state_t                       *vtss
 #undef JR_SFLOW_ENABLED
 }
 
+vtss_rc vtss_cil_l2_bum_conf_set(struct vtss_state_s *vtss_state)
+{
+    vtss_bum_conf_t        *c = &vtss_state->l2.bum.conf;
+    vtss_bum_bucket_conf_t *b;
+    u32                     i, val;
+
+    // Setup policer events
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        b = &c->bucket[i];
+        val = (((b->known_unicast ? 1 : 0) << 5) | ((b->known_multicast ? 1 : 0) << 4) |
+               ((b->known_broadcast ? 1 : 0) << 3) | ((b->unknown_unicast ? 1 : 0) << 2) |
+               ((b->unknown_multicast ? 1 : 0) << 1) | ((b->unknown_broadcast ? 1 : 0) << 0));
+        JR2_WR(VTSS_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG(i),
+               VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG_TRAFFIC_TYPE_MASK(val));
+    }
+
+    // Setup BUM policer counters
+    for (i = 0; i < 6; i++) {
+        JR2_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_EVENT_MASK(i), 1 << i);
+        JR2_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_CFG(i), c->cnt_bytes ? 1 : 0);
+    }
+
+    return VTSS_RC_OK;
+}
+
+// Maximum rate and level
+#define JR2_BUM_RATE_MAX  0x7ff
+#define JR2_BUM_THRES_MAX 0x7f
+
+vtss_rc vtss_cil_l2_bum_policer_conf_set(struct vtss_state_s        *vtss_state,
+                                         const vtss_bum_policer_id_t id)
+{
+    u32                      max = 0, gran, val, i, unit, lvl, idx = jr2_bum_pol_id(id);
+    vtss_bum_policer_conf_t *c = &vtss_state->l2.bum.pol_conf[id];
+    vtss_policer_t          *p;
+    BOOL                     frame_rate = (c->mode == VTSS_POLICER_MODE_FRAME);
+
+    val = VTSS_F_ANA_AC_POL_BUM_SLB_MISC_CFG_FRAME_RATE_ENA(frame_rate);
+    JR2_WR(VTSS_ANA_AC_POL_BUM_SLB_MISC_CFG(idx), val);
+
+    // Find maximum rate and calculate granularity
+    if (frame_rate) {
+        unit = 10;
+        gran = VTSS_BUM_FPS_0;
+    } else {
+        unit = 1000;
+        gran = VTSS_BUM_BPS_0;
+    }
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        val = c->bucket[i].rate;
+        if (val < (UINT32_MAX / unit)) {
+            val *= unit;
+            if ((val / gran) < JR2_BUM_RATE_MAX && val > max) {
+                // Rate does not exceed register when using largest granularity
+                max = val;
+            }
+        }
+    }
+    if (frame_rate) {
+        // Frame rate policing
+        if (max < (VTSS_BUM_FPS_3 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_3;
+            val = 3;
+        } else if (max < (VTSS_BUM_FPS_2 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_2;
+            val = 2;
+        } else if (max < (VTSS_BUM_FPS_1 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_1;
+            val = 1;
+        } else {
+            gran = VTSS_BUM_FPS_0;
+            val = 0;
+        }
+    } else {
+        // Bit rate policing
+        if (max < (VTSS_BUM_BPS_3 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_3;
+            val = 3;
+        } else if (max < (VTSS_BUM_BPS_2 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_2;
+            val = 2;
+        } else if (max < (VTSS_BUM_BPS_1 * JR2_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_1;
+            val = 1;
+        } else {
+            gran = VTSS_BUM_BPS_0;
+            val = 0;
+        }
+    }
+    JR2_WR(VTSS_ANA_AC_POL_BUM_SLB_SLB_CFG(idx),
+           VTSS_F_ANA_AC_POL_BUM_SLB_SLB_CFG_GAP_VAL(c->mode == VTSS_POLICER_MODE_LINE ? 20 : 0) |
+               VTSS_F_ANA_AC_POL_BUM_SLB_SLB_CFG_TIMESCALE_VAL(val));
+
+    // Setup buckets using granularity
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        p = &c->bucket[i];
+        val = p->rate;
+        if (val < (UINT32_MAX / unit)) {
+            val = ((val * unit) / gran);
+        }
+        if (val > JR2_BUM_RATE_MAX) {
+            val = JR2_BUM_RATE_MAX;
+        }
+        lvl = (p->level / (frame_rate ? 2 : 2048));
+        if (lvl > JR2_BUM_THRES_MAX) {
+            lvl = JR2_BUM_THRES_MAX;
+        }
+        JR2_WR(VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(idx, i),
+               VTSS_F_ANA_AC_POL_BUM_SLB_LB_CFG_THRES_VAL(lvl) |
+                   VTSS_F_ANA_AC_POL_BUM_SLB_LB_CFG_RATE_VAL(val));
+    }
+    return VTSS_RC_OK;
+}
+
+vtss_rc vtss_cil_l2_bum_cnt_get(struct vtss_state_s               *vtss_state,
+                                const vtss_bum_policer_id_t        id,
+                                vtss_bum_policer_counters_t *const cnt)
+{
+    u32                  i = jr2_bum_pol_id(id), j, lsb, msb;
+    vtss_bum_counters_t *c = &vtss_state->l2.bum.cnt[i];
+    vtss_counter_t      *u;
+
+    for (j = 0; j < 6; j++) {
+        JR2_RD(VTSS_ANA_AC_STAT_CNT_CFG_BUM_STAT_LSB_CNT(i, j), &lsb);
+        JR2_RD(VTSS_ANA_AC_STAT_CNT_CFG_BUM_STAT_MSB_CNT(i, j), &msb);
+        vtss_cmn_counter_40_update(lsb, msb, &c->cnt[j], cnt == NULL);
+        if (cnt != NULL) {
+            switch (j) {
+            case VTSS_BUM_CNT_BC_DISC: u = &cnt->bc_discarded; break;
+            case VTSS_BUM_CNT_MC_DISC: u = &cnt->mc_discarded; break;
+            case VTSS_BUM_CNT_UC_DISC: u = &cnt->uc_discarded; break;
+            case VTSS_BUM_CNT_BC_PASS: u = &cnt->bc_passed; break;
+            case VTSS_BUM_CNT_MC_PASS: u = &cnt->mc_passed; break;
+            default:                   u = &cnt->uc_passed; break;
+            }
+            *u = c->cnt[j].value;
+        }
+    }
+    return VTSS_RC_OK;
+}
+
+static vtss_rc jr2_debug_bum(vtss_state_t                  *vtss_state,
+                             lmu_ss_t                      *ss,
+                             const vtss_debug_info_t *const info)
+{
+    u32           i, j, addr, val;
+    lmu_fmt_buf_t buf;
+    BOOL          valid;
+
+    vtss_jr2_debug_reg_header(ss, "BUM common");
+    addr = VTSS_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL;
+    vtss_jr2_debug_reg(vtss_state, ss, addr, "DLB_CTRL");
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        addr = VTSS_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG(i);
+        vtss_jr2_debug_reg_inst(vtss_state, ss, addr, i, "TRAFFIC_MASK_CFG");
+    }
+    for (i = 0; i < 6; i++) {
+        addr = VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_EVENT_MASK(i);
+        vtss_jr2_debug_reg_inst(vtss_state, ss, addr, i, "STAT_EVENT_MASK");
+        addr = VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_CFG(i);
+        vtss_jr2_debug_reg_inst(vtss_state, ss, addr, i, "STAT_CNT_BYTE");
+    }
+    pr("\n");
+
+    for (i = 0; i < VTSS_BUM_POLICER_CNT; i++) {
+        valid = FALSE;
+        for (j = 0; j < VTSS_BUM_BUCKET_CNT; j++) {
+            JR2_RD(VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(i, j), &val);
+            if (val != JR2_BUM_RATE_MAX) {
+                valid = TRUE;
+            }
+        }
+        if (!valid) {
+            continue;
+        }
+        VTSS_FMT(buf, "BUM policer %u", i);
+        vtss_jr2_debug_reg_header(ss, buf.s);
+        addr = VTSS_ANA_AC_POL_BUM_SLB_MISC_CFG(i);
+        vtss_jr2_debug_reg(vtss_state, ss, addr, "MISC_CFG");
+        addr = VTSS_ANA_AC_POL_BUM_SLB_SLB_CFG(i);
+        vtss_jr2_debug_reg(vtss_state, ss, addr, "SLB_CFG");
+        for (j = 0; j < VTSS_BUM_BUCKET_CNT; j++) {
+            addr = VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(i, j);
+            vtss_jr2_debug_reg_inst(vtss_state, ss, addr, j, "LB_CFG");
+        }
+        pr("\n");
+    }
+
+    return VTSS_RC_OK;
+}
+
 /* - Debug print --------------------------------------------------- */
 
 static void jr2_debug_pmask_header(vtss_state_t *vtss_state, lmu_ss_t *ss, const char *name)
@@ -1680,6 +1856,9 @@ static vtss_rc jr2_debug_vxlat(vtss_state_t                  *vtss_state,
     if (a == 0 || a == 4) {
         VTSS_RC(vtss_jr2_debug_es0(vtss_state, ss, info));
     }
+    if (a == 0U || a == 7U) {
+        VTSS_RC(jr2_debug_bum(vtss_state, ss, info));
+    }
     return VTSS_RC_OK;
 }
 
@@ -1969,6 +2148,19 @@ static vtss_rc jr2_l2_poll(vtss_state_t *vtss_state)
             VTSS_RC(jr2_vlan_counters_update(vtss_state, idx, NULL, FALSE));
         }
 #endif
+        {
+            // BUM counters are 40 bits, and 10 Gbps is assumed to be the worst case.
+            // Frame counters will wrap in about 20 hours.
+            // Byte counters will wrap in about 800 seconds.
+            // Maximum number of BUM policers is 1023, so polling one policer every second is
+            // reasonable.
+            vtss_bum_policer_counters_t cnt;
+
+            idx = state->bum.poll_idx;
+            VTSS_RC(vtss_cil_l2_bum_cnt_get(vtss_state, idx, &cnt));
+            idx++;
+            state->bum.poll_idx = (idx < VTSS_BUM_POLICER_CNT ? idx : 0U);
+        }
     }
     return VTSS_RC_OK;
 }

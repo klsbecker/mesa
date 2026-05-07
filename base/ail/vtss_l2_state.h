@@ -496,6 +496,39 @@ typedef struct {
 } vtss_xpol_table_t;
 #endif
 
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+typedef struct {
+    vtss_chip_counter_t cnt[6];
+} vtss_bum_counters_t;
+
+typedef struct {
+    vtss_bum_conf_t         conf;
+    vtss_bum_policer_conf_t pol_conf[VTSS_BUM_POLICER_CNT];
+    vtss_bum_counters_t     cnt[VTSS_BUM_POLICER_CNT];
+    u32                     poll_idx;
+} vtss_bum_policer_state_t;
+
+// Granularities for bit rate
+#define VTSS_BUM_BPS_0 8192524
+#define VTSS_BUM_BPS_1 1024066
+#define VTSS_BUM_BPS_2 128008
+#define VTSS_BUM_BPS_3 16001
+
+// Granularities for frame rate, unit is 0.1 fps
+#define VTSS_BUM_FPS_0 10000
+#define VTSS_BUM_FPS_1 1250
+#define VTSS_BUM_FPS_2 156
+#define VTSS_BUM_FPS_3 20
+
+// Counter indices, matching the event mask bits
+#define VTSS_BUM_CNT_BC_DISC 0
+#define VTSS_BUM_CNT_MC_DISC 1
+#define VTSS_BUM_CNT_UC_DISC 2
+#define VTSS_BUM_CNT_BC_PASS 3
+#define VTSS_BUM_CNT_MC_PASS 4
+#define VTSS_BUM_CNT_UC_PASS 5
+#endif
+
 #if defined(VTSS_FEATURE_FRER)
 typedef struct {
     vtss_xrow_header_t hdr;
@@ -669,6 +702,14 @@ vtss_rc vtss_cil_l2_policer_status_get(struct vtss_state_s             *vtss_sta
                                        vtss_dlb_policer_status_t *const status);
 #endif /* VTSS_FEATURE_PSFP */
 #endif // VTSS_EVC_STAT_CNT
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+vtss_rc vtss_cil_l2_bum_conf_set(struct vtss_state_s *vtss_state);
+vtss_rc vtss_cil_l2_bum_policer_conf_set(struct vtss_state_s        *vtss_state,
+                                         const vtss_bum_policer_id_t id);
+vtss_rc vtss_cil_l2_bum_cnt_get(struct vtss_state_s               *vtss_state,
+                                const vtss_bum_policer_id_t        id,
+                                vtss_bum_policer_counters_t *const cnt);
+#endif
 #if defined(VTSS_FEATURE_FRER)
 vtss_rc vtss_cil_l2_cstream_conf_set(struct vtss_state_s         *vtss_state,
                                      const vtss_frer_cstream_id_t id);
@@ -858,6 +899,9 @@ typedef struct {
 #if defined(VTSS_FEATURE_PSFP)
     vtss_dlb_policer_status_t pol_status[VTSS_EVC_POL_CNT];
 #endif
+#endif
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+    vtss_bum_policer_state_t bum;
 #endif
 #if defined(VTSS_FEATURE_FRER)
     vtss_ms_table_t           ms_table;

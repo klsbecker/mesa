@@ -562,6 +562,7 @@ def check_rate(cfg)
     pcp = fld_get(cfg, :pcp, [])
     cycle_time = fld_get(cfg, :cycle_time, [])
     size_array = fld_get(cfg, :size_array, [])
+    dmac = fld_get(cfg, :dmac, "00:00:00:00:01:01")
 
     pre_tx = with_pre_tx ? 1 : 0    # Calculate the possible pre tx time in seconds
     time = (pre_tx+sec+100)     # Calculate the required seconds that the transmitter must at least (+100) be transmitting
@@ -577,10 +578,11 @@ def check_rate(cfg)
 
 #        t_i("Calculated frames per sec at line speed: #{sec_count_in}")
         t_i("Start Easy Frame transmitting #{sec*sec_count_in} frames of size #{size} with #{pre_tx} sec of pre TX and 2 sec of post TX. Speed is 1 Gbps.")
+        smac = "00:00:00:00:01:1#{ig_idx}"
         if (pcp != [])
-            pid_ef << $ts.pc.bg("ef tx #{pcp[ig_idx]}", "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac 00:00:00:00:01:01 smac 00:00:00:00:01:1#{ig_idx} ctag vid 0 pcp #{pcp[ig_idx]} data pattern cnt #{size - (6+6+4+2+4)}") # 'size' is requested frame size inclusive checksum
+            pid_ef << $ts.pc.bg("ef tx #{pcp[ig_idx]}", "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} ctag vid 0 pcp #{pcp[ig_idx]} data pattern cnt #{size - (6+6+4+2+4)}") # 'size' is requested frame size inclusive checksum
         else
-            pid_ef << $ts.pc.bg("ef tx",                "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac 00:00:00:00:01:01 smac 00:00:00:00:01:1#{ig_idx} data pattern cnt #{size - (6+6+2+4)}") # 'size' is requested frame size inclusive checksum
+            pid_ef << $ts.pc.bg("ef tx",                "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} data pattern cnt #{size - (6+6+2+4)}") # 'size' is requested frame size inclusive checksum
         end
         max = 0
         begin   # Check that transmitter is started

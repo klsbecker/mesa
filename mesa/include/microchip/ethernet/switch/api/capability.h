@@ -162,6 +162,7 @@ typedef enum {
     MESA_CAP_L2_TAG_DISCARD,           /**< Tag discard identification */
     MESA_CAP_L2_TCL_KEY_OAM,           /**< TCL OAM MEL key */
     MESA_CAP_L2_TCL_ACT_FWD,           /**< TCL forwarding action */
+    MESA_CAP_L2_BUM_POL_CNT,           /**< Number of BUM policers */
 
     // Layer 3
     MESA_CAP_L3 = 500,    /**< Layer 3 switching */

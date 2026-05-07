@@ -1144,6 +1144,97 @@ vtss_rc vtss_dlb_policer_status_get(const vtss_inst_t                inst,
 
 #endif /* VTSS_FEATURE_XDLB */
 
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+
+/* - BUM policers -------------------------------------------------- */
+
+// Number of BUM policer instances
+#if defined(VTSS_ARCH_JAGUAR_2_C) || defined(VTSS_ARCH_SPARX5)
+#define VTSS_BUM_POLICER_CNT 1023U
+#else
+#define VTSS_BUM_POLICER_CNT 127U
+#endif
+
+// Number of buckets per BUM policer
+#define VTSS_BUM_BUCKET_CNT 3U
+
+// BUM policer configuration per bucket
+typedef struct {
+    BOOL known_unicast;     // Known unicast frames are policed
+    BOOL known_multicast;   // Known multicast frames are policed
+    BOOL known_broadcast;   // Known broadcast frames are policed
+    BOOL unknown_unicast;   // Unknown unicast frames are policed
+    BOOL unknown_multicast; // Unknown multicast frames are policed
+    BOOL unknown_broadcast; // Unknown broadcast frames are policed
+} vtss_bum_bucket_conf_t;
+
+// Global BUM policer configuration
+typedef struct {
+    BOOL                   cnt_bytes;                   // Byte/frame counting
+    vtss_bum_bucket_conf_t bucket[VTSS_BUM_BUCKET_CNT]; // Configuration per bucket
+} vtss_bum_conf_t;
+
+// Get global BUM policer configuration.
+// conf [OUT]  Policer configuration.
+vtss_rc vtss_bum_conf_get(const vtss_inst_t inst, vtss_bum_conf_t *const conf);
+
+// Set global BUM policer configuration.
+// conf [IN]  Policer configuration.
+vtss_rc vtss_bum_conf_set(const vtss_inst_t inst, const vtss_bum_conf_t *const conf);
+
+// BUM policer ID, zero-based
+typedef u16 vtss_bum_policer_id_t;
+
+// Policer mode
+typedef enum {
+    VTSS_POLICER_MODE_LINE,  // Bit rate, line
+    VTSS_POLICER_MODE_DATA,  // Bit rate, data
+    VTSS_POLICER_MODE_FRAME, // Frame rate, policer rate/level in fps/frames
+} vtss_policer_mode_t;
+
+// BUM policer configuration
+typedef struct {
+    vtss_policer_mode_t mode;                        // Policer mode
+    vtss_policer_t      bucket[VTSS_BUM_BUCKET_CNT]; // Configuration per bucket
+} vtss_bum_policer_conf_t;
+
+// Get BUM policer configuration.
+// id   [IN]   BUM policer ID.
+// conf [OUT]  Policer configuration.
+vtss_rc vtss_bum_policer_conf_get(const vtss_inst_t              inst,
+                                  const vtss_bum_policer_id_t    id,
+                                  vtss_bum_policer_conf_t *const conf);
+
+// Set BUM policer configuration.
+// id   [IN]  BUM policer ID.
+// conf [IN]  Policer configuration.
+vtss_rc vtss_bum_policer_conf_set(const vtss_inst_t                    inst,
+                                  const vtss_bum_policer_id_t          id,
+                                  const vtss_bum_policer_conf_t *const conf);
+
+// BUM policer counters
+typedef struct {
+    vtss_counter_t uc_passed;    // Unicast frames/bytes passed
+    vtss_counter_t mc_passed;    // Multicast frames/bytes passed
+    vtss_counter_t bc_passed;    // Broadcast frames/bytes passed
+    vtss_counter_t uc_discarded; // Unicast frames/bytes discarded
+    vtss_counter_t mc_discarded; // Multicast frames/bytes discarded
+    vtss_counter_t bc_discarded; // Broadcast frames/bytes discarded
+} vtss_bum_policer_counters_t;
+
+// Get BUM policer counters.
+// id  [IN]   BUM policer ID.
+// cnt [OUT]  Policer counters.
+vtss_rc vtss_bum_policer_cnt_get(const vtss_inst_t                  inst,
+                                 const vtss_bum_policer_id_t        id,
+                                 vtss_bum_policer_counters_t *const cnt);
+
+// Clear BUM policer counters.
+// id  [IN]   BUM policer ID.
+vtss_rc vtss_bum_policer_cnt_clear(const vtss_inst_t inst, const vtss_bum_policer_id_t id);
+
+#endif // VTSS_FEATURE_QOS_BUM_POLICER
+
 #if defined(VTSS_FEATURE_XFLOW)
 
 /* - Ingress flow -------------------------------------------------- */
@@ -1177,6 +1268,10 @@ typedef struct {
 #if defined(VTSS_FEATURE_XDLB)
     BOOL                  dlb_enable; /**< Enable DLB policer */
     vtss_dlb_policer_id_t dlb_id;     /**< DLB policer ID */
+#endif
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+    BOOL                  bum_enable; // Enable BUM policer
+    vtss_bum_policer_id_t bum_id;     // BUM policer ID
 #endif
 #if defined(VTSS_FEATURE_VOP)
     vtss_voe_idx_t voe_idx; /**< VOE index or VTSS_VOE_IDX_NONE */

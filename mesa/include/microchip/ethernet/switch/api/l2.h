@@ -661,6 +661,86 @@ mesa_rc mesa_dlb_policer_status_get(const mesa_inst_t                inst,
                                     const mesa_cosid_t               cosid,
                                     mesa_dlb_policer_status_t *const status);
 
+/* - BUM policers -------------------------------------------------- */
+
+// Number of buckets per BUM policer
+#define MESA_BUM_BUCKET_CNT 3U
+
+// BUM policer configuration per bucket
+typedef struct {
+    mesa_bool_t known_unicast;     // Known unicast frames are policed
+    mesa_bool_t known_multicast;   // Known multicast frames are policed
+    mesa_bool_t known_broadcast;   // Known broadcast frames are policed
+    mesa_bool_t unknown_unicast;   // Unknown unicast frames are policed
+    mesa_bool_t unknown_multicast; // Unknown multicast frames are policed
+    mesa_bool_t unknown_broadcast; // Unknown broadcast frames are policed
+} mesa_bum_bucket_conf_t;
+
+// Global BUM policer configuration
+typedef struct {
+    mesa_bool_t            cnt_bytes;                   // Byte/frame counting
+    mesa_bum_bucket_conf_t bucket[MESA_BUM_BUCKET_CNT]; // Configuration per bucket
+} mesa_bum_conf_t;
+
+// Get global BUM policer configuration.
+// conf [OUT]  Policer configuration.
+mesa_rc mesa_bum_conf_get(const mesa_inst_t inst, mesa_bum_conf_t *const conf);
+
+// Set global BUM policer configuration.
+// conf [IN]  Policer configuration.
+mesa_rc mesa_bum_conf_set(const mesa_inst_t inst, const mesa_bum_conf_t *const conf);
+
+// BUM policer ID, zero-based
+typedef uint16_t mesa_bum_policer_id_t;
+
+// Policer mode
+typedef enum {
+    MESA_POLICER_MODE_LINE,  // Bit rate, line
+    MESA_POLICER_MODE_DATA,  // Bit rate, data
+    MESA_POLICER_MODE_FRAME, // Frame rate, policer rate/level in fps/frames
+} mesa_policer_mode_t;
+
+// BUM policer configuration
+typedef struct {
+    mesa_policer_mode_t mode;                        // Policer mode
+    mesa_policer_t      bucket[MESA_BUM_BUCKET_CNT]; // Configuration per bucket
+} mesa_bum_policer_conf_t;
+
+// Get BUM policer configuration.
+// id   [IN]   BUM policer ID.
+// conf [OUT]  Policer configuration.
+mesa_rc mesa_bum_policer_conf_get(const mesa_inst_t              inst,
+                                  const mesa_bum_policer_id_t    id,
+                                  mesa_bum_policer_conf_t *const conf);
+
+// Set BUM policer configuration.
+// id   [IN]  BUM policer ID.
+// conf [IN]  Policer configuration.
+mesa_rc mesa_bum_policer_conf_set(const mesa_inst_t                    inst,
+                                  const mesa_bum_policer_id_t          id,
+                                  const mesa_bum_policer_conf_t *const conf);
+
+// BUM policer counters
+typedef struct {
+    mesa_counter_t uc_passed;    // Unicast frames/bytes passed
+    mesa_counter_t mc_passed;    // Multicast frames/bytes passed
+    mesa_counter_t bc_passed;    // Broadcast frames/bytes passed
+    mesa_counter_t uc_discarded; // Unicast frames/bytes discarded
+    mesa_counter_t mc_discarded; // Multicast frames/bytes discarded
+    mesa_counter_t bc_discarded; // Broadcast frames/bytes discarded
+} mesa_bum_policer_counters_t;
+
+// Get BUM policer counters.
+// id  [IN]   BUM policer ID.
+// cnt [OUT]  Policer counters.
+mesa_rc mesa_bum_policer_cnt_get(const mesa_inst_t                  inst,
+                                 const mesa_bum_policer_id_t        id,
+                                 mesa_bum_policer_counters_t *const cnt);
+
+// Clear BUM policer counters.
+// id  [IN]   BUM policer ID.
+mesa_rc mesa_bum_policer_cnt_clear(const mesa_inst_t inst, const mesa_bum_policer_id_t id);
+
 /* - Ingress flow -------------------------------------------------- */
 
 // Allocate ingress flow.
@@ -677,6 +757,8 @@ typedef struct {
     mesa_ingress_cnt_id_t  cnt_id;     // Ingress counter ID
     mesa_bool_t            dlb_enable; // Enable DLB policer
     mesa_dlb_policer_id_t  dlb_id;     // DLB policer ID
+    mesa_bool_t            bum_enable; // Enable BUM policer
+    mesa_bum_policer_id_t  bum_id;     // BUM policer ID
     mesa_voe_idx_t voe_idx CAP(VOP);   // VOE index or MESA_VOE_IDX_NONE.
                                        // (VOP_V2) If MESA_VOE_IDX_NONE possibly enabled port-VOE
     // will see OAM as data - else OAM will be handled by the VOE.

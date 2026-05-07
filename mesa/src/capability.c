@@ -885,6 +885,12 @@ uint32_t mesa_capability(mesa_inst_t inst, mesa_cap_t cap)
 #endif
         break;
 
+    case MESA_CAP_L2_BUM_POL_CNT:
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+        c = VTSS_BUM_POLICER_CNT;
+#endif
+        break;
+
     // Layer 3
     case MESA_CAP_L3:
 #if defined(VTSS_FEATURE_LAYER3)

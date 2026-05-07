@@ -898,13 +898,17 @@ vtss_rc vtss_cil_l2_vcl_port_conf_set(struct vtss_state_s *vtss_state, const vts
 static u16 fa_psfp_sfid(const vtss_psfp_filter_id_t id) { return (id + 1U); }
 #endif
 
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+static u16 fa_bum_pol_id(const vtss_bum_policer_id_t id) { return (id + 1U); }
+#endif
+
 #if defined(VTSS_FEATURE_XFLOW)
 vtss_rc vtss_cil_l2_iflow_conf_set(struct vtss_state_s *vtss_state, const vtss_iflow_id_t id)
 {
 
     vtss_sdx_entry_t  *sdx = vtss_iflow_lookup(vtss_state, id);
     vtss_port_mask_t   pmask;
-    u32                isdx;
+    u32                isdx, value;
     vtss_iflow_conf_t *conf;
     BOOL               independent_mel = TRUE;
     BOOL               voe_valid = FALSE;
@@ -919,9 +923,15 @@ vtss_rc vtss_cil_l2_iflow_conf_set(struct vtss_state_s *vtss_state, const vtss_i
     conf = &sdx->conf;
     REG_WRX_PMASK(VTSS_ANA_L2_PORT_MASK_CFG, isdx, pmask);
 
-    REG_WR(VTSS_ANA_L2_MISC_CFG(isdx),
-           VTSS_F_ANA_L2_MISC_CFG_CT_DIS(conf->cut_through_disable ? 1 : 0) |
-               VTSS_F_ANA_L2_MISC_CFG_PIPELINE_PT(15));
+    value = (VTSS_F_ANA_L2_MISC_CFG_CT_DIS(conf->cut_through_disable ? 1 : 0) |
+             VTSS_F_ANA_L2_MISC_CFG_PIPELINE_PT(15));
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+    if (conf->bum_enable) {
+        value |= (VTSS_M_ANA_L2_MISC_CFG_BUM_SLB_ENA |
+                  VTSS_F_ANA_L2_MISC_CFG_BUM_SLB_IDX(fa_bum_pol_id(conf->bum_id)));
+    }
+#endif
+    REG_WR(VTSS_ANA_L2_MISC_CFG(isdx), value);
 
 #if defined(VTSS_FEATURE_QOS_OT)
     REG_WR(VTSS_ANA_L2_QGRP_CFG(isdx), VTSS_F_ANA_L2_QGRP_CFG_QGRP_ENA(conf->ot ? 1 : 0) |
@@ -1454,6 +1464,210 @@ vtss_rc vtss_cil_l2_sflow_port_conf_set(struct vtss_state_s                *vtss
     return VTSS_RC_OK;
 #undef FA_SFLOW_ENABLED
 }
+
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+vtss_rc vtss_cil_l2_bum_conf_set(struct vtss_state_s *vtss_state)
+{
+    vtss_bum_conf_t        *c = &vtss_state->l2.bum.conf;
+    vtss_bum_bucket_conf_t *b;
+    u32                     i, val, per, tick;
+
+    // Setup policer events
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        b = &c->bucket[i];
+        val = (((b->known_unicast ? 1 : 0) << 5) | ((b->known_multicast ? 1 : 0) << 4) |
+               ((b->known_broadcast ? 1 : 0) << 3) | ((b->unknown_unicast ? 1 : 0) << 2) |
+               ((b->unknown_multicast ? 1 : 0) << 1) | ((b->unknown_broadcast ? 1 : 0) << 0));
+        REG_WR(VTSS_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG(i),
+               VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG_TRAFFIC_TYPE_MASK(val));
+    }
+
+    // Setup BUM policer counters
+    for (i = 0; i < 6; i++) {
+        REG_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_EVENT_MASK(i), 1 << i);
+        REG_WR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_CFG(i), c->cnt_bytes ? 1 : 0);
+    }
+
+    // Clock period, in units of 0.1 nsec (100 psec)
+    // Adjust BASE_TICK_CNT default value for rounding error when dividing by 100
+    per = vtss_fa_clk_period(vtss_state->init_conf.core_clock.freq);
+    val = (per / 100);
+    tick = ((9765 * val * 100) / per);
+    REG_WR(VTSS_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL,
+           VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL_CLK_PERIOD_01NS(val) |
+               VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL_BASE_TICK_CNT(tick) |
+               VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL_LEAK_ENA(1) |
+               VTSS_F_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL_DLB_ADD_ENA(1));
+
+    return VTSS_RC_OK;
+}
+
+// Maximum rate and level
+#define FA_BUM_RATE_MAX  REG_FLD_MSK(ANA_AC_POL_BUM_SLB_LB_CFG_RATE_VAL)
+#define FA_BUM_THRES_MAX REG_FLD_MSK(ANA_AC_POL_BUM_SLB_LB_CFG_THRES_VAL)
+
+vtss_rc vtss_cil_l2_bum_policer_conf_set(struct vtss_state_s        *vtss_state,
+                                         const vtss_bum_policer_id_t id)
+{
+    u32                      max = 0, gran, val, i, unit, lvl, idx = fa_bum_pol_id(id);
+    vtss_bum_policer_conf_t *c = &vtss_state->l2.bum.pol_conf[id];
+    vtss_policer_t          *p;
+    BOOL                     frame_rate = (c->mode == VTSS_POLICER_MODE_FRAME);
+
+    val = VTSS_F_ANA_AC_POL_BUM_SLB_MISC_CFG_FRAME_RATE_ENA(frame_rate);
+    REG_WR(VTSS_ANA_AC_POL_BUM_SLB_MISC_CFG(idx), val);
+
+    // Find maximum rate and calculate granularity
+    if (frame_rate) {
+        unit = 10;
+        gran = VTSS_BUM_FPS_0;
+    } else {
+        unit = 1000;
+        gran = VTSS_BUM_BPS_0;
+    }
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        val = c->bucket[i].rate;
+        if (val < (UINT32_MAX / unit)) {
+            val *= unit;
+            if ((val / gran) < FA_BUM_RATE_MAX && val > max) {
+                // Rate does not exceed register when using largest granularity
+                max = val;
+            }
+        }
+    }
+    if (frame_rate) {
+        // Frame rate policing
+        if (max < (VTSS_BUM_FPS_3 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_3;
+            val = 3;
+        } else if (max < (VTSS_BUM_FPS_2 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_2;
+            val = 2;
+        } else if (max < (VTSS_BUM_FPS_1 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_FPS_1;
+            val = 1;
+        } else {
+            gran = VTSS_BUM_FPS_0;
+            val = 0;
+        }
+    } else {
+        // Bit rate policing
+        if (max < (VTSS_BUM_BPS_3 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_3;
+            val = 3;
+        } else if (max < (VTSS_BUM_BPS_2 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_2;
+            val = 2;
+        } else if (max < (VTSS_BUM_BPS_1 * FA_BUM_RATE_MAX)) {
+            gran = VTSS_BUM_BPS_1;
+            val = 1;
+        } else {
+            gran = VTSS_BUM_BPS_0;
+            val = 0;
+        }
+    }
+    REG_WR(VTSS_ANA_AC_POL_BUM_SLB_SLB_CFG(idx),
+           VTSS_F_ANA_AC_POL_BUM_SLB_SLB_CFG_GAP_VAL(c->mode == VTSS_POLICER_MODE_LINE ? 20 : 0) |
+               VTSS_F_ANA_AC_POL_BUM_SLB_SLB_CFG_TIMESCALE_VAL(val));
+
+    // Setup buckets using granularity
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        p = &c->bucket[i];
+        val = p->rate;
+        if (val < (UINT32_MAX / unit)) {
+            val = ((val * unit) / gran);
+        }
+        if (val > FA_BUM_RATE_MAX) {
+            val = FA_BUM_RATE_MAX;
+        }
+        lvl = (p->level / (frame_rate ? 2 : 2048));
+        if (lvl > FA_BUM_THRES_MAX) {
+            lvl = FA_BUM_THRES_MAX;
+        }
+        REG_WR(VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(idx, i),
+               VTSS_F_ANA_AC_POL_BUM_SLB_LB_CFG_THRES_VAL(lvl) |
+                   VTSS_F_ANA_AC_POL_BUM_SLB_LB_CFG_RATE_VAL(val));
+    }
+    return VTSS_RC_OK;
+}
+
+vtss_rc vtss_cil_l2_bum_cnt_get(struct vtss_state_s               *vtss_state,
+                                const vtss_bum_policer_id_t        id,
+                                vtss_bum_policer_counters_t *const cnt)
+{
+    u32                  i = fa_bum_pol_id(id), j, lsb, msb;
+    vtss_bum_counters_t *c = &vtss_state->l2.bum.cnt[i];
+    vtss_counter_t      *u;
+
+    for (j = 0; j < 6; j++) {
+        REG_RD(VTSS_ANA_AC_STAT_CNT_CFG_BUM_STAT_LSB_CNT(i, j), &lsb);
+        REG_RD(VTSS_ANA_AC_STAT_CNT_CFG_BUM_STAT_MSB_CNT(i, j), &msb);
+        vtss_cmn_counter_40_update(lsb, msb, &c->cnt[j], cnt == NULL);
+        if (cnt != NULL) {
+            switch (j) {
+            case VTSS_BUM_CNT_BC_DISC: u = &cnt->bc_discarded; break;
+            case VTSS_BUM_CNT_MC_DISC: u = &cnt->mc_discarded; break;
+            case VTSS_BUM_CNT_UC_DISC: u = &cnt->uc_discarded; break;
+            case VTSS_BUM_CNT_BC_PASS: u = &cnt->bc_passed; break;
+            case VTSS_BUM_CNT_MC_PASS: u = &cnt->mc_passed; break;
+            default:                   u = &cnt->uc_passed; break;
+            }
+            *u = c->cnt[j].value;
+        }
+    }
+    return VTSS_RC_OK;
+}
+
+static vtss_rc fa_debug_bum(vtss_state_t                  *vtss_state,
+                            lmu_ss_t                      *ss,
+                            const vtss_debug_info_t *const info)
+{
+    u32           i, j, addr, val;
+    lmu_fmt_buf_t buf;
+    BOOL          valid;
+
+    vtss_fa_debug_reg_header(ss, "BUM common");
+    addr = REG_ADDR(VTSS_ANA_AC_POL_COMMON_BUM_SLB_DLB_CTRL);
+    vtss_fa_debug_reg(vtss_state, ss, addr, "DLB_CTRL");
+    for (i = 0; i < VTSS_BUM_BUCKET_CNT; i++) {
+        addr = REG_ADDR(VTSS_ANA_AC_POL_COMMON_BUM_SLB_TRAFFIC_MASK_CFG(i));
+        vtss_fa_debug_reg_inst(vtss_state, ss, addr, i, "TRAFFIC_MASK_CFG");
+    }
+    for (i = 0; i < 6; i++) {
+        addr = REG_ADDR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_EVENT_MASK(i));
+        vtss_fa_debug_reg_inst(vtss_state, ss, addr, i, "STAT_EVENT_MASK");
+        addr = REG_ADDR(VTSS_ANA_AC_STAT_GLOBAL_CFG_BUM_STAT_GLOBAL_CFG(i));
+        vtss_fa_debug_reg_inst(vtss_state, ss, addr, i, "STAT_CNT_BYTE");
+    }
+    pr("\n");
+
+    for (i = 0; i < VTSS_BUM_POLICER_CNT; i++) {
+        valid = FALSE;
+        for (j = 0; j < VTSS_BUM_BUCKET_CNT; j++) {
+            REG_RD(VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(i, j), &val);
+            if (val != FA_BUM_RATE_MAX) {
+                valid = TRUE;
+            }
+        }
+        if (!valid) {
+            continue;
+        }
+        VTSS_FMT(buf, "BUM policer %u", i);
+        vtss_fa_debug_reg_header(ss, buf.s);
+        addr = REG_ADDR(VTSS_ANA_AC_POL_BUM_SLB_MISC_CFG(i));
+        vtss_fa_debug_reg(vtss_state, ss, addr, "MISC_CFG");
+        addr = REG_ADDR(VTSS_ANA_AC_POL_BUM_SLB_SLB_CFG(i));
+        vtss_fa_debug_reg(vtss_state, ss, addr, "SLB_CFG");
+        for (j = 0; j < VTSS_BUM_BUCKET_CNT; j++) {
+            addr = REG_ADDR(VTSS_ANA_AC_POL_BUM_SLB_LB_CFG(i, j));
+            vtss_fa_debug_reg_inst(vtss_state, ss, addr, j, "LB_CFG");
+        }
+        pr("\n");
+    }
+
+    return VTSS_RC_OK;
+}
+#endif
 
 /* ================================================================= *
  *  FRER
@@ -3180,6 +3394,11 @@ static vtss_rc fa_debug_vxlat(vtss_state_t                  *vtss_state,
     if (a == 0U || a == 4U) {
         VTSS_RC(vtss_fa_debug_es0(vtss_state, ss, info));
     }
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+    if (a == 0U || a == 7U) {
+        VTSS_RC(fa_debug_bum(vtss_state, ss, info));
+    }
+#endif
 #if defined(VTSS_FEATURE_FRER)
     if (a == 0U || a == 10U) {
         if (vtss_state->vtss_features[FEATURE_FRER]) {
@@ -4030,7 +4249,7 @@ static vtss_rc fa_l2_poll(vtss_state_t *vtss_state)
         /* Poll counters for 30 SDX entries, giving 8192/30 = 273 seconds between
            each poll. This ensures that any counter can wrap only once between
            each poll. The worst case is a 32-bit frame counter on a 10Gbps port,
-           which takes about 0xffffffff/14.880.000.000 = 288 seconds to wrap. */
+           which takes about 0xffffffff/14.880.000 = 288 seconds to wrap. */
         for (i = 0U; i < 30U; i++) {
             idx = state->sdx_info.poll_idx;
             stat_idx.idx = (u16)idx;
@@ -4107,6 +4326,20 @@ static vtss_rc fa_l2_poll(vtss_state_t *vtss_state)
             VTSS_RC(vtss_cil_l2_rb_counters_update(vtss_state, (u8)idx, FALSE));
         }
         state->rb_poll_idx = (idx < 288U ? (idx + 1U) : 0U);
+    }
+#endif
+#if defined(VTSS_FEATURE_QOS_BUM_POLICER)
+    {
+        // BUM counters are 40 bits, and 10 Gbps is assumed to be the worst case.
+        // Frame counters will wrap in about 20 hours.
+        // Byte counters will wrap in about 800 seconds.
+        // Maximum number of BUM policers is 1023, so polling one policer every second is reasonable.
+        vtss_bum_policer_counters_t cnt;
+
+        idx = state->bum.poll_idx;
+        VTSS_RC(vtss_cil_l2_bum_cnt_get(vtss_state, idx, &cnt));
+        idx++;
+        state->bum.poll_idx = (idx < VTSS_BUM_POLICER_CNT ? idx : 0U);
     }
 #endif
 #endif

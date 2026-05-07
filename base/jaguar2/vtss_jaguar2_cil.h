@@ -385,15 +385,6 @@ vtss_rc vtss_jr2_qos_debug_print(vtss_state_t                  *vtss_state,
 /* L2 functions */
 vtss_rc vtss_jr2_l2_init(vtss_state_t *vtss_state, vtss_init_cmd_t cmd);
 vtss_rc vtss_jr2_vlan_update(vtss_state_t *vtss_state, vtss_vid_t vid);
-vtss_rc vtss_jr2_isdx_set(vtss_state_t     *vtss_state,
-                          vtss_sdx_entry_t *sdx,
-                          u64               pmask,
-                          u32               l2cp_idx,
-                          u32               voe_idx,
-                          u32               mip_idx,
-                          BOOL              vsi_enable,
-                          u32               vsi,
-                          BOOL              independent_mep);
 vtss_rc vtss_jr2_l2_debug_print(vtss_state_t                  *vtss_state,
                                 lmu_ss_t                      *ss,
                                 const vtss_debug_info_t *const info);
