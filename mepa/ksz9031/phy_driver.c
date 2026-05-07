@@ -21,7 +21,7 @@
 
 #define MSLEEP(sec)                             usleep(sec*1000)
 
-#define KSZ_PHY_CHIPID 0x00221622
+#define KSZ9031_PHY_CHIPID 0x00221622
 
 #define KSZ_2_MESA_RC(aq_rc)                    ((aq_rc == AQ_RET_OK) ? MESA_RC_OK : MESA_RC_ERROR)
 
@@ -346,8 +346,8 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     mepa_drivers_t res;
     static mepa_driver_t ksz_drivers[1] = {};
 
-    ksz_drivers[0].id = KSZ_PHY_CHIPID;
-    ksz_drivers[0].mask = 0xffffffff;
+    ksz_drivers[0].id = KSZ9031_PHY_CHIPID;
+    ksz_drivers[0].mask = 0xfffffff0;
     ksz_drivers[0].mepa_driver_delete = ksz_delete;
     ksz_drivers[0].mepa_driver_reset = NULL;
     ksz_drivers[0].mepa_driver_poll = ksz_poll;
