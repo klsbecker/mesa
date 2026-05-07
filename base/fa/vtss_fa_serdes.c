@@ -4272,7 +4272,9 @@ vtss_rc fla_port_loopback_set(vtss_state_t *vtss_state, const vtss_port_no_t por
             REG_WR(VTSS_SD10G_LANE_TARGET_LANE_91(sd_tgt),
                    VTSS_F_SD10G_LANE_TARGET_LANE_91_R_LBSLV_IN_PMAD(1));
             break;
-        default: break;
+        default:
+            // Empty on purpose
+            break;
         }
 #if defined(VTSS_FEATURE_SD_25G)
     } else if (sd_type == FA_SERDES_TYPE_25G) {
