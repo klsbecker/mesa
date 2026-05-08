@@ -165,10 +165,16 @@ static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
     return MEPA_RC_OK;
 }
 
-static mepa_rc ksz_conf_set(mepa_device_t      *dev,
-                            const mepa_conf_t  *config)
+static mepa_rc ksz9031_conf_set(mepa_device_t      *dev,
+                                const mepa_conf_t  *config)
 {
     return ksz_center_flp_timing(dev);
+}
+
+static mepa_rc ksz9131_conf_set(mepa_device_t      *dev,
+                                const mepa_conf_t  *config)
+{
+    return MEPA_RC_OK;
 }
 
 static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
@@ -311,7 +317,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[0].mepa_driver_delete = ksz_delete;
     ksz_drivers[0].mepa_driver_reset = NULL;
     ksz_drivers[0].mepa_driver_poll = ksz_poll;
-    ksz_drivers[0].mepa_driver_conf_set = ksz_conf_set;
+    ksz_drivers[0].mepa_driver_conf_set = ksz9031_conf_set;
     ksz_drivers[0].mepa_driver_if_get = ksz_1g_if_get;
     ksz_drivers[0].mepa_driver_power_set = NULL;
     ksz_drivers[0].mepa_driver_cable_diag_start = NULL;
@@ -326,7 +332,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[1].mepa_driver_delete = ksz_delete;
     ksz_drivers[1].mepa_driver_reset = NULL;
     ksz_drivers[1].mepa_driver_poll = ksz_poll;
-    ksz_drivers[1].mepa_driver_conf_set = ksz_conf_set;
+    ksz_drivers[1].mepa_driver_conf_set = ksz9131_conf_set;
     ksz_drivers[1].mepa_driver_if_set = ksz9131_rgmii_if_set;
     ksz_drivers[1].mepa_driver_if_get = ksz9131_rgmii_if_get;
     ksz_drivers[1].mepa_driver_power_set = NULL;
