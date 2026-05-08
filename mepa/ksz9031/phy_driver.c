@@ -32,6 +32,7 @@ typedef struct {
 
 typedef struct {
     phy_device    phydev;
+    mepa_conf_t   conf;
 } priv_data_t;
 
 /* Center KSZ9031RNX FLP timing at 16ms. */
@@ -165,16 +166,105 @@ static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
     return MEPA_RC_OK;
 }
 
+static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
+{
+    priv_data_t *data = (priv_data_t *)dev->data;
+    uint16_t old_adv, new_adv;
+    uint16_t val;
+    mepa_bool_t restart_aneg = 0U;
+    mepa_rc rc = MEPA_RC_OK;
+
+    if (!config->admin.enable) {
+        rc = phy_reg_wr(dev, MII_BMCR, BMCR_PDOWN);
+    } else {
+        if (config->speed == MEPA_SPEED_AUTO || config->speed == MEPA_SPEED_1G) {
+            if (config->admin.enable != data->conf.admin.enable) {
+                restart_aneg = 1U;
+            }
+
+            /* Check the 1000 advertise */
+            rc = phy_reg_rd(dev, MII_CTRL1000, &old_adv);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
+            new_adv = config->aneg.speed_1g_fdx ? CTRL1000_1000FULL : 0U;
+            if (config->man_neg) {
+                new_adv |= config->man_neg == MEPA_MANUAL_NEG_REF ? CTRL1000_AS_MASTER : 0;
+                new_adv |= CTRL1000_ENABLE_MASTER;
+            }
+
+            if (old_adv != new_adv) {
+                restart_aneg = 1U;
+
+                rc = phy_reg_wr(dev, MII_CTRL1000, new_adv);
+                if (rc != MEPA_RC_OK) {
+                    goto out;
+                }
+            }
+
+            /* Check the 10/100 advertise */
+            rc = phy_reg_rd(dev, MII_ADVERTISE, &old_adv);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
+            new_adv = (config->aneg.tx_remote_fault ? ADVERTISE_RFAULT : 0U) |
+                      (config->flow_control ? ADVERTISE_PAUSE_ASYM : 0U) |
+                      (config->flow_control ? ADVERTISE_PAUSE_CAP : 0U) |
+                      (config->aneg.speed_100m_fdx ? ADVERTISE_100FULL : 0U) |
+                      (config->aneg.speed_100m_hdx ? ADVERTISE_100HALF : 0U) |
+                      (config->aneg.speed_10m_fdx ? ADVERTISE_10FULL : 0U) |
+                      (config->aneg.speed_10m_hdx ? ADVERTISE_10HALF : 0U) |
+                      ADVERTISE_CSMA;
+
+            if (old_adv != new_adv) {
+                restart_aneg = 1U;
+
+                rc = phy_reg_wr(dev, MII_ADVERTISE, new_adv);
+                if (rc != MEPA_RC_OK) {
+                    goto out;
+                }
+            }
+
+            if (restart_aneg == 1U) {
+                rc = phy_reg_modify(dev, MII_BMCR, BMCR_ANRESTART, BMCR_ANRESTART);
+            }
+        } else {
+            if (config->speed == MEPA_SPEED_UNDEFINED) {
+                goto out;
+            }
+
+            val = (config->speed == MEPA_SPEED_100M ? BMCR_SPEED100 : 0) |
+                  (config->fdx ? BMCR_FULLDPLX : 0);
+            rc = phy_reg_wr(dev, MII_BMCR, val);
+        }
+    }
+
+    data->conf = *config;
+
+out:
+    return rc;
+
+}
+
 static mepa_rc ksz9031_conf_set(mepa_device_t      *dev,
                                 const mepa_conf_t  *config)
 {
-    return ksz_center_flp_timing(dev);
+    mepa_rc rc;
+
+    rc = ksz_center_flp_timing(dev);
+    if (rc != MEPA_RC_OK) {
+        return rc;
+    }
+
+    return ksz_conf_set(dev, config);
 }
 
 static mepa_rc ksz9131_conf_set(mepa_device_t      *dev,
                                 const mepa_conf_t  *config)
 {
-    return MEPA_RC_OK;
+    return ksz_conf_set(dev, config);
 }
 
 static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
