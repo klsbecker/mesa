@@ -106,6 +106,11 @@ extern const char *vtss_func;
     }
 #define VTSS_SELECT_CHIP_PORT_NO(port_no) VTSS_SELECT_CHIP(vtss_state->port.map[port_no].chip_no)
 /* API enter/exit macros for protection */
+#if VTSS_OPT_LIGHT
+#define VTSS_ENTER(...)
+#define VTSS_EXIT(...)
+#define VTSS_EXIT_ENTER(...)
+#else
 #define VTSS_ENTER(...)                                                                            \
     {                                                                                              \
         vtss_api_lock_t _lock;                                                                     \
@@ -139,7 +144,7 @@ extern const char *vtss_func;
         vtss_state = old_state;                                                                    \
         vtss_state->chip_no = old_chip;                                                            \
     }
-
+#endif
 #define VTSS_RC(expr)                                                                              \
     {                                                                                              \
         vtss_rc __rc__ = (expr);                                                                   \
