@@ -5566,6 +5566,18 @@ static u8 fa_prbs_mode(vtss_port_serdes_prbs_pattern_t pattern)
     return mode;
 }
 
+static vtss_port_serdes_prbs_pattern_t fa_prbs_pattern(u32 mode)
+{
+    vtss_port_serdes_prbs_pattern_t pattern;
+    switch (mode) {
+    case 3U: pattern = VTSS_PORT_SERDES_PATTERN_PRBS15; break;
+    case 4U: pattern = VTSS_PORT_SERDES_PATTERN_PRBS23; break;
+    case 5U: pattern = VTSS_PORT_SERDES_PATTERN_PRBS31; break;
+    default: pattern = VTSS_PORT_SERDES_PATTERN_PRBS7; break;
+    }
+    return pattern;
+}
+
 vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                      *vtss_state,
                                            const vtss_port_no_t                      port_no,
                                            const vtss_port_serdes_prbs_conf_t *const conf)
@@ -5577,6 +5589,8 @@ vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                  
 
     if (sd_type == FA_SERDES_TYPE_10G) {
         u32 sd_tgt = VTSS_TO_SD10G_LANE(sd_indx);
+        /* Clear checker first to reset state and error counter */
+        REG_WR(VTSS_SD10G_LANE_TARGET_LANE_77(sd_tgt), 0);
         REG_WR(VTSS_SD10G_LANE_TARGET_LANE_76(sd_tgt),
                VTSS_F_SD10G_LANE_TARGET_LANE_76_R_BIST_MODE_2_0(mode) |
                    VTSS_F_SD10G_LANE_TARGET_LANE_76_R_BIST_EN(conf->enable));
@@ -5585,6 +5599,8 @@ vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                  
 #if defined(VTSS_FEATURE_SD_25G)
     } else if (sd_type == FA_SERDES_TYPE_25G) {
         u32 sd25g_tgt = VTSS_TO_SD25G_LANE(sd_indx);
+        /* Clear checker first to reset state and error counter */
+        REG_WR(VTSS_SD25G_TARGET_LANE_34(sd25g_tgt), 0);
         REG_WR(VTSS_SD25G_TARGET_LANE_33(sd25g_tgt),
                VTSS_F_SD25G_TARGET_LANE_33_LN_R_BIST_MODE_2_0(mode) |
                    VTSS_F_SD25G_TARGET_LANE_33_LN_R_BIST_EN(conf->enable));
@@ -5608,11 +5624,13 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
 
     if (sd_type == FA_SERDES_TYPE_10G) {
         u32 sd_tgt = VTSS_TO_SD10G_LANE(sd_indx);
+        u32 cfg;
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_E0(sd_tgt), &s);
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_E1(sd_tgt), &e1);
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_E2(sd_tgt), &e2);
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_E3(sd_tgt), &e3);
         REG_RD(VTSS_SD10G_LANE_TARGET_LANE_E4(sd_tgt), &e4);
+        REG_RD(VTSS_SD10G_LANE_TARGET_LANE_76(sd_tgt), &cfg);
         status->is_active = (VTSS_X_SD10G_LANE_TARGET_LANE_E0_BIST_RUN(s) != 0U);
         status->is_sync = (VTSS_X_SD10G_LANE_TARGET_LANE_E0_BIST_OK(s) != 0U);
         status->is_error = (VTSS_X_SD10G_LANE_TARGET_LANE_E0_BIST_ERR(s) != 0U);
@@ -5620,14 +5638,18 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
                   (VTSS_X_SD10G_LANE_TARGET_LANE_E3_BIST_ERR_CNT_23_16(e3) << 16) |
                   (VTSS_X_SD10G_LANE_TARGET_LANE_E2_BIST_ERR_CNT_15_8(e2) << 8) |
                   VTSS_X_SD10G_LANE_TARGET_LANE_E1_BIST_ERR_CNT_7_0(e1);
+        status->prbs_test_pattern =
+            fa_prbs_pattern(VTSS_X_SD10G_LANE_TARGET_LANE_76_R_BIST_MODE_2_0(cfg));
 #if defined(VTSS_FEATURE_SD_25G)
     } else if (sd_type == FA_SERDES_TYPE_25G) {
         u32 sd25g_tgt = VTSS_TO_SD25G_LANE(sd_indx);
+        u32 cfg;
         REG_RD(VTSS_SD25G_TARGET_LANE_E0(sd25g_tgt), &s);
         REG_RD(VTSS_SD25G_TARGET_LANE_E1(sd25g_tgt), &e1);
         REG_RD(VTSS_SD25G_TARGET_LANE_E2(sd25g_tgt), &e2);
         REG_RD(VTSS_SD25G_TARGET_LANE_E3(sd25g_tgt), &e3);
         REG_RD(VTSS_SD25G_TARGET_LANE_E4(sd25g_tgt), &e4);
+        REG_RD(VTSS_SD25G_TARGET_LANE_33(sd25g_tgt), &cfg);
         status->is_active = (VTSS_X_SD25G_TARGET_LANE_E0_LN_BIST_RUN(s) != 0U);
         status->is_sync = (VTSS_X_SD25G_TARGET_LANE_E0_LN_BIST_OK(s) != 0U);
         status->is_error = (VTSS_X_SD25G_TARGET_LANE_E0_LN_BIST_ERR(s) != 0U);
@@ -5635,6 +5657,8 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
                   (VTSS_X_SD25G_TARGET_LANE_E3_LN_BIST_ERR_CNT_23_16(e3) << 16) |
                   (VTSS_X_SD25G_TARGET_LANE_E2_LN_BIST_ERR_CNT_15_8(e2) << 8) |
                   VTSS_X_SD25G_TARGET_LANE_E1_LN_BIST_ERR_CNT_7_0(e1);
+        status->prbs_test_pattern =
+            fa_prbs_pattern(VTSS_X_SD25G_TARGET_LANE_33_LN_R_BIST_MODE_2_0(cfg));
 #endif
     } else {
         return VTSS_RC_ERROR;
