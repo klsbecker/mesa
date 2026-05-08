@@ -577,6 +577,8 @@ vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                  
 vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                  *vtss_state,
                                              const vtss_port_no_t                  port_no,
                                              vtss_port_serdes_prbs_status_t *const status);
+vtss_rc vtss_cil_port_serdes_prbs_error_inject(struct vtss_state_s *vtss_state,
+                                               const vtss_port_no_t port_no);
 
 #endif // defined (VTSS_FEATURE_SERDES_PRBS_TEST)
 

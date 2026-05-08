@@ -1224,6 +1224,20 @@ vtss_rc vtss_port_serdes_prbs_status_get(const vtss_inst_t                     i
                                          const vtss_port_no_t                  port_no,
                                          vtss_port_serdes_prbs_status_t *const status);
 
+/**
+ * \brief Inject errors into the transmitted PRBS sequence.
+ *
+ * Pulses the SerDes BIST error-injection bit so errors are inserted into the
+ * outgoing PRBS stream. A PRBS test must already be enabled via
+ * vtss_port_serdes_prbs_conf_set().
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ *
+ * \return Return code.
+ **/
+vtss_rc vtss_port_serdes_prbs_error_inject(const vtss_inst_t inst, const vtss_port_no_t port_no);
+
 #endif // defined (VTSS_FEATURE_SERDES_PRBS_TEST)
 
 #ifdef __cplusplus

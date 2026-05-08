@@ -484,6 +484,7 @@ typedef struct {
     mesa_bool_t ctrl1;
     mesa_bool_t ctrl2;
     mesa_bool_t ctrl3;
+    mesa_bool_t err_inj;
 } port_cli_req_t;
 
 static const char *port_mode_txt(mesa_port_speed_t speed, mesa_bool_t fdx)
@@ -780,7 +781,12 @@ static void cli_cmd_deb_port_prbs(cli_req_t *req)
             continue;
         }
 
-        if (req->set) {
+        if (mreq->err_inj) {
+            if ((rc = mesa_port_serdes_prbs_error_inject(NULL, iport)) != MESA_RC_OK) {
+                cli_printf("mesa_port_serdes_prbs_error_inject failed for port %u, err_code: %d\n",
+                           uport, rc);
+            }
+        } else if (req->set) {
             if ((rc = mesa_port_serdes_prbs_conf_set(NULL, iport, &conf)) != MESA_RC_OK) {
                 cli_printf("mesa_port_serdes_prbs_conf_set failed for port %u, err_code: %d\n",
                            uport, rc);
@@ -1549,7 +1555,7 @@ static cli_cmd_t cli_cmd_table[] = {
      cli_cmd_port_npi, },
     {"Port Loopback [<port_list>] [near-end|far-end|facility|equipment] [switch|phy] [enable|disable]",
      "Set or show the port loopback mode", cli_cmd_port_loopback},
-    {"Debug Port PRBS [<port_list>] [enable|disable] [prbs31|prbs23|prbs15|prbs7]",
+    {"Debug Port PRBS [<port_list>] [enable|disable] [err-inj] [prbs31|prbs23|prbs15|prbs7]",
      "PRBS test settings", cli_cmd_deb_port_prbs},
     {"Debug Port cable [<port_list>] [optical|dac-1m|dac-2m|dac-3m|dac-5m]",
      "Set or show the port forwarding mode", cli_cmd_port_cable},
@@ -1676,6 +1682,8 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS15;
     } else if (!strncasecmp(found, "prbs7", 5)) {
         mreq->prbs_test_pattern = MESA_PORT_SERDES_PATTERN_PRBS7;
+    } else if (!strncasecmp(found, "err-inj", 7)) {
+        mreq->err_inj = 1;
     } else if (!strncasecmp(found, "lan", 3)) {
         mreq->oper_mode_10g = MEPA_PHY_LAN_MODE;
     } else if (!strncasecmp(found, "repeater", 8)) {
@@ -1741,6 +1749,8 @@ static cli_parm_t cli_parm_table[] = {
      "PRBS15 : x^15 + x^14 + 1\n"
      "PRBS7  : x^7  + x^6  + 1\n"
      "(default: PRBS7 : x^7  + x^6  + 1)", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
+    {"err-inj", "Inject errors into the transmitted PRBS sequence (one-shot burst)",
+     CLI_PARM_FLAG_NONE, cli_parm_keyword},
     {"optical|dac-1m|dac-2m|dac-3m|dac-5m",
      "optical    : Optical/fiber cable\n"
      "dac-1m     : 1m DAC\n"

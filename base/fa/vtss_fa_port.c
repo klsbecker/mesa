@@ -5667,6 +5667,36 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
     return VTSS_RC_OK;
 }
 
+vtss_rc vtss_cil_port_serdes_prbs_error_inject(struct vtss_state_s *vtss_state,
+                                               const vtss_port_no_t port_no)
+{
+    u32 sd_indx, sd_type;
+
+    VTSS_RC(vtss_fa_port2sd(vtss_state, port_no, &sd_indx, &sd_type));
+
+#if defined(VTSS_FEATURE_SD_25G)
+    if (sd_type == FA_SERDES_TYPE_25G) {
+        u32 sd_tgt = VTSS_TO_SD25G_LANE(sd_indx);
+        REG_WRM_SET(VTSS_SD25G_TARGET_LANE_33(sd_tgt),
+                    VTSS_M_SD25G_TARGET_LANE_33_LN_R_BIST_ERRINJEC);
+        REG_WRM_CLR(VTSS_SD25G_TARGET_LANE_33(sd_tgt),
+                    VTSS_M_SD25G_TARGET_LANE_33_LN_R_BIST_ERRINJEC);
+        return VTSS_RC_OK;
+    }
+#endif
+#if !defined(VTSS_ARCH_LAIKA)
+    if (sd_type == FA_SERDES_TYPE_10G) {
+        u32 sd_tgt = VTSS_TO_SD10G_LANE(sd_indx);
+        REG_WRM_SET(VTSS_SD10G_LANE_TARGET_LANE_76(sd_tgt),
+                    VTSS_M_SD10G_LANE_TARGET_LANE_76_R_BIST_ERRINJEC);
+        REG_WRM_CLR(VTSS_SD10G_LANE_TARGET_LANE_76(sd_tgt),
+                    VTSS_M_SD10G_LANE_TARGET_LANE_76_R_BIST_ERRINJEC);
+        return VTSS_RC_OK;
+    }
+#endif
+    return VTSS_RC_ERROR; /* 6G SerDes has no BIST engine */
+}
+
 #endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
 
 #endif /* VTSS_ARCH_FA */

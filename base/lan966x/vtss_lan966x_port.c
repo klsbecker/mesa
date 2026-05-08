@@ -1852,6 +1852,13 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
     }
     return VTSS_RC_OK;
 }
+
+vtss_rc vtss_cil_port_serdes_prbs_error_inject(struct vtss_state_s *vtss_state,
+                                               const vtss_port_no_t port_no)
+{
+    /* Supported but not yet implemented */
+    return VTSS_RC_NOT_IMPLEMENTED;
+}
 #endif /* VTSS_FEATURE_SERDES_PRBS_TEST */
 
 vtss_rc vtss_cil_port_test_conf_set(vtss_state_t *vtss_state, const vtss_port_no_t port_no)

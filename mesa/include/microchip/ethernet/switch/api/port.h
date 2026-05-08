@@ -1036,5 +1036,22 @@ mesa_rc mesa_port_serdes_prbs_status_get(const mesa_inst_t                     i
                                          mesa_port_serdes_prbs_status_t *const status)
     CAP(SERDES_PRBS_TEST);
 
+/**
+ * \brief Inject errors into the transmitted PRBS sequence.
+ *
+ * Pulses the SerDes BIST error-injection bit so errors are inserted into the
+ * outgoing PRBS stream. The exact number depends on how long the bit is
+ * asserted by the software toggle; expect multiple errors per call. Intended
+ * as a one-shot way to force a receiver-side error burst for test purposes.
+ * A PRBS test must already be enabled via mesa_port_serdes_prbs_conf_set().
+ *
+ * \param inst    [IN]  Target instance reference.
+ * \param port_no [IN]  Port number.
+ *
+ * \return Return code. MESA_RC_ERROR if not supported on this SerDes.
+ */
+mesa_rc mesa_port_serdes_prbs_error_inject(const mesa_inst_t inst, const mesa_port_no_t port_no)
+    CAP(SERDES_PRBS_TEST);
+
 #include <microchip/ethernet/hdr_end.h>
 #endif // MICROCHIP_ETHERNET_SWITCH_API_PORT
