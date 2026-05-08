@@ -73,6 +73,33 @@
 
 #define MII_PHYSID1         (0x02U)     /* PHYS ID 1                   */
 #define MII_PHYSID2         (0x03U)     /* PHYS ID 2                   */
+
+#define MII_ADVERTISE           (0x04U)     /* Advertisement control register */
+#define ADVERTISE_SLCT          (0x001fU)   /* Selector bits               */
+#define ADVERTISE_CSMA          (0x0001U)   /* Only selector supported     */
+#define ADVERTISE_10HALF        (0x0020U)   /* Try for 10mbps half-duplex  */
+#define ADVERTISE_1000XFULL     (0x0020u)   /* Try for 1000BASE-X full-duplex */
+#define ADVERTISE_10FULL        (0x0040U)   /* Try for 10mbps full-duplex  */
+#define ADVERTISE_1000XHALF     (0x0040U)   /* Try for 1000BASE-X half-duplex */
+#define ADVERTISE_100HALF       (0x0080U)   /* Try for 100mbps half-duplex */
+#define ADVERTISE_1000XPAUSE    (0x0080U)   /* Try for 1000BASE-X pause    */
+#define ADVERTISE_100FULL       (0x0100U)   /* Try for 100mbps full-duplex */
+#define ADVERTISE_1000XPSE_ASYM (0x0100U)   /* Try for 1000BASE-X asym pause */
+#define ADVERTISE_100BASE4      (0x0200U)   /* Try for 100mbps 4k packets  */
+#define ADVERTISE_PAUSE_CAP     (0x0400U)   /* Try for pause               */
+#define ADVERTISE_PAUSE_ASYM    (0x0800U)   /* Try for asymetric pause     */
+#define ADVERTISE_RESV          (0x1000U)   /* Unused...                   */
+#define ADVERTISE_RFAULT        (0x2000U)   /* Say we can detect faults    */
+#define ADVERTISE_LPACK         (0x4000U)   /* Ack link partners response  */
+#define ADVERTISE_NPAGE         (0x8000U)   /* Next page bit               */
+
+#define MII_CTRL1000            (0x09U)     /* 1000BASE-T control          */
+#define CTRL1000_1000FULL       (0x0200U)   /* Advertise 1000BASE-T full duplex */
+#define CTRL1000_1000HALF       (0x0100U)   /* Advertise 1000BASE-T half duplex */
+#define CTRL1000_PREFER_MASTER  (0x0400U)   /* Prefar operate as master */
+#define CTRL1000_AS_MASTER      (0x0800U)   /* Configure PHY as master */
+#define CTRL1000_ENABLE_MASTER  (0x1000U)   /* Enable configuration of master/slave */
+
 #define MII_MMD_CTRL            (0x0dU)     /* MMD Access Control Register */
 #define MII_MMD_DATA            (0x0eU)     /* MMD Access Data Register */
 
