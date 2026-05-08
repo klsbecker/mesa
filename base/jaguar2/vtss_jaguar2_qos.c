@@ -994,6 +994,14 @@ vtss_rc vtss_cil_qos_conf_set(vtss_state_t *vtss_state, BOOL changed)
     VTSS_RC(jr2_storm_policer_set(vtss_state, 2, conf->policer_bc, conf->policer_bc_frame_rate,
                                   conf->policer_bc_mode));
 
+    // Reset the storm policer buckets so the new conf is starting anew.
+    // Otherwise bucket accumulation from previous config carries over.
+    JR2_WRM(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_ALL_CFG,
+            VTSS_F_ANA_AC_POL_POL_ALL_CFG_POL_ALL_CFG_STORM_FORCE_INIT(1),
+            VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_ALL_CFG_STORM_FORCE_INIT);
+    JR2_POLL_MASK(VTSS_ANA_AC_POL_POL_ALL_CFG_POL_ALL_CFG,
+                  VTSS_M_ANA_AC_POL_POL_ALL_CFG_POL_ALL_CFG_STORM_FORCE_INIT);
+
     /* DSCP classification and remarking configuration: */
     for (i = 0; i < 64; i++) {
         JR2_WR(VTSS_ANA_CL_COMMON_DSCP_CFG(i),
