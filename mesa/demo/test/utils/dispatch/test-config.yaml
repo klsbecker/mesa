@@ -86,5 +86,5 @@ systems:
   # dk-t38, Hallberg FPGA systems
   - system: dk-t38-0
     dut: lan932x
-    branch: master.hallberg
+    branch: master.hallberg-2
     image: arm/mesa/demo/armv7_lan932x_fpga.itb

@@ -182,7 +182,7 @@ pipeline {
                         container('pod-mesa-build') {
                             checkout([
                                 $class: 'GitSCM',
-                                branches: [[name: 'origin/master.hallberg']],
+                                branches: [[name: 'origin/master.hallberg-2']],
                                 extensions: [[$class: 'CloneOption', noTags: false, shallow: false]],
                                 userRemoteConfigs: scm.userRemoteConfigs
                             ])
