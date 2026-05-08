@@ -376,7 +376,7 @@ static u32 vtss_fa_clk_mhz(vtss_core_clock_freq_t cfreq)
     case VTSS_CORE_CLOCK_500MHZ: mhz = 500; break;
     case VTSS_CORE_CLOCK_733MHZ: mhz = 733; break;
     case VTSS_CORE_CLOCK_625MHZ:
-    default: mhz = 625; break;
+    default:                     mhz = 625; break;
     }
     return mhz;
 }
