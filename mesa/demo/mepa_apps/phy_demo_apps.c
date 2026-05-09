@@ -62,6 +62,12 @@ mepa_rc phy_family_detect(meba_inst_t      meba_instance,
         phy_info->family = PHY_FAMILY_LAN8814;
         phy_info->family_name = "Indy";
         break;
+    case PHY_TYPE_9031:
+    case PHY_TYPE_9131:
+        phy_info->family = PHY_FAMILY_KSZ;
+        phy_info->family_name = "Ksz";
+        break;
+
     default: cli_printf("\nPHY Connected is not supported in application\n"); return MEPA_RC_ERROR;
     }
     return MEPA_RC_OK;

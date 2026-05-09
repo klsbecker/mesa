@@ -36,6 +36,10 @@
 /* LAN8814 PHY Part Number */
 #define PHY_TYPE_8814 8814
 
+/* KSZ PHY Part number */
+#define PHY_TYPE_9031 9031
+#define PHY_TYPE_9131 9131
+
 #define MASK_8BIT  0xFF
 #define MASK_16BIT 0xFFFF             /* 16 Bit Mask value */
 #define MASK_32BIT 0xFFFFFFFF         /* 32 Bit Mask value */
@@ -47,6 +51,7 @@ typedef enum {
     PHY_FAMILY_TESLA,
     PHY_FAMILY_LAN8814,
     PHY_FAMILY_MALIBU_25G,
+    PHY_FAMILY_KSZ,
 } phy_family_t;
 
 typedef struct {
