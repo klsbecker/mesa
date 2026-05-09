@@ -252,6 +252,16 @@ static mepa_rc ksz9131_conf_set(mepa_device_t      *dev,
     return ksz_conf_set(dev, config);
 }
 
+static mepa_rc ksz_conf_get(mepa_device_t *dev,
+                            mepa_conf_t *const config)
+{
+    priv_data_t *data = (priv_data_t *)dev->data;
+
+    *config = data->conf;
+
+    return MEPA_RC_OK;
+}
+
 static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
                                 const mepa_callout_t    MEPA_SHARED_PTR *callout,
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
@@ -441,6 +451,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[0].mepa_driver_reset = NULL;
     ksz_drivers[0].mepa_driver_poll = ksz_poll;
     ksz_drivers[0].mepa_driver_conf_set = ksz9031_conf_set;
+    ksz_drivers[0].mepa_driver_conf_get = ksz_conf_get;
     ksz_drivers[0].mepa_driver_if_get = ksz_1g_if_get;
     ksz_drivers[0].mepa_driver_power_set = NULL;
     ksz_drivers[0].mepa_driver_cable_diag_start = NULL;
@@ -457,6 +468,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[1].mepa_driver_reset = NULL;
     ksz_drivers[1].mepa_driver_poll = ksz_poll;
     ksz_drivers[1].mepa_driver_conf_set = ksz9131_conf_set;
+    ksz_drivers[1].mepa_driver_conf_get = ksz_conf_get;
     ksz_drivers[1].mepa_driver_if_set = ksz9131_rgmii_if_set;
     ksz_drivers[1].mepa_driver_if_get = ksz9131_rgmii_if_get;
     ksz_drivers[1].mepa_driver_power_set = NULL;
