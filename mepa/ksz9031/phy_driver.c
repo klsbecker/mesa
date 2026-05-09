@@ -22,10 +22,8 @@
 #define MII_KSZ9031RN_FLP_BURST_TX_HI   4
 
 typedef struct {
-    unsigned autoneg;
     /* The most recently read link state */
     unsigned link;
-    unsigned autoneg_complete;
     int speed;
     BOOL duplex;
 } phy_device;
@@ -92,14 +90,6 @@ static mepa_rc ksz_update_link(mepa_device_t  *dev)
     }
 done:
     phydev->link = status & BMSR_LSTATUS ? 1 : 0;
-    phydev->autoneg_complete = status & BMSR_ANEGCOMPLETE ? 1 : 0;
-
-    /* Consider the case that autoneg was started and "aneg complete"
-     * bit has been reset, but "link up" bit not yet.
-     */
-    if (phydev->autoneg == AUTONEG_ENABLE && !phydev->autoneg_complete) {
-        phydev->link = 0;
-    }
 
     return MEPA_RC_OK;
 }
@@ -107,7 +97,6 @@ done:
 static mepa_rc ksz_read_status(mepa_device_t  *dev)
 {
     phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
-    int old_link = phydev->link;
     uint16_t bmcr;
     mepa_rc rc;
 
@@ -115,11 +104,6 @@ static mepa_rc ksz_read_status(mepa_device_t  *dev)
     rc = ksz_update_link(dev);
     if (rc != MEPA_RC_OK) {
         return rc;
-    }
-
-    /* why bother the PHY if nothing can have changed */
-    if (phydev->autoneg == AUTONEG_ENABLE && old_link && phydev->link) {
-        return 0;
     }
 
     phydev->speed = MEPA_SPEED_UNDEFINED;
