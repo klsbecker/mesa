@@ -31,6 +31,7 @@ typedef struct {
 typedef struct {
     phy_device    phydev;
     mepa_conf_t   conf;
+    uint8_t       rev;
 } priv_data_t;
 
 /* Center KSZ9031RNX FLP timing at 16ms. */
@@ -256,12 +257,23 @@ static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                 struct mepa_board_conf              *board_conf)
 {
+    priv_data_t   *data;
+    uint16_t       rev;
+    mepa_rc        rc;
     mepa_device_t *dev;
 
     dev = mepa_create_int(drv, callout, callout_ctx, board_conf, sizeof(priv_data_t));
     if (!dev) {
         return 0;
     }
+
+    rc = phy_reg_rd(dev, MII_PHYSID2, &rev);
+    if (rc != MEPA_RC_OK) {
+        return NULL;
+    }
+
+    data = (priv_data_t *)dev->data;
+    data->rev = rev & 0xFFFF;
 
     return dev;
 }
@@ -288,11 +300,20 @@ static mepa_rc ksz_delete(mepa_device_t *dev)
 
 static uint32_t ksz_capability(mepa_device_t *dev, uint32_t capability)
 {
-    /* As this driver doesn't implement the mepa_driver_phy_info_get then we
-     * don't need to return any capabilities. This needs to be extended once we
-     * add new capabilities
-     */
-    return 0;
+    uint32_t c;
+
+    switch (capability) {
+    case MEPA_CAP_SPEED_1G:
+        c = 1;
+        break;
+    case MEPA_CAP_TS_NONE:
+        c = 1;
+        break;
+    default:
+        c = 0;
+        break;
+    }
+    return c;
 }
 
 static mepa_rc ksz9131_rgmii_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
@@ -381,6 +402,34 @@ static mepa_rc ksz9131_rgmii_if_set(mepa_device_t *dev, mepa_port_interface_t ma
     return ksz_config_rgmii_delay(dev, mac_if);
 }
 
+static mepa_rc ksz_phy_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)
+{
+    priv_data_t *data = (priv_data_t *)dev->data;
+
+    phy_info->manufactor_name = "Microchip";
+    phy_info->cap = 0;
+
+    if (dev->drv->id == KSZ9031_PHY_CHIPID) {
+        phy_info->part_number = 9031;
+        phy_info->model_name = "KSZ9031";
+    }
+    if (dev->drv->id == KSZ9131_PHY_CHIPID) {
+        phy_info->part_number = 9131;
+        phy_info->model_name = "KSZ9131";
+    }
+
+    phy_info->revision = data->rev;
+
+    if (ksz_capability(dev, MEPA_CAP_TS_NONE)) {
+        phy_info->cap |= MEPA_CAP_TS_MASK_NONE;
+    }
+    if (ksz_capability(dev, MEPA_CAP_SPEED_1G)) {
+        phy_info->cap |= MEPA_CAP_SPEED_MASK_1G;
+    }
+
+    return MEPA_RC_OK;
+}
+
 mepa_drivers_t mepa_ksz9031_driver_init(void)
 {
     mepa_drivers_t res;
@@ -400,6 +449,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[0].mepa_driver_probe = ksz_probe;
     ksz_drivers[0].mepa_driver_aneg_status_get = ksz_status_1g_get;
     ksz_drivers[0].mepa_driver_capability = ksz_capability;
+    ksz_drivers[0].mepa_driver_phy_info_get = ksz_phy_info_get;
 
     ksz_drivers[1].id = KSZ9131_PHY_CHIPID;
     ksz_drivers[1].mask = 0xfffffff0;
@@ -416,6 +466,7 @@ mepa_drivers_t mepa_ksz9031_driver_init(void)
     ksz_drivers[1].mepa_driver_probe = ksz_probe;
     ksz_drivers[1].mepa_driver_aneg_status_get = ksz_status_1g_get;
     ksz_drivers[1].mepa_driver_capability = ksz_capability;
+    ksz_drivers[1].mepa_driver_phy_info_get = ksz_phy_info_get;
 
     res.phy_drv = ksz_drivers;
     res.count = 2;
