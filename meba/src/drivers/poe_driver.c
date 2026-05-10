@@ -3185,7 +3185,9 @@ uint16_t calculate_checksum(const uint8_t *byte_array, size_t start, size_t end)
 }
 
 // Function to validate the firmware checksum
-mesa_bool_t validate_firmware_checksum(const meba_poe_ctrl_inst_t *const inst, const char *firmware, uint16_t expected_checksum)
+mesa_bool_t validate_firmware_checksum(const meba_poe_ctrl_inst_t *const inst,
+                                       const char                       *firmware,
+                                       uint16_t                          expected_checksum)
 {
 
     // Calculate the number of bytes in the hex string
