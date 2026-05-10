@@ -2971,9 +2971,8 @@ mesa_rc Burn_gen7(const meba_poe_ctrl_inst_t *const inst, const char *hexdata, s
     int     bytesCounter = 0;
     int     last_percent = -1;
 
-    printf("\n\rStarting firmware download\n\r");
+    DEBUG(inst, MEBA_TRACE_LVL_INFO, "Starting firmware download");
 
-    // printf("Line %d, Binary Data %ld bytes:\n", __LINE__, binaryDataLength);
     int i;
     for (i = 0; i < bin_len; i++) {
         bytesToSend[bytesCounter++] = bin_data[i];
@@ -3186,7 +3185,7 @@ uint16_t calculate_checksum(const uint8_t *byte_array, size_t start, size_t end)
 }
 
 // Function to validate the firmware checksum
-mesa_bool_t validate_firmware_checksum(const char *firmware, uint16_t expected_checksum)
+mesa_bool_t validate_firmware_checksum(const meba_poe_ctrl_inst_t *const inst, const char *firmware, uint16_t expected_checksum)
 {
 
     // Calculate the number of bytes in the hex string
@@ -3195,7 +3194,7 @@ mesa_bool_t validate_firmware_checksum(const char *firmware, uint16_t expected_c
 
     // Ensure the byte array size does not exceed the fixed array size
     if (byte_array_size > 256) {
-        printf("\n\rCannot find poe firmware header");
+        DEBUG(inst, MEBA_TRACE_LVL_WARNING, "Cannot find poe firmware header");
         return EXIT_FAILURE;
     }
 
@@ -3237,7 +3236,7 @@ mesa_bool_t get_firmware_file_info(const meba_poe_ctrl_inst_t *const inst,
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "APP_Hardware_Type=0x%02X", pFileInfo->app_hardware_type);
     DEBUG(inst, MEBA_TRACE_LVL_INFO, "Param#0x%02X", pFileInfo->param);
 
-    if (validate_firmware_checksum(result, pFileInfo->header_check_sum)) {
+    if (validate_firmware_checksum(inst, result, pFileInfo->header_check_sum)) {
         DEBUG(inst, MEBA_TRACE_LVL_INFO, "Firmware checksum is valid");
         return TRUE;
     } else {
@@ -6722,7 +6721,7 @@ port_mode_t tPort_modes[] = {
     {0xFF, -1, -1, -1},
 };
 
-void print_table1(port_mode_t modes[], int size)
+void _print_table_debug(port_mode_t modes[], int size)
 {
     printf("        (power w)\n");
     printf("mode    4p    index    2p    index\n");
@@ -6733,11 +6732,11 @@ void print_table1(port_mode_t modes[], int size)
     }
 }
 
-void print_table()
+void print_table_debug()
 {
 
     int size = sizeof(port_mode_t) / sizeof(tPort_modes[0]);
-    print_table1(tPort_modes, size);
+    _print_table_debug(tPort_modes, size);
 }
 
 uint8_t find_bt_pse_port_power_index(uint8_t port_mode_value, BOOL is_4p)
@@ -6916,7 +6915,7 @@ static mesa_rc meba_poe_pd_bt_get_BT_port_parameters(const meba_poe_ctrl_inst_t 
     cfg_POEMCU->add_power_for_port_mode_dW = buf[6];
     cfg_POEMCU->priority = buf[7];
 
-    // print_table();
+    // print_table_debug();
     cfg_POEMCU->bt_pse_port_power_index =
         find_bt_pse_port_power_index(cfg_POEMCU->bt_port_operation_mode, TRUE);
 
