@@ -365,21 +365,7 @@ u32 vtss_fa_clk_period(vtss_core_clock_freq_t c)
 }
 
 #if defined(VTSS_ARCH_LAN969X) || defined(VTSS_ARCH_LAIKA)
-static u32 vtss_fa_clk_mhz(vtss_core_clock_freq_t cfreq)
-{
-    u32 mhz;
-
-    switch (cfreq) {
-    case VTSS_CORE_CLOCK_180MHZ: mhz = 180; break;
-    case VTSS_CORE_CLOCK_250MHZ: mhz = 250; break;
-    case VTSS_CORE_CLOCK_328MHZ: mhz = 328; break;
-    case VTSS_CORE_CLOCK_500MHZ: mhz = 500; break;
-    case VTSS_CORE_CLOCK_733MHZ: mhz = 733; break;
-    case VTSS_CORE_CLOCK_625MHZ:
-    default:                     mhz = 625; break;
-    }
-    return mhz;
-}
+static u32 vtss_fa_clk_mhz(vtss_core_clock_freq_t c) { return 1000000U / vtss_fa_clk_period(c); }
 #endif
 
 BOOL fa_is_target(vtss_state_t *vtss_state)
