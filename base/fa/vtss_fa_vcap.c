@@ -15,6 +15,10 @@
 #define FA_VCAP_TG_X6   0x08U
 #define FA_VCAP_TG_X12  0x10U
 
+#define FA_VCAP_TG_FULL    FA_VCAP_TG_X12
+#define FA_VCAP_TG_HALF    FA_VCAP_TG_X6
+#define FA_VCAP_TG_QUARTER FA_VCAP_TG_X3
+
 /* VCAP types encoded in CORE_MAP */
 typedef enum {
     /* Do not rearrange, numbers used in CORE_MAP register */
@@ -1069,6 +1073,92 @@ static void fa_debug_bits(fa_vcap_data_t *data, const char *name, u32 offset, u3
 #define FA_DEBUG_BITS_96(vcap, name, fld) fa_debug_bits(data, name, vcap##_KO_##fld, 96)
 #define FA_DEBUG_IPV6(vcap, name, fld)    fa_debug_bits(data, name, vcap##_KO_##fld, 128)
 
+#define FA_ENTRY_GET(vcap, fld) fa_entry_bs_get(data, vcap##_KO_##fld, vcap##_KL_##fld)
+#define FA_MASK_GET(vcap, fld)  fa_mask_bs_get(data, vcap##_KO_##fld, vcap##_KL_##fld)
+
+#define FA_FENTRY_GET(vcap, fld)        FA_ENTRY_GET(vcap, X12_##fld)
+#define FA_HENTRY_GET(vcap, fld)        FA_ENTRY_GET(vcap, X6_##fld)
+#define FA_QENTRY_GET(vcap, fld)        FA_ENTRY_GET(vcap, X2_##fld)
+#define FA_FMASK_GET(vcap, fld)         FA_MASK_GET(vcap, X12_##fld)
+#define FA_HMASK_GET(vcap, fld)         FA_MASK_GET(vcap, X6_##fld)
+#define FA_DEBUG_FBITS(vcap, name, fld) FA_DEBUG_BITS(vcap, name, X12_##fld)
+#define FA_DEBUG_HBITS(vcap, name, fld) FA_DEBUG_BITS(vcap, name, X6_##fld)
+#define FA_DEBUG_QBITS(vcap, name, fld) FA_DEBUG_BITS(vcap, name, X2_##fld)
+
+// Debug tables for effient key/action printing
+#define VCAP_DBG_FLAG_ENA  0x01U
+#define VCAP_DBG_FLAG_NL   0x02U
+#define VCAP_DBG_FLAG_BITS 0x04U
+#define VCAP_DBG_FLAG_KEY  0x08U
+
+typedef struct {
+    const char *name;
+    u16         offs;
+    u8          len;
+    u8          flags;
+} vtss_vcap_dbg_t;
+
+#define FA_DBG_VCAP(t) fa_dbg_vcap(data, t, (u32)(sizeof(t) / sizeof(t[0])))
+
+#define FA_DBG_VCAP_ACT_FLAGS(vcap, name, fld, flags)                                              \
+    {name, vcap##_AO_##fld, vcap##_AL_##fld, flags}
+#define FA_DBG_VCAP_ACT(vcap, name, fld)    FA_DBG_VCAP_ACT_FLAGS(vcap, name, fld, 0U)
+#define FA_DBG_VCAP_ACT_NL(vcap, name, fld) FA_DBG_VCAP_ACT_FLAGS(vcap, name, fld, VCAP_DBG_FLAG_NL)
+#define FA_DBG_VCAP_ACT_BITS(vcap, name, fld)                                                      \
+    FA_DBG_VCAP_ACT_FLAGS(vcap, name, fld, VCAP_DBG_FLAG_BITS)
+#define FA_DBG_VCAP_ACT_BITS_NL(vcap, name, fld)                                                   \
+    FA_DBG_VCAP_ACT_FLAGS(vcap, name, fld, VCAP_DBG_FLAG_BITS | VCAP_DBG_FLAG_NL)
+#define FA_DBG_VCAP_ACT_ENA(vcap, name, f1, f2)                                                    \
+    {name, vcap##_AO_##f1, vcap##_AL_##f2, VCAP_DBG_FLAG_ENA}
+#define FA_DBG_VCAP_ACT_ENA_NL(vcap, name, f1, f2)                                                 \
+    {name, vcap##_AO_##f1, vcap##_AL_##f2, VCAP_DBG_FLAG_ENA | VCAP_DBG_FLAG_NL}
+#define FA_DBG_VCAP_ACT_PM(vcap, name, fld)                                                        \
+    {name, vcap##_AO_##fld, RT_CHIP_PORTS, VCAP_DBG_FLAG_BITS}
+
+#define FA_DBG_VCAP_KEY_FLAGS(vcap, name, fld, flags)                                              \
+    {name, vcap##_KO_##fld, vcap##_KL_##fld, flags}
+#define FA_DBG_VCAP_BITS(vcap, name, fld) FA_DBG_VCAP_KEY_FLAGS(vcap, name, fld, VCAP_DBG_FLAG_BITS)
+#define FA_DBG_VCAP_BITS_NL(vcap, name, fld)                                                       \
+    FA_DBG_VCAP_KEY_FLAGS(vcap, name, fld, VCAP_DBG_FLAG_BITS | VCAP_DBG_FLAG_NL)
+#define FA_DBG_VCAP_MAC(vcap, name, fld)     {name, vcap##_KO_##fld, 48U, VCAP_DBG_FLAG_BITS}
+#define FA_DBG_VCAP_BITS_64(vcap, name, fld) {name, vcap##_KO_##fld, 64U, VCAP_DBG_FLAG_BITS}
+#define FA_DBG_VCAP_BITS_96(vcap, name, fld) {name, vcap##_KO_##fld, 96U, VCAP_DBG_FLAG_BITS}
+#define FA_DBG_VCAP_IPV6(vcap, name, fld)    {name, vcap##_KO_##fld, 128U, VCAP_DBG_FLAG_BITS}
+#define FA_DBG_VCAP_BITS_PM(vcap, name, fld)                                                       \
+    {name, vcap##_KO_##fld, RT_CHIP_PORTS, VCAP_DBG_FLAG_BITS}
+
+#define FA_DBG_VCAP_FBITS(vcap, name, fld)    FA_DBG_VCAP_BITS(vcap, name, X12_##fld)
+#define FA_DBG_VCAP_FBITS_NL(vcap, name, fld) FA_DBG_VCAP_BITS_NL(vcap, name, X12_##fld)
+#define FA_DBG_VCAP_FBITS_PM(vcap, name, fld) FA_DBG_VCAP_BITS_PM(vcap, name, X12_##fld)
+#define FA_DBG_VCAP_HBITS(vcap, name, fld)    FA_DBG_VCAP_BITS(vcap, name, X6_##fld)
+#define FA_DBG_VCAP_HBITS_NL(vcap, name, fld) FA_DBG_VCAP_BITS_NL(vcap, name, X6_##fld)
+#define FA_DBG_VCAP_HBITS_PM(vcap, name, fld) FA_DBG_VCAP_BITS_PM(vcap, name, X6_##fld)
+#define FA_DBG_VCAP_QBITS(vcap, name, fld)    FA_DBG_VCAP_BITS(vcap, name, X2_##fld)
+#define FA_DBG_VCAP_QBITS_NL(vcap, name, fld) FA_DBG_VCAP_BITS_NL(vcap, name, X2_##fld)
+#define FA_DBG_VCAP_QBITS_PM(vcap, name, fld) FA_DBG_VCAP_BITS_PM(vcap, name, X2_##fld)
+
+static void fa_dbg_vcap(fa_vcap_data_t *data, const vtss_vcap_dbg_t *dbg, u32 cnt)
+{
+    lmu_ss_t              *ss = data->ss;
+    u32                    i, offs;
+    const vtss_vcap_dbg_t *d;
+
+    for (i = 0; i < cnt; i++) {
+        d = &dbg[i];
+        offs = d->offs;
+        if ((d->flags & VCAP_DBG_FLAG_BITS) > 0U) {
+            fa_debug_bits(data, d->name, offs, d->len);
+        } else if ((d->flags & VCAP_DBG_FLAG_ENA) > 0U) {
+            fa_debug_action_ena(data, d->name, offs, offs + 1U, d->len);
+        } else {
+            fa_debug_action(data, d->name, offs, d->len);
+        }
+        if ((d->flags & VCAP_DBG_FLAG_NL) > 0U) {
+            pr("\n");
+        }
+    }
+}
+
 static const char *fa_vcap_tg_txt(u32 tg)
 {
     return (tg == FA_VCAP_TG_X1    ? "X1"
@@ -2110,6 +2200,250 @@ static vtss_rc fa_clm_c_entry_get(vtss_state_t    *vtss_state,
     return fa_vcap_entry_get(vtss_state, VTSS_VCAP_TYPE_CLM_C, idx, counter, clear);
 }
 
+#if !VTSS_OPT_LIGHT
+static const vtss_vcap_dbg_t fa_clm_dbg_act_x2[] = {
+    FA_DBG_VCAP_ACT_ENA(CLM, "dscp", CLASSIFICATION_DSCP_ENA, CLASSIFICATION_DSCP_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "cosid", CLASSIFICATION_COSID_ENA, CLASSIFICATION_COSID_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "qos", CLASSIFICATION_QOS_ENA, CLASSIFICATION_QOS_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "dp", CLASSIFICATION_DP_ENA, CLASSIFICATION_DP_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "pcp", CLASSIFICATION_PCP_ENA, CLASSIFICATION_PCP_VAL),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "dei", CLASSIFICATION_DEI_ENA, CLASSIFICATION_DEI_VAL),
+    FA_DBG_VCAP_ACT(CLM, "map_sel", CLASSIFICATION_MAP_LOOKUP_SEL),
+    FA_DBG_VCAP_ACT(CLM, "map_key", CLASSIFICATION_MAP_KEY),
+    FA_DBG_VCAP_ACT(CLM, "map_idx", CLASSIFICATION_MAP_IDX),
+    FA_DBG_VCAP_ACT(CLM, "gvid_sel", CLASSIFICATION_GVID_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "xvid_sel", CLASSIFICATION_XVID_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "vid_val", CLASSIFICATION_VID_VAL),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "pop", CLASSIFICATION_VLAN_POP_CNT_ENA, CLASSIFICATION_VLAN_POP_CNT),
+    FA_DBG_VCAP_ACT_ENA(CLM, "push", CLASSIFICATION_VLAN_PUSH_CNT_ENA, CLASSIFICATION_VLAN_PUSH_CNT),
+    FA_DBG_VCAP_ACT(CLM, "tpid_sel", CLASSIFICATION_TPID_SEL),
+    FA_DBG_VCAP_ACT(CLM, "was_tagged", CLASSIFICATION_VLAN_WAS_TAGGED),
+    FA_DBG_VCAP_ACT(CLM, "isdx_sel", CLASSIFICATION_ISDX_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "isdx_val", CLASSIFICATION_ISDX_VAL),
+    FA_DBG_VCAP_ACT(CLM, "tr_sel", CLASSIFICATION_RT_SEL),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM,
+                           "lpm_affix",
+                           CLASSIFICATION_LPM_AFFIX_ENA,
+                           CLASSIFICATION_LPM_AFFIX_VAL),
+    FA_DBG_VCAP_ACT(CLM, "rleg_dmac_chk_dis", CLASSIFICATION_RLEG_DMAC_CHK_DIS),
+    FA_DBG_VCAP_ACT(CLM, "ttl_decr_dis", CLASSIFICATION_TTL_DECR_DIS),
+    FA_DBG_VCAP_ACT(CLM, "l3_mac_update_dis", CLASSIFICATION_L3_MAC_UPDATE_DIS),
+    FA_DBG_VCAP_ACT_NL(CLM, "fwd_dis", CLASSIFICATION_FWD_DIS),
+    FA_DBG_VCAP_ACT_ENA(CLM, "cpu_q", CLASSIFICATION_CPU_ENA, CLASSIFICATION_CPU_Q),
+#if defined(VTSS_ARCH_LAN969X)
+    FA_DBG_VCAP_ACT(CLM, "mrp_ena", CLASSIFICATION_OAM_MRP_ENA),
+#endif
+    FA_DBG_VCAP_ACT(CLM, "mip_sel", CLASSIFICATION_MIP_SEL),
+    FA_DBG_VCAP_ACT(CLM, "oam_y1731_sel", CLASSIFICATION_OAM_Y1731_SEL),
+    FA_DBG_VCAP_ACT(CLM, "oam_twamp_ena", CLASSIFICATION_OAM_TWAMP_ENA),
+    FA_DBG_VCAP_ACT_NL(CLM, "oam_ip_pfd_ena", CLASSIFICATION_OAM_IP_BFD_ENA),
+    FA_DBG_VCAP_ACT(CLM, "pag_override_mask", CLASSIFICATION_PAG_OVERRIDE_MASK),
+    FA_DBG_VCAP_ACT(CLM, "pag_val", CLASSIFICATION_PAG_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM,
+                        "s2_kel_sel",
+                        CLASSIFICATION_S2_KEY_SEL_ENA,
+                        CLASSIFICATION_S2_KEY_SEL_IDX),
+    FA_DBG_VCAP_ACT_ENA(CLM, "inj_masq", CLASSIFICATION_INJ_MASQ_ENA, CLASSIFICATION_INJ_MASQ_PORT),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "lport", CLASSIFICATION_LPORT_ENA, CLASSIFICATION_INJ_MASQ_LPORT),
+    FA_DBG_VCAP_ACT(CLM, "pl_force_ena", CLASSIFICATION_PIPELINE_FORCE_ENA),
+    FA_DBG_VCAP_ACT(CLM, "pl_act_sel", CLASSIFICATION_PIPELINE_ACT_SEL),
+    FA_DBG_VCAP_ACT(CLM, "pl_pt", CLASSIFICATION_PIPELINE_PT),
+    FA_DBG_VCAP_ACT_NL(CLM, "nxt_key_type", CLASSIFICATION_NXT_KEY_TYPE),
+    FA_DBG_VCAP_ACT(CLM, "nxt_norm_w16_offset", CLASSIFICATION_NXT_NORM_W16_OFFSET),
+    FA_DBG_VCAP_ACT(CLM, "nxt_offset_from_type", CLASSIFICATION_NXT_OFFSET_FROM_TYPE),
+    FA_DBG_VCAP_ACT_NL(CLM, "nxt_type_after_offset", CLASSIFICATION_NXT_TYPE_AFTER_OFFSET),
+    FA_DBG_VCAP_ACT(CLM, "nxt_normalize", CLASSIFICATION_NXT_NORMALIZE),
+    FA_DBG_VCAP_ACT(CLM, "nxt_idx_ctrl", CLASSIFICATION_NXT_IDX_CTRL),
+    FA_DBG_VCAP_ACT(CLM, "nxt_idx", CLASSIFICATION_NXT_IDX_CTRL),
+};
+#endif
+
+static const vtss_vcap_dbg_t fa_clm_dbg_act_quarter[] = {
+    FA_DBG_VCAP_ACT_ENA(CLM, "dscp", FULL_DSCP_ENA, FULL_DSCP_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "cosid", FULL_COSID_ENA, FULL_COSID_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "qos", FULL_QOS_ENA, FULL_QOS_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "dp", FULL_DP_ENA, FULL_DP_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "pcp", FULL_PCP_ENA, FULL_PCP_VAL),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "dei", FULL_DEI_ENA, FULL_DEI_VAL),
+    FA_DBG_VCAP_ACT(CLM, "map_sel", FULL_MAP_LOOKUP_SEL),
+    FA_DBG_VCAP_ACT(CLM, "map_key", FULL_MAP_KEY),
+    FA_DBG_VCAP_ACT(CLM, "map_idx", FULL_MAP_IDX),
+    FA_DBG_VCAP_ACT(CLM, "gvid_sel", FULL_GVID_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "xvid_sel", FULL_XVID_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "vid_val", FULL_VID_VAL),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "pop", FULL_VLAN_POP_CNT_ENA, FULL_VLAN_POP_CNT),
+    FA_DBG_VCAP_ACT_ENA(CLM, "push", FULL_VLAN_PUSH_CNT_ENA, FULL_VLAN_PUSH_CNT),
+    FA_DBG_VCAP_ACT(CLM, "tpid_sel", FULL_TPID_SEL),
+    FA_DBG_VCAP_ACT(CLM, "was_tagged", FULL_VLAN_WAS_TAGGED),
+    FA_DBG_VCAP_ACT(CLM, "isdx_sel", FULL_ISDX_ADD_REPLACE_SEL),
+    FA_DBG_VCAP_ACT(CLM, "isdx_val", FULL_ISDX_VAL),
+    FA_DBG_VCAP_ACT_NL(CLM, "mask_mode", FULL_MASK_MODE),
+    FA_DBG_VCAP_ACT_PM(CLM, "port_mask", FULL_PORT_MASK_0),
+    FA_DBG_VCAP_ACT(CLM, "rt_sel", FULL_RT_SEL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "lpm_affix", FULL_LPM_AFFIX_ENA, FULL_LPM_AFFIX_VAL),
+    FA_DBG_VCAP_ACT(CLM, "rleg_dmac_chk_dis", FULL_RLEG_DMAC_CHK_DIS),
+    FA_DBG_VCAP_ACT(CLM, "ttl_decr_dis", FULL_TTL_DECR_DIS),
+    FA_DBG_VCAP_ACT_NL(CLM, "l3_mac_update_dis", FULL_L3_MAC_UPDATE_DIS),
+    FA_DBG_VCAP_ACT_ENA(CLM, "cpu_q", FULL_CPU_ENA, FULL_CPU_Q),
+#if defined(VTSS_ARCH_LAN969X)
+    FA_DBG_VCAP_ACT(CLM, "mrp_ena", FULL_OAM_MRP_ENA),
+#endif
+    FA_DBG_VCAP_ACT(CLM, "mip_sel", FULL_MIP_SEL),
+    FA_DBG_VCAP_ACT(CLM, "oam_y1731_sel", FULL_OAM_Y1731_SEL),
+    FA_DBG_VCAP_ACT(CLM, "oam_twamp_ena", FULL_OAM_TWAMP_ENA),
+    FA_DBG_VCAP_ACT_NL(CLM, "oam_ip_pfd_ena", FULL_OAM_IP_BFD_ENA),
+    FA_DBG_VCAP_ACT(CLM, "rsvd_lbl_val", FULL_RSVD_LBL_VAL),
+    FA_DBG_VCAP_ACT(CLM, "tc_label", FULL_TC_LABEL),
+    FA_DBG_VCAP_ACT(CLM, "num_vld_labels", FULL_NUM_VLD_LABELS),
+    FA_DBG_VCAP_ACT(CLM, "fwd_type", FULL_FWD_TYPE),
+    FA_DBG_VCAP_ACT_NL(CLM, "mpls_oam_type", FULL_MPLS_OAM_TYPE),
+    FA_DBG_VCAP_ACT(CLM, "mpls_mep_ena", FULL_MPLS_MEP_ENA),
+    FA_DBG_VCAP_ACT(CLM, "mpls_mip_ena", FULL_MPLS_MIP_ENA),
+    FA_DBG_VCAP_ACT(CLM, "mpls_oam_flavor", FULL_MPLS_OAM_FLAVOR),
+    FA_DBG_VCAP_ACT_NL(CLM, "mpls_ip_ctrl_ena", FULL_MPLS_IP_CTRL_ENA),
+    FA_DBG_VCAP_ACT(CLM, "custom_ace_ena", FULL_CUSTOM_ACE_ENA),
+    FA_DBG_VCAP_ACT(CLM, "custom_ace_offset", FULL_CUSTOM_ACE_OFFSET),
+    FA_DBG_VCAP_ACT(CLM, "pag_override_mask", FULL_PAG_OVERRIDE_MASK),
+    FA_DBG_VCAP_ACT_NL(CLM, "pag_val", FULL_PAG_VAL),
+    FA_DBG_VCAP_ACT_ENA(CLM, "s2_kel_sel", FULL_S2_KEY_SEL_ENA, FULL_S2_KEY_SEL_IDX),
+    FA_DBG_VCAP_ACT_ENA(CLM, "inj_masq", FULL_INJ_MASQ_ENA, FULL_INJ_MASQ_PORT),
+    FA_DBG_VCAP_ACT_ENA_NL(CLM, "lport", FULL_LPORT_ENA, FULL_INJ_MASQ_LPORT),
+    FA_DBG_VCAP_ACT_BITS(CLM, "match_id", FULL_MATCH_ID),
+    FA_DBG_VCAP_ACT_BITS_NL(CLM, "match_id_mask", FULL_MATCH_ID_MASK),
+    FA_DBG_VCAP_ACT(CLM, "pl_force_ena", FULL_PIPELINE_FORCE_ENA),
+    FA_DBG_VCAP_ACT(CLM, "pl_act_sel", FULL_PIPELINE_ACT_SEL),
+    FA_DBG_VCAP_ACT(CLM, "pl_pt", FULL_PIPELINE_PT),
+    FA_DBG_VCAP_ACT_NL(CLM, "nxt_key_type", FULL_NXT_KEY_TYPE),
+    FA_DBG_VCAP_ACT(CLM, "nxt_norm_w16_offset", FULL_NXT_NORM_W16_OFFSET),
+    FA_DBG_VCAP_ACT(CLM, "nxt_offset_from_type", FULL_NXT_OFFSET_FROM_TYPE),
+    FA_DBG_VCAP_ACT_NL(CLM, "nxt_type_after_offset", FULL_NXT_TYPE_AFTER_OFFSET),
+    FA_DBG_VCAP_ACT(CLM, "nxt_normalize", FULL_NXT_NORMALIZE),
+    FA_DBG_VCAP_ACT(CLM, "nxt_idx_ctrl", FULL_NXT_IDX_CTRL),
+    FA_DBG_VCAP_ACT(CLM, "nxt_idx", FULL_NXT_IDX_CTRL),
+};
+
+#if !VTSS_OPT_LIGHT
+static const vtss_vcap_dbg_t fa_clm_dbg_key_tri_vid[] = {
+    FA_DBG_VCAP_QBITS(CLM, "igr_port", IGR_PORT),
+    FA_DBG_VCAP_BITS(CLM, "g_idx_sel", TRI_VID_G_IDX_SEL),
+    FA_DBG_VCAP_BITS_NL(CLM, "g_idx", TRI_VID_G_IDX),
+    FA_DBG_VCAP_BITS(CLM, "tpid0", TRI_VID_TPID0),
+    FA_DBG_VCAP_BITS(CLM, "pcp0", TRI_VID_PCP0),
+    FA_DBG_VCAP_BITS(CLM, "dei0", TRI_VID_DEI0),
+    FA_DBG_VCAP_BITS(CLM, "vid0", TRI_VID_VID0),
+    FA_DBG_VCAP_BITS_NL(CLM, "vlan_tags", TRI_VID_VLAN_TAGS),
+    FA_DBG_VCAP_BITS(CLM, "tpid1", TRI_VID_TPID1),
+    FA_DBG_VCAP_BITS(CLM, "pcp1", TRI_VID_PCP1),
+    FA_DBG_VCAP_BITS(CLM, "dei1", TRI_VID_DEI1),
+    FA_DBG_VCAP_BITS_NL(CLM, "vid1", TRI_VID_VID1),
+    FA_DBG_VCAP_BITS(CLM, "tpid2", TRI_VID_TPID2),
+    FA_DBG_VCAP_BITS(CLM, "pcp2", TRI_VID_PCP2),
+    FA_DBG_VCAP_BITS(CLM, "dei2", TRI_VID_DEI2),
+    FA_DBG_VCAP_BITS_NL(CLM, "vid2", TRI_VID_VID2),
+    FA_DBG_VCAP_BITS(CLM, "l4_rng", TRI_VID_L4_RNG),
+    FA_DBG_VCAP_BITS(CLM, "oam_y1731", TRI_VID_OAM_Y1731),
+    FA_DBG_VCAP_BITS(CLM, "oam_mel_flags", TRI_VID_OAM_MEL_FLAGS),
+};
+
+static const vtss_vcap_dbg_t fa_clm_dbg_key_half[] = {
+    FA_DBG_VCAP_HBITS(CLM, "first", FIRST),
+    FA_DBG_VCAP_HBITS(CLM, "g_idx_sel", G_IDX_SEL),
+    FA_DBG_VCAP_HBITS(CLM, "g_idx", G_IDX),
+    FA_DBG_VCAP_HBITS_NL(CLM, "port_mask_sel", IGR_PORT_MASK_SEL),
+    FA_DBG_VCAP_HBITS_PM(CLM, "port_mask", IGR_PORT_MASK_0),
+    FA_DBG_VCAP_HBITS(CLM, "l2_mc", L2_MC),
+    FA_DBG_VCAP_HBITS(CLM, "l2_bc", L2_BC),
+    FA_DBG_VCAP_HBITS_NL(CLM, "vlan_tags", VLAN_TAGS),
+    FA_DBG_VCAP_HBITS(CLM, "tpid0", TPID0),
+    FA_DBG_VCAP_HBITS(CLM, "pcp0", PCP0),
+    FA_DBG_VCAP_HBITS(CLM, "dei0", DEI0),
+    FA_DBG_VCAP_HBITS_NL(CLM, "vid0", VID0),
+    FA_DBG_VCAP_HBITS(CLM, "tpid1", TPID1),
+    FA_DBG_VCAP_HBITS(CLM, "pcp1", PCP1),
+    FA_DBG_VCAP_HBITS(CLM, "dei1", DEI1),
+    FA_DBG_VCAP_HBITS_NL(CLM, "vid1", VID1),
+    FA_DBG_VCAP_HBITS(CLM, "tpid2", TPID2),
+    FA_DBG_VCAP_HBITS(CLM, "pcp2", PCP2),
+    FA_DBG_VCAP_HBITS(CLM, "dei2", DEI2),
+    FA_DBG_VCAP_HBITS_NL(CLM, "vid2", VID2),
+};
+
+static const vtss_vcap_dbg_t fa_clm_dbg_key_normal[] = {
+    FA_DBG_VCAP_BITS(CLM, "dst_entry", NORMAL_DST_ENTRY),
+    FA_DBG_VCAP_MAC(CLM, "l2_smac", NORMAL_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(CLM, "ip_mc", NORMAL_IP_MC),
+    FA_DBG_VCAP_BITS(CLM, "etype_len", NORMAL_ETYPE_LEN),
+    FA_DBG_VCAP_BITS(CLM, "etype", NORMAL_ETYPE),
+    FA_DBG_VCAP_BITS(CLM, "ip_snap", NORMAL_IP_SNAP),
+    FA_DBG_VCAP_BITS(CLM, "ip4", NORMAL_IP4),
+    FA_DBG_VCAP_BITS_NL(CLM, "l3_fragment_type", NORMAL_L3_FRAGMENT_TYPE),
+    FA_DBG_VCAP_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_L3_FRAG_INVLD_L4_LEN),
+    FA_DBG_VCAP_BITS(CLM, "l3_options", NORMAL_L3_OPTIONS),
+    FA_DBG_VCAP_BITS_NL(CLM, "l3_dscp", NORMAL_L3_DSCP),
+    FA_DBG_VCAP_BITS(CLM, "l3_ip4_sip", NORMAL_L3_IP4_SIP),
+    FA_DBG_VCAP_BITS(CLM, "tcp_udp", NORMAL_TCP_UDP),
+    FA_DBG_VCAP_BITS(CLM, "tcp", NORMAL_TCP),
+    FA_DBG_VCAP_BITS(CLM, "l4_sport", NORMAL_L4_SPORT),
+    FA_DBG_VCAP_BITS_NL(CLM, "l4_rng", NORMAL_L4_RNG),
+};
+
+static const vtss_vcap_dbg_t fa_clm_dbg_key_5tuple[] = {
+    FA_DBG_VCAP_BITS(CLM, "ip_mc", NORMAL_5TUPLE_IP4_IP_MC),
+    FA_DBG_VCAP_BITS(CLM, "ip4", NORMAL_5TUPLE_IP4_IP4),
+    FA_DBG_VCAP_BITS(CLM, "l3_fragment_type", NORMAL_5TUPLE_IP4_L3_FRAGMENT_TYPE),
+    FA_DBG_VCAP_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_5TUPLE_IP4_L3_FRAG_INVLD_L4_LEN),
+    FA_DBG_VCAP_BITS(CLM, "l3_options", NORMAL_5TUPLE_IP4_L3_OPTIONS),
+    FA_DBG_VCAP_BITS_NL(CLM, "l3_dscp", NORMAL_5TUPLE_IP4_L3_DSCP),
+    FA_DBG_VCAP_BITS(CLM, "l3_ip4_dip", NORMAL_5TUPLE_IP4_L3_IP4_DIP),
+    FA_DBG_VCAP_BITS(CLM, "l3_ip4_sip", NORMAL_5TUPLE_IP4_L3_IP4_SIP),
+    FA_DBG_VCAP_BITS(CLM, "l3_ip_proto", NORMAL_5TUPLE_IP4_L3_IP_PROTO),
+    FA_DBG_VCAP_BITS(CLM, "tcp_udp", NORMAL_5TUPLE_IP4_TCP_UDP),
+    FA_DBG_VCAP_BITS(CLM, "tcp", NORMAL_5TUPLE_IP4_TCP),
+    FA_DBG_VCAP_BITS_NL(CLM, "l4_rng", NORMAL_5TUPLE_IP4_L4_RNG),
+    FA_DBG_VCAP_BITS(CLM, "ip_payload", NORMAL_5TUPLE_IP4_IP_PAYLOAD_5TUPLE),
+};
+#endif
+
+static const vtss_vcap_dbg_t fa_clm_dbg_key_7tuple[] = {
+    FA_DBG_VCAP_FBITS(CLM, "first", FIRST),
+    FA_DBG_VCAP_FBITS(CLM, "g_idx_sel", G_IDX_SEL),
+    FA_DBG_VCAP_FBITS(CLM, "g_idx", G_IDX),
+    FA_DBG_VCAP_BITS_NL(CLM, "port_mask_sel", NORMAL_7TUPLE_IGR_PORT_MASK_SEL),
+    FA_DBG_VCAP_BITS_PM(CLM, "port_mask", NORMAL_7TUPLE_IGR_PORT_MASK_0),
+    FA_DBG_VCAP_BITS(CLM, "l2_mc", NORMAL_7TUPLE_L2_MC),
+    FA_DBG_VCAP_BITS(CLM, "l2_bc", NORMAL_7TUPLE_L2_BC),
+    FA_DBG_VCAP_BITS_NL(CLM, "vlan_tags", NORMAL_7TUPLE_VLAN_TAGS),
+    FA_DBG_VCAP_BITS(CLM, "tpid0", NORMAL_7TUPLE_TPID0),
+    FA_DBG_VCAP_BITS(CLM, "pcp0", NORMAL_7TUPLE_PCP0),
+    FA_DBG_VCAP_BITS(CLM, "dei0", NORMAL_7TUPLE_DEI0),
+    FA_DBG_VCAP_BITS_NL(CLM, "vid0", NORMAL_7TUPLE_VID0),
+    FA_DBG_VCAP_BITS(CLM, "tpid1", NORMAL_7TUPLE_TPID1),
+    FA_DBG_VCAP_BITS(CLM, "pcp1", NORMAL_7TUPLE_PCP1),
+    FA_DBG_VCAP_BITS(CLM, "dei1", NORMAL_7TUPLE_DEI1),
+    FA_DBG_VCAP_BITS_NL(CLM, "vid1", NORMAL_7TUPLE_VID1),
+    FA_DBG_VCAP_BITS(CLM, "tpid2", NORMAL_7TUPLE_TPID2),
+    FA_DBG_VCAP_BITS(CLM, "pcp2", NORMAL_7TUPLE_PCP2),
+    FA_DBG_VCAP_BITS(CLM, "dei2", NORMAL_7TUPLE_DEI2),
+    FA_DBG_VCAP_BITS_NL(CLM, "vid2", NORMAL_7TUPLE_VID2),
+    FA_DBG_VCAP_MAC(CLM, "l2_dmac", NORMAL_7TUPLE_L2_DMAC_0),
+    FA_DBG_VCAP_MAC(CLM, "l2_smac", NORMAL_7TUPLE_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(CLM, "ip_mc", NORMAL_7TUPLE_IP_MC),
+    FA_DBG_VCAP_BITS(CLM, "etype_len", NORMAL_7TUPLE_ETYPE_LEN),
+    FA_DBG_VCAP_BITS(CLM, "etype", NORMAL_7TUPLE_ETYPE),
+    FA_DBG_VCAP_BITS(CLM, "ip_snap", NORMAL_7TUPLE_IP_SNAP),
+    FA_DBG_VCAP_BITS(CLM, "ip4", NORMAL_7TUPLE_IP4),
+    FA_DBG_VCAP_BITS_NL(CLM, "l3_fragment_type", NORMAL_7TUPLE_L3_FRAGMENT_TYPE),
+    FA_DBG_VCAP_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_7TUPLE_L3_FRAG_INVLD_L4_LEN),
+    FA_DBG_VCAP_BITS(CLM, "l3_options", NORMAL_7TUPLE_L3_OPTIONS),
+    FA_DBG_VCAP_BITS_NL(CLM, "l3_dscp", NORMAL_7TUPLE_L3_DSCP),
+    FA_DBG_VCAP_IPV6(CLM, "l3_ip6_dip", NORMAL_7TUPLE_L3_IP6_DIP_0),
+    FA_DBG_VCAP_IPV6(CLM, "l3_ip6_sip", NORMAL_7TUPLE_L3_IP6_SIP_0),
+    FA_DBG_VCAP_BITS(CLM, "tcp_udp", NORMAL_7TUPLE_TCP_UDP),
+    FA_DBG_VCAP_BITS(CLM, "tcp", NORMAL_7TUPLE_TCP),
+    FA_DBG_VCAP_BITS(CLM, "l4_sport", NORMAL_7TUPLE_L4_SPORT),
+    FA_DBG_VCAP_BITS_NL(CLM, "l4_rng", NORMAL_7TUPLE_L4_RNG),
+};
+
 static vtss_rc fa_debug_clm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 {
     vtss_rc     rc = VTSS_RC_OK;
@@ -2124,156 +2458,19 @@ static vtss_rc fa_debug_clm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
             /* Default action is cleared after initialization */
             break;
 
-        case FA_VCAP_TG_X1:
-            /* TBD_MPLS */
-            break;
+        case FA_VCAP_TG_X1: break;
 
         case FA_VCAP_TG_X2:
+#if !VTSS_OPT_LIGHT
             type = fa_act_get(data, CLM_AO_X2_TYPE, CLM_AL_X2_TYPE);
             pr("type:%u (%s) ", type, type == CLM_X2_TYPE_MLBS ? "mlbs" : "classification");
-#if !VTSS_OPT_LIGHT
-            if (type == CLM_X2_TYPE_MLBS) {
-                /* TBD_MPLS */
-                break;
+            if (type == CLM_X2_TYPE_CLASSIFICATION) {
+                FA_DBG_VCAP(fa_clm_dbg_act_x2);
             }
-            FA_DEBUG_ACT_ENA(CLM, "dscp", CLASSIFICATION_DSCP_ENA, CLASSIFICATION_DSCP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "cosid", CLASSIFICATION_COSID_ENA, CLASSIFICATION_COSID_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "qos", CLASSIFICATION_QOS_ENA, CLASSIFICATION_QOS_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "dp", CLASSIFICATION_DP_ENA, CLASSIFICATION_DP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "pcp", CLASSIFICATION_PCP_ENA, CLASSIFICATION_PCP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "dei", CLASSIFICATION_DEI_ENA, CLASSIFICATION_DEI_VAL);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "map_sel", CLASSIFICATION_MAP_LOOKUP_SEL);
-            FA_DEBUG_ACT(CLM, "map_key", CLASSIFICATION_MAP_KEY);
-            FA_DEBUG_ACT(CLM, "map_idx", CLASSIFICATION_MAP_IDX);
-            FA_DEBUG_ACT(CLM, "gvid_sel", CLASSIFICATION_GVID_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "xvid_sel", CLASSIFICATION_XVID_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "vid_val", CLASSIFICATION_VID_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "pop", CLASSIFICATION_VLAN_POP_CNT_ENA,
-                             CLASSIFICATION_VLAN_POP_CNT);
-            pr("\n");
-            FA_DEBUG_ACT_ENA(CLM, "push", CLASSIFICATION_VLAN_PUSH_CNT_ENA,
-                             CLASSIFICATION_VLAN_PUSH_CNT);
-            FA_DEBUG_ACT(CLM, "tpid_sel", CLASSIFICATION_TPID_SEL);
-            FA_DEBUG_ACT(CLM, "was_tagged", CLASSIFICATION_VLAN_WAS_TAGGED);
-            FA_DEBUG_ACT(CLM, "isdx_sel", CLASSIFICATION_ISDX_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "isdx_val", CLASSIFICATION_ISDX_VAL);
-            FA_DEBUG_ACT(CLM, "tr_sel", CLASSIFICATION_RT_SEL);
-            FA_DEBUG_ACT_ENA(CLM, "lpm_affix", CLASSIFICATION_LPM_AFFIX_ENA,
-                             CLASSIFICATION_LPM_AFFIX_VAL);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "rleg_dmac_chk_dis", CLASSIFICATION_RLEG_DMAC_CHK_DIS);
-            FA_DEBUG_ACT(CLM, "ttl_decr_dis", CLASSIFICATION_TTL_DECR_DIS);
-            FA_DEBUG_ACT(CLM, "l3_mac_update_dis", CLASSIFICATION_L3_MAC_UPDATE_DIS);
-            FA_DEBUG_ACT(CLM, "fwd_dis", CLASSIFICATION_FWD_DIS);
-            pr("\n");
-            FA_DEBUG_ACT_ENA(CLM, "cpu_q", CLASSIFICATION_CPU_ENA, CLASSIFICATION_CPU_Q);
-            FA_DEBUG_ACT(CLM, "mip_sel", CLASSIFICATION_MIP_SEL);
-            FA_DEBUG_ACT(CLM, "oam_y1731_sel", CLASSIFICATION_OAM_Y1731_SEL);
-            FA_DEBUG_ACT(CLM, "oam_twamp_ena", CLASSIFICATION_OAM_TWAMP_ENA);
-            FA_DEBUG_ACT(CLM, "oam_ip_pfd_ena", CLASSIFICATION_OAM_IP_BFD_ENA);
-#if defined(VTSS_ARCH_LAN969X)
-            FA_DEBUG_ACT(CLM, "mrp_ena", CLASSIFICATION_OAM_MRP_ENA);
-#endif
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "pag_override_mask", CLASSIFICATION_PAG_OVERRIDE_MASK);
-            FA_DEBUG_ACT(CLM, "pag_val", CLASSIFICATION_PAG_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "s2_kel_sel", CLASSIFICATION_S2_KEY_SEL_ENA,
-                             CLASSIFICATION_S2_KEY_SEL_IDX);
-            FA_DEBUG_ACT_ENA(CLM, "inj_masq", CLASSIFICATION_INJ_MASQ_ENA,
-                             CLASSIFICATION_INJ_MASQ_PORT);
-            FA_DEBUG_ACT_ENA(CLM, "lport", CLASSIFICATION_LPORT_ENA, CLASSIFICATION_INJ_MASQ_LPORT);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "pl_force_ena", CLASSIFICATION_PIPELINE_FORCE_ENA);
-            FA_DEBUG_ACT(CLM, "pl_act_sel", CLASSIFICATION_PIPELINE_ACT_SEL);
-            FA_DEBUG_ACT(CLM, "pl_pt", CLASSIFICATION_PIPELINE_PT);
-            FA_DEBUG_ACT(CLM, "nxt_key_type", CLASSIFICATION_NXT_KEY_TYPE);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "nxt_norm_w16_offset", CLASSIFICATION_NXT_NORM_W16_OFFSET);
-            FA_DEBUG_ACT(CLM, "nxt_offset_from_type", CLASSIFICATION_NXT_OFFSET_FROM_TYPE);
-            FA_DEBUG_ACT(CLM, "nxt_type_after_offset", CLASSIFICATION_NXT_TYPE_AFTER_OFFSET);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "nxt_normalize", CLASSIFICATION_NXT_NORMALIZE);
-            FA_DEBUG_ACT(CLM, "nxt_idx_ctrl", CLASSIFICATION_NXT_IDX_CTRL);
-            FA_DEBUG_ACT(CLM, "nxt_idx", CLASSIFICATION_NXT_IDX_CTRL);
 #endif // !VTSS_OPT_LIGHT
             break;
 
-        case FA_VCAP_TG_X3:
-            FA_DEBUG_ACT_ENA(CLM, "dscp", FULL_DSCP_ENA, FULL_DSCP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "cosid", FULL_COSID_ENA, FULL_COSID_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "qos", FULL_QOS_ENA, FULL_QOS_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "dp", FULL_DP_ENA, FULL_DP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "pcp", FULL_PCP_ENA, FULL_PCP_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "dei", FULL_DEI_ENA, FULL_DEI_VAL);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "map_sel", FULL_MAP_LOOKUP_SEL);
-            FA_DEBUG_ACT(CLM, "map_key", FULL_MAP_KEY);
-            FA_DEBUG_ACT(CLM, "map_idx", FULL_MAP_IDX);
-            FA_DEBUG_ACT(CLM, "gvid_sel", FULL_GVID_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "xvid_sel", FULL_XVID_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "vid_val", FULL_VID_VAL);
-            FA_DEBUG_ACT_ENA(CLM, "pop", FULL_VLAN_POP_CNT_ENA, FULL_VLAN_POP_CNT);
-            pr("\n");
-            FA_DEBUG_ACT_ENA(CLM, "push", FULL_VLAN_PUSH_CNT_ENA, FULL_VLAN_PUSH_CNT);
-            FA_DEBUG_ACT(CLM, "tpid_sel", FULL_TPID_SEL);
-            FA_DEBUG_ACT(CLM, "was_tagged", FULL_VLAN_WAS_TAGGED);
-            FA_DEBUG_ACT(CLM, "isdx_sel", FULL_ISDX_ADD_REPLACE_SEL);
-            FA_DEBUG_ACT(CLM, "isdx_val", FULL_ISDX_VAL);
-            FA_DEBUG_ACT(CLM, "mask_mode", FULL_MASK_MODE);
-            pr("\n");
-            fa_debug_bits(data, "port_mask", CLM_AO_FULL_PORT_MASK_0, RT_CHIP_PORTS);
-            FA_DEBUG_ACT(CLM, "rt_sel", FULL_RT_SEL);
-            FA_DEBUG_ACT_ENA(CLM, "lpm_affix", FULL_LPM_AFFIX_ENA, FULL_LPM_AFFIX_VAL);
-            FA_DEBUG_ACT(CLM, "rleg_dmac_chk_dis", FULL_RLEG_DMAC_CHK_DIS);
-            FA_DEBUG_ACT(CLM, "ttl_decr_dis", FULL_TTL_DECR_DIS);
-            FA_DEBUG_ACT(CLM, "l3_mac_update_dis", FULL_L3_MAC_UPDATE_DIS);
-            pr("\n");
-            FA_DEBUG_ACT_ENA(CLM, "cpu_q", FULL_CPU_ENA, FULL_CPU_Q);
-            FA_DEBUG_ACT(CLM, "mip_sel", FULL_MIP_SEL);
-            FA_DEBUG_ACT(CLM, "oam_y1731_sel", FULL_OAM_Y1731_SEL);
-            FA_DEBUG_ACT(CLM, "oam_twamp_ena", FULL_OAM_TWAMP_ENA);
-            FA_DEBUG_ACT(CLM, "oam_ip_pfd_ena", FULL_OAM_IP_BFD_ENA);
-#if defined(VTSS_ARCH_LAN969X)
-            FA_DEBUG_ACT(CLM, "mrp_ena", FULL_OAM_MRP_ENA);
-#endif
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "rsvd_lbl_val", FULL_RSVD_LBL_VAL);
-            FA_DEBUG_ACT(CLM, "tc_label", FULL_TC_LABEL);
-            FA_DEBUG_ACT(CLM, "num_vld_labels", FULL_NUM_VLD_LABELS);
-            FA_DEBUG_ACT(CLM, "fwd_type", FULL_FWD_TYPE);
-            FA_DEBUG_ACT(CLM, "mpls_oam_type", FULL_MPLS_OAM_TYPE);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "mpls_mep_ena", FULL_MPLS_MEP_ENA);
-            FA_DEBUG_ACT(CLM, "mpls_mip_ena", FULL_MPLS_MIP_ENA);
-            FA_DEBUG_ACT(CLM, "mpls_oam_flavor", FULL_MPLS_OAM_FLAVOR);
-            FA_DEBUG_ACT(CLM, "mpls_ip_ctrl_ena", FULL_MPLS_IP_CTRL_ENA);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "custom_ace_ena", FULL_CUSTOM_ACE_ENA);
-            FA_DEBUG_ACT(CLM, "custom_ace_offset", FULL_CUSTOM_ACE_OFFSET);
-            FA_DEBUG_ACT(CLM, "pag_override_mask", FULL_PAG_OVERRIDE_MASK);
-            FA_DEBUG_ACT(CLM, "pag_val", FULL_PAG_VAL);
-            pr("\n");
-            FA_DEBUG_ACT_ENA(CLM, "s2_kel_sel", FULL_S2_KEY_SEL_ENA, FULL_S2_KEY_SEL_IDX);
-            FA_DEBUG_ACT_ENA(CLM, "inj_masq", FULL_INJ_MASQ_ENA, FULL_INJ_MASQ_PORT);
-            FA_DEBUG_ACT_ENA(CLM, "lport", FULL_LPORT_ENA, FULL_INJ_MASQ_LPORT);
-            pr("\n");
-            FA_DEBUG_ACT_BITS(CLM, "match_id", FULL_MATCH_ID);
-            FA_DEBUG_ACT_BITS(CLM, "match_id_mask", FULL_MATCH_ID_MASK);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "pl_force_ena", FULL_PIPELINE_FORCE_ENA);
-            FA_DEBUG_ACT(CLM, "pl_act_sel", FULL_PIPELINE_ACT_SEL);
-            FA_DEBUG_ACT(CLM, "pl_pt", FULL_PIPELINE_PT);
-            FA_DEBUG_ACT(CLM, "nxt_key_type", FULL_NXT_KEY_TYPE);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "nxt_norm_w16_offset", FULL_NXT_NORM_W16_OFFSET);
-            FA_DEBUG_ACT(CLM, "nxt_offset_from_type", FULL_NXT_OFFSET_FROM_TYPE);
-            FA_DEBUG_ACT(CLM, "nxt_type_after_offset", FULL_NXT_TYPE_AFTER_OFFSET);
-            pr("\n");
-            FA_DEBUG_ACT(CLM, "nxt_normalize", FULL_NXT_NORMALIZE);
-            FA_DEBUG_ACT(CLM, "nxt_idx_ctrl", FULL_NXT_IDX_CTRL);
-            FA_DEBUG_ACT(CLM, "nxt_idx", FULL_NXT_IDX_CTRL);
-            break;
+        case FA_VCAP_TG_QUARTER: FA_DBG_VCAP(fa_clm_dbg_act_quarter); break;
 
         default:
             VTSS_E("not X1/X2/X3");
@@ -2287,45 +2484,20 @@ static vtss_rc fa_debug_clm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
     }
 
     switch (data->tg) {
-    case FA_VCAP_TG_X1:
-        /* TBD_MPLS */
-        break;
+    case FA_VCAP_TG_X1: break;
 
-    case FA_VCAP_TG_X2: FA_DEBUG_BITS(CLM, "type", X2_TYPE);
+    case FA_VCAP_TG_X2:
 #if !VTSS_OPT_LIGHT
-        type = fa_entry_bs_get(data, CLM_KO_X2_TYPE, CLM_KL_X2_TYPE);
+        FA_DEBUG_BITS(CLM, "type", X2_TYPE);
+        type = FA_QENTRY_GET(CLM, TYPE);
         pr("(%s) ", type == CLM_X2_TYPE_TRI_VID       ? "tri_vid"
                     : type == CLM_X2_TYPE_DBL_MLBS    ? "dbl_mlbs"
                     : type == CLM_X2_TYPE_TRI_VID_IDX ? "tri_vid_idx"
                                                       : "etag");
-        FA_DEBUG_BITS(CLM, "first", X2_FIRST);
-        if (type != CLM_X2_TYPE_TRI_VID) {
-            /* TBD_MPLS */
-            break;
+        FA_DEBUG_QBITS(CLM, "first", FIRST);
+        if (type == CLM_X2_TYPE_TRI_VID) {
+            FA_DBG_VCAP(fa_clm_dbg_key_tri_vid);
         }
-        FA_DEBUG_BITS(CLM, "igr_port", X2_IGR_PORT);
-        FA_DEBUG_BITS(CLM, "g_idx_sel", TRI_VID_G_IDX_SEL);
-        FA_DEBUG_BITS(CLM, "g_idx", TRI_VID_G_IDX);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid0", TRI_VID_TPID0);
-        FA_DEBUG_BITS(CLM, "pcp0", TRI_VID_PCP0);
-        FA_DEBUG_BITS(CLM, "dei0", TRI_VID_DEI0);
-        FA_DEBUG_BITS(CLM, "vid0", TRI_VID_VID0);
-        FA_DEBUG_BITS(CLM, "vlan_tags", TRI_VID_VLAN_TAGS);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid1", TRI_VID_TPID1);
-        FA_DEBUG_BITS(CLM, "pcp1", TRI_VID_PCP1);
-        FA_DEBUG_BITS(CLM, "dei1", TRI_VID_DEI1);
-        FA_DEBUG_BITS(CLM, "vid1", TRI_VID_VID1);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid2", TRI_VID_TPID2);
-        FA_DEBUG_BITS(CLM, "pcp2", TRI_VID_PCP2);
-        FA_DEBUG_BITS(CLM, "dei2", TRI_VID_DEI2);
-        FA_DEBUG_BITS(CLM, "vid2", TRI_VID_VID2);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "l4_rng", TRI_VID_L4_RNG);
-        FA_DEBUG_BITS(CLM, "oam_y1731", TRI_VID_OAM_Y1731);
-        FA_DEBUG_BITS(CLM, "oam_mel_flags", TRI_VID_OAM_MEL_FLAGS);
 #endif // !VTSS_OPT_LIGHT
         break;
 
@@ -2333,143 +2505,36 @@ static vtss_rc fa_debug_clm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         /* TBD_MPLS */
         break;
 
-    case FA_VCAP_TG_X6:
-        type = fa_entry_bs_get(data, CLM_KO_X6_TYPE, CLM_KL_X6_TYPE);
-        FA_DEBUG_BITS(CLM, "type", X6_TYPE);
-        i = (i32)type;
-        str = (i == CLM_X6_TYPE_LL_FULL             ? "ll_full"
-               : i == CLM_X6_TYPE_NORMAL            ? "normal"
-               : i == CLM_X6_TYPE_NORMAL_5TUPLE_IP4 ? "5tuple_ip4"
-                                                    : "custom_2");
-        pr("(%s) ", str);
-        FA_DEBUG_BITS(CLM, "first", X6_FIRST);
-        if (i == CLM_X6_TYPE_LL_FULL) {
-            /* TBD_MPLS */
-            break;
-        }
-        FA_DEBUG_BITS(CLM, "g_idx_sel", X6_G_IDX_SEL);
-        FA_DEBUG_BITS(CLM, "g_idx", X6_G_IDX);
-        if (i == CLM_X6_TYPE_CUSTOM_2) {
-            break;
-        }
-        FA_DEBUG_BITS(CLM, "port_mask_sel", X6_IGR_PORT_MASK_SEL);
-        pr("\n");
-        fa_debug_bits(data, "port_mask", CLM_KO_X6_IGR_PORT_MASK_0, RT_CHIP_PORTS);
+    case FA_VCAP_TG_HALF:
 #if !VTSS_OPT_LIGHT
-        FA_DEBUG_BITS(CLM, "l2_mc", X6_L2_MC);
-        FA_DEBUG_BITS(CLM, "l2_bc", X6_L2_BC);
-        FA_DEBUG_BITS(CLM, "vlan_tags", X6_VLAN_TAGS);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid0", X6_TPID0);
-        FA_DEBUG_BITS(CLM, "pcp0", X6_PCP0);
-        FA_DEBUG_BITS(CLM, "dei0", X6_DEI0);
-        FA_DEBUG_BITS(CLM, "vid0", X6_VID0);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid1", X6_TPID1);
-        FA_DEBUG_BITS(CLM, "pcp1", X6_PCP1);
-        FA_DEBUG_BITS(CLM, "dei1", X6_DEI1);
-        FA_DEBUG_BITS(CLM, "vid1", X6_VID1);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid2", X6_TPID2);
-        FA_DEBUG_BITS(CLM, "pcp2", X6_PCP2);
-        FA_DEBUG_BITS(CLM, "dei2", X6_DEI2);
-        FA_DEBUG_BITS(CLM, "vid2", X6_VID2);
-        pr("\n");
+        FA_DEBUG_HBITS(CLM, "type", TYPE);
+        type = FA_HENTRY_GET(CLM, TYPE);
+        str = (type == CLM_X6_TYPE_LL_FULL             ? "ll_full"
+               : type == CLM_X6_TYPE_NORMAL            ? "normal"
+               : type == CLM_X6_TYPE_NORMAL_5TUPLE_IP4 ? "5tuple_ip4"
+                                                       : "custom_2");
+        pr("(%s) ", str);
         if (type == CLM_X6_TYPE_NORMAL) {
-            FA_DEBUG_BITS(CLM, "dst_entry", NORMAL_DST_ENTRY);
-            FA_DEBUG_MAC(CLM, "l2_smac", NORMAL_L2_SMAC_0);
-            FA_DEBUG_BITS(CLM, "ip_mc", NORMAL_IP_MC);
-            FA_DEBUG_BITS(CLM, "etype_len", NORMAL_ETYPE_LEN);
-            FA_DEBUG_BITS(CLM, "etype", NORMAL_ETYPE);
-            FA_DEBUG_BITS(CLM, "ip_snap", NORMAL_IP_SNAP);
-            FA_DEBUG_BITS(CLM, "ip4", NORMAL_IP4);
-            FA_DEBUG_BITS(CLM, "l3_fragment_type", NORMAL_L3_FRAGMENT_TYPE);
+            FA_DBG_VCAP(fa_clm_dbg_key_half);
+            FA_DBG_VCAP(fa_clm_dbg_key_normal);
+        } else if (type == CLM_X6_TYPE_NORMAL_5TUPLE_IP4) {
+            FA_DBG_VCAP(fa_clm_dbg_key_half);
+            FA_DBG_VCAP(fa_clm_dbg_key_5tuple);
+        } else {
             pr("\n");
-            FA_DEBUG_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_L3_FRAG_INVLD_L4_LEN);
-            FA_DEBUG_BITS(CLM, "l3_options", NORMAL_L3_OPTIONS);
-            FA_DEBUG_BITS(CLM, "l3_dscp", NORMAL_L3_DSCP);
-            pr("\n");
-            FA_DEBUG_BITS(CLM, "l3_ip4_sip", NORMAL_L3_IP4_SIP);
-            FA_DEBUG_BITS(CLM, "tcp_udp", NORMAL_TCP_UDP);
-            FA_DEBUG_BITS(CLM, "tcp", NORMAL_TCP);
-            FA_DEBUG_BITS(CLM, "l4_sport", NORMAL_L4_SPORT);
-            FA_DEBUG_BITS(CLM, "l4_rng", NORMAL_L4_RNG);
-            pr("\n");
-            break;
         }
-        /* CLM_X6_TYPE_NORMAL_5TUPLE_IP4K */
-        FA_DEBUG_BITS(CLM, "ip_mc", NORMAL_5TUPLE_IP4_IP_MC);
-        FA_DEBUG_BITS(CLM, "ip4", NORMAL_5TUPLE_IP4_IP4);
-        FA_DEBUG_BITS(CLM, "l3_fragment_type", NORMAL_5TUPLE_IP4_L3_FRAGMENT_TYPE);
-        FA_DEBUG_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_5TUPLE_IP4_L3_FRAG_INVLD_L4_LEN);
-        FA_DEBUG_BITS(CLM, "l3_options", NORMAL_5TUPLE_IP4_L3_OPTIONS);
-        FA_DEBUG_BITS(CLM, "l3_dscp", NORMAL_5TUPLE_IP4_L3_DSCP);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "l3_ip4_dip", NORMAL_5TUPLE_IP4_L3_IP4_DIP);
-        FA_DEBUG_BITS(CLM, "l3_ip4_sip", NORMAL_5TUPLE_IP4_L3_IP4_SIP);
-        FA_DEBUG_BITS(CLM, "l3_ip_proto", NORMAL_5TUPLE_IP4_L3_IP_PROTO);
-        FA_DEBUG_BITS(CLM, "tcp_udp", NORMAL_5TUPLE_IP4_TCP_UDP);
-        FA_DEBUG_BITS(CLM, "tcp", NORMAL_5TUPLE_IP4_TCP);
-        FA_DEBUG_BITS(CLM, "l4_rng", NORMAL_5TUPLE_IP4_L4_RNG);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "ip_payload", NORMAL_5TUPLE_IP4_IP_PAYLOAD_5TUPLE);
 #endif // !VTSS_OPT_LIGHT
         break;
 
-    case FA_VCAP_TG_X12:
-        type = fa_entry_bs_get(data, CLM_KO_X12_TYPE, CLM_KL_X12_TYPE);
-        FA_DEBUG_BITS(CLM, "type", X12_TYPE);
+    case FA_VCAP_TG_FULL:
+        FA_DEBUG_FBITS(CLM, "type", TYPE);
+        type = FA_FENTRY_GET(CLM, TYPE);
         i = (i32)type;
         str = (i == CLM_X12_TYPE_NORMAL_7TUPLE ? "7tuple" : "custom_1");
         pr("(%s) ", str);
-        FA_DEBUG_BITS(CLM, "first", X12_FIRST);
-        FA_DEBUG_BITS(CLM, "g_idx_sel", X12_G_IDX_SEL);
-        FA_DEBUG_BITS(CLM, "g_idx", X12_G_IDX);
-        if (i == CLM_X12_TYPE_CUSTOM_1) {
-            break;
+        if (i == CLM_X12_TYPE_NORMAL_7TUPLE) {
+            FA_DBG_VCAP(fa_clm_dbg_key_7tuple);
         }
-        FA_DEBUG_BITS(CLM, "port_mask_sel", NORMAL_7TUPLE_IGR_PORT_MASK_SEL);
-        pr("\n");
-        fa_debug_bits(data, "port_mask", CLM_KO_NORMAL_7TUPLE_IGR_PORT_MASK_0, RT_CHIP_PORTS);
-        FA_DEBUG_BITS(CLM, "l2_mc", NORMAL_7TUPLE_L2_MC);
-        FA_DEBUG_BITS(CLM, "l2_bc", NORMAL_7TUPLE_L2_BC);
-        FA_DEBUG_BITS(CLM, "vlan_tags", NORMAL_7TUPLE_VLAN_TAGS);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid0", NORMAL_7TUPLE_TPID0);
-        FA_DEBUG_BITS(CLM, "pcp0", NORMAL_7TUPLE_PCP0);
-        FA_DEBUG_BITS(CLM, "dei0", NORMAL_7TUPLE_DEI0);
-        FA_DEBUG_BITS(CLM, "vid0", NORMAL_7TUPLE_VID0);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid1", NORMAL_7TUPLE_TPID1);
-        FA_DEBUG_BITS(CLM, "pcp1", NORMAL_7TUPLE_PCP1);
-        FA_DEBUG_BITS(CLM, "dei1", NORMAL_7TUPLE_DEI1);
-        FA_DEBUG_BITS(CLM, "vid1", NORMAL_7TUPLE_VID1);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "tpid2", NORMAL_7TUPLE_TPID2);
-        FA_DEBUG_BITS(CLM, "pcp2", NORMAL_7TUPLE_PCP2);
-        FA_DEBUG_BITS(CLM, "dei2", NORMAL_7TUPLE_DEI2);
-        FA_DEBUG_BITS(CLM, "vid2", NORMAL_7TUPLE_VID2);
-        pr("\n");
-        FA_DEBUG_MAC(CLM, "l2_dmac", NORMAL_7TUPLE_L2_DMAC_0);
-        FA_DEBUG_MAC(CLM, "l2_smac", NORMAL_7TUPLE_L2_SMAC_0);
-        FA_DEBUG_BITS(CLM, "ip_mc", NORMAL_7TUPLE_IP_MC);
-        FA_DEBUG_BITS(CLM, "etype_len", NORMAL_7TUPLE_ETYPE_LEN);
-        FA_DEBUG_BITS(CLM, "etype", NORMAL_7TUPLE_ETYPE);
-        FA_DEBUG_BITS(CLM, "ip_snap", NORMAL_7TUPLE_IP_SNAP);
-        FA_DEBUG_BITS(CLM, "ip4", NORMAL_7TUPLE_IP4);
-        FA_DEBUG_BITS(CLM, "l3_fragment_type", NORMAL_7TUPLE_L3_FRAGMENT_TYPE);
-        pr("\n");
-        FA_DEBUG_BITS(CLM, "l3_frag_invld_l4_len", NORMAL_7TUPLE_L3_FRAG_INVLD_L4_LEN);
-        FA_DEBUG_BITS(CLM, "l3_options", NORMAL_7TUPLE_L3_OPTIONS);
-        FA_DEBUG_BITS(CLM, "l3_dscp", NORMAL_7TUPLE_L3_DSCP);
-        pr("\n");
-        FA_DEBUG_IPV6(CLM, "l3_ip6_dip", NORMAL_7TUPLE_L3_IP6_DIP_0);
-        FA_DEBUG_IPV6(CLM, "l3_ip6_sip", NORMAL_7TUPLE_L3_IP6_SIP_0);
-        FA_DEBUG_BITS(CLM, "tcp_udp", NORMAL_7TUPLE_TCP_UDP);
-        FA_DEBUG_BITS(CLM, "tcp", NORMAL_7TUPLE_TCP);
-        FA_DEBUG_BITS(CLM, "l4_sport", NORMAL_7TUPLE_L4_SPORT);
-        FA_DEBUG_BITS(CLM, "l4_rng", NORMAL_7TUPLE_L4_RNG);
-        pr("\n");
         break;
 
     default:
@@ -2632,6 +2697,50 @@ static vtss_rc fa_lpm_entry_get(vtss_state_t    *vtss_state,
     return fa_vcap_entry_get(vtss_state, VTSS_VCAP_TYPE_LPM, idx, counter, clear);
 }
 
+static const vtss_vcap_dbg_t fa_lpm_dbg_act_arp_ptr[] = {
+    FA_DBG_VCAP_ACT(LPM, "arp_ptr", ARP_PTR_ARP_PTR),
+    FA_DBG_VCAP_ACT(LPM, "remap_ena", ARP_PTR_ARP_PTR_REMAP_ENA),
+    FA_DBG_VCAP_ACT(LPM, "ecmp_cnt", ARP_PTR_ECMP_CNT),
+    FA_DBG_VCAP_ACT(LPM, "rgid", ARP_PTR_RGID),
+};
+
+static const vtss_vcap_dbg_t fa_lpm_dbg_act_arp_entry[] = {
+    FA_DBG_VCAP_ACT_BITS(LPM, "mac_msb", ARP_ENTRY_MAC_MSB),
+    FA_DBG_VCAP_ACT_BITS(LPM, "mac_lsb", ARP_ENTRY_MAC_LSB),
+    FA_DBG_VCAP_ACT(LPM, "vmid", ARP_ENTRY_ARP_VMID),
+    FA_DBG_VCAP_ACT(LPM, "cpu_queue", ARP_ENTRY_ZERO_DMAC_CPU_QU),
+    FA_DBG_VCAP_ACT(LPM, "sip_rpf_ena", ARP_ENTRY_SIP_RPF_ENA),
+    FA_DBG_VCAP_ACT(LPM, "secur_vmid_ena", ARP_ENTRY_SECUR_MATCH_VMID_ENA),
+    FA_DBG_VCAP_ACT(LPM, "secur_mac_ena", ARP_ENTRY_SECUR_MATCH_MAC_ENA),
+    FA_DBG_VCAP_ACT(LPM, "arp_ena", ARP_ENTRY_ARP_ENA),
+    FA_DBG_VCAP_ACT(LPM, "encap_id", ARP_ENTRY_ENCAP_ID),
+    FA_DBG_VCAP_ACT(LPM, "rsdx", ARP_ENTRY_RSDX),
+};
+
+static const vtss_vcap_dbg_t fa_lpm_dbg_key_sgl_ip4[] = {
+    FA_DBG_VCAP_BITS(LPM, "dst_flag", SGL_IP4_DST_FLAG),
+    FA_DBG_VCAP_BITS(LPM, "affix", SGL_IP4_AFFIX),
+    FA_DBG_VCAP_BITS(LPM, "ip4_xip", SGL_IP4_IP4_XIP),
+};
+
+static const vtss_vcap_dbg_t fa_lpm_dbg_key_dbl_ip4[] = {
+    FA_DBG_VCAP_BITS_NL(LPM, "affix", DBL_IP4_AFFIX),
+    FA_DBG_VCAP_BITS(LPM, "ip4_sip", DBL_IP4_IP4_SIP),
+    FA_DBG_VCAP_BITS(LPM, "ip4_dip", DBL_IP4_IP4_DIP),
+};
+
+static const vtss_vcap_dbg_t fa_lpm_dbg_key_sgl_ip6[] = {
+    FA_DBG_VCAP_BITS(LPM, "dst_flag", SGL_IP6_DST_FLAG),
+    FA_DBG_VCAP_BITS_NL(LPM, "affix", SGL_IP6_AFFIX),
+    FA_DBG_VCAP_IPV6(LPM, "ip6_xip", SGL_IP6_IP6_XIP_0),
+};
+
+static const vtss_vcap_dbg_t fa_lpm_dbg_key_dbl_ip6[] = {
+    FA_DBG_VCAP_BITS_NL(LPM, "affix", DBL_IP6_AFFIX),
+    FA_DBG_VCAP_IPV6(LPM, "ip6_sip", DBL_IP6_IP6_SIP_0),
+    FA_DBG_VCAP_IPV6(LPM, "ip6_dip", DBL_IP6_IP6_DIP_0),
+};
+
 static vtss_rc fa_debug_lpm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 {
     vtss_rc     rc = VTSS_RC_OK;
@@ -2651,25 +2760,9 @@ static vtss_rc fa_debug_lpm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         pr("type:%u (%s) ", type, str);
 
         switch (type) {
-        case LPM_X1_TYPE_ARP_PTR:
-            FA_DEBUG_ACT(LPM, "arp_ptr", ARP_PTR_ARP_PTR);
-            FA_DEBUG_ACT(LPM, "remap_ena", ARP_PTR_ARP_PTR_REMAP_ENA);
-            FA_DEBUG_ACT(LPM, "ecmp_cnt", ARP_PTR_ECMP_CNT);
-            FA_DEBUG_ACT(LPM, "rgid", ARP_PTR_RGID);
-            break;
-        case LPM_X1_TYPE_L3MC_PTR: FA_DEBUG_ACT(LPM, "l3mc_ptr", L3MC_PTR_L3MC_PTR); break;
-        case LPM_X1_TYPE_ARP_ENTRY:
-            FA_DEBUG_ACT_BITS(LPM, "mac_msb", ARP_ENTRY_MAC_MSB);
-            FA_DEBUG_ACT_BITS(LPM, "mac_lsb", ARP_ENTRY_MAC_LSB);
-            FA_DEBUG_ACT(LPM, "vmid", ARP_ENTRY_ARP_VMID);
-            FA_DEBUG_ACT(LPM, "cpu_queue", ARP_ENTRY_ZERO_DMAC_CPU_QU);
-            FA_DEBUG_ACT(LPM, "sip_rpf_ena", ARP_ENTRY_SIP_RPF_ENA);
-            FA_DEBUG_ACT(LPM, "secur_vmid_ena", ARP_ENTRY_SECUR_MATCH_VMID_ENA);
-            FA_DEBUG_ACT(LPM, "secur_mac_ena", ARP_ENTRY_SECUR_MATCH_MAC_ENA);
-            FA_DEBUG_ACT(LPM, "arp_ena", ARP_ENTRY_ARP_ENA);
-            FA_DEBUG_ACT(LPM, "encap_id", ARP_ENTRY_ENCAP_ID);
-            FA_DEBUG_ACT(LPM, "rsdx", ARP_ENTRY_RSDX);
-            break;
+        case LPM_X1_TYPE_ARP_PTR:   FA_DBG_VCAP(fa_lpm_dbg_act_arp_ptr); break;
+        case LPM_X1_TYPE_L3MC_PTR:  FA_DEBUG_ACT(LPM, "l3mc_ptr", L3MC_PTR_L3MC_PTR); break;
+        case LPM_X1_TYPE_ARP_ENTRY: FA_DBG_VCAP(fa_lpm_dbg_act_arp_entry); break;
         default:
             VTSS_E("unknown action type");
             rc = VTSS_RC_ERROR;
@@ -2683,40 +2776,19 @@ static vtss_rc fa_debug_lpm(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 
     /* Show key fields */
     switch (data->tg) {
-    case FA_VCAP_TG_X1:
-        FA_DEBUG_BITS(LPM, "dst_flag", SGL_IP4_DST_FLAG);
-        FA_DEBUG_BITS(LPM, "affix", SGL_IP4_AFFIX);
-        FA_DEBUG_BITS(LPM, "ip4_xip", SGL_IP4_IP4_XIP);
-        break;
+    case FA_VCAP_TG_X1: FA_DBG_VCAP(fa_lpm_dbg_key_sgl_ip4); break;
     case FA_VCAP_TG_X2:
         type = fa_entry_bs_get(data, LPM_KO_X2_TYPE, LPM_KL_X2_TYPE);
         pr("type:%u (%s) ", type, type == LPM_X2_TYPE_DBL_IP4 ? "dbl_ip4" : "ip6pfx_id");
         i = (i32)type;
         if (i == LPM_X2_TYPE_DBL_IP4) {
-            FA_DEBUG_BITS(LPM, "affix", DBL_IP4_AFFIX);
-            pr("\n");
-            FA_DEBUG_BITS(LPM, "ip4_sip", DBL_IP4_IP4_SIP);
-            FA_DEBUG_BITS(LPM, "ip4_dip", DBL_IP4_IP4_DIP);
+            FA_DBG_VCAP(fa_lpm_dbg_key_dbl_ip4);
         } else {
-            FA_DEBUG_BITS(LPM, "dst_flag", IP6PFX_ID_DST_FLAG);
-            FA_DEBUG_BITS(LPM, "affix", IP6PFX_ID_AFFIX);
-            FA_DEBUG_BITS(LPM, "ip6pfx_id", IP6PFX_ID_IP6PFX_ID);
             pr("\n");
-            FA_DEBUG_BITS_64(LPM, "ip6_xip", IP6PFX_ID_IP6_XIP_0_2);
         }
         break;
-    case FA_VCAP_TG_X3:
-        FA_DEBUG_BITS(LPM, "dst_flag", SGL_IP6_DST_FLAG);
-        FA_DEBUG_BITS(LPM, "affix", SGL_IP6_AFFIX);
-        pr("\n");
-        FA_DEBUG_IPV6(LPM, "ip6_xip", SGL_IP6_IP6_XIP_0);
-        break;
-    case FA_VCAP_TG_X6:
-        FA_DEBUG_BITS(LPM, "affix", DBL_IP6_AFFIX);
-        pr("\n");
-        FA_DEBUG_IPV6(LPM, "ip6_sip", DBL_IP6_IP6_SIP_0);
-        FA_DEBUG_IPV6(LPM, "ip6_dip", DBL_IP6_IP6_DIP_0);
-        break;
+    case FA_VCAP_TG_X3: FA_DBG_VCAP(fa_lpm_dbg_key_sgl_ip6); break;
+    case FA_VCAP_TG_X6: FA_DBG_VCAP(fa_lpm_dbg_key_dbl_ip6); break;
     default:
         VTSS_E("not X1/X2/X3/X6");
         rc = VTSS_RC_ERROR;
@@ -3567,8 +3639,213 @@ vtss_rc vtss_cil_vcap_is2_entry_update(struct vtss_state_s *vtss_state,
                              FA_VCAP_SEL_ACTION);
 }
 
+static const vtss_vcap_dbg_t fa_is2_dbg_act[] = {
+    FA_DBG_VCAP_ACT(IS2, "is_inner_acl", BASE_TYPE_IS_INNER_ACL),
+    FA_DBG_VCAP_ACT_ENA(IS2, "pipeline_pt", BASE_TYPE_PIPELINE_FORCE_ENA, BASE_TYPE_PIPELINE_PT),
+    FA_DBG_VCAP_ACT(IS2, "hit_me_once", BASE_TYPE_HIT_ME_ONCE),
+    FA_DBG_VCAP_ACT(IS2, "intr_ena", BASE_TYPE_INTR_ENA),
+    FA_DBG_VCAP_ACT_ENA(IS2, "cpu_copy", BASE_TYPE_CPU_COPY_ENA, BASE_TYPE_CPU_QU_NUM),
+    FA_DBG_VCAP_ACT_NL(IS2, "cpu_dis", BASE_TYPE_CPU_DIS),
+    FA_DBG_VCAP_ACT(IS2, "lrn_dis", BASE_TYPE_LRN_DIS),
+    FA_DBG_VCAP_ACT(IS2, "rt_dis", BASE_TYPE_RT_DIS),
+    FA_DBG_VCAP_ACT_ENA(IS2, "police", BASE_TYPE_POLICE_ENA, BASE_TYPE_POLICE_IDX),
+    FA_DBG_VCAP_ACT(IS2, "ignore_pipeline_ctrl", BASE_TYPE_IGNORE_PIPELINE_CTRL),
+    FA_DBG_VCAP_ACT(IS2, "dlb_offset/resv", BASE_TYPE_DLB_OFFSET),
+    FA_DBG_VCAP_ACT_NL(IS2, "mask_mode", BASE_TYPE_MASK_MODE),
+    FA_DBG_VCAP_ACT_PM(IS2, "port_mask", BASE_TYPE_PORT_MASK_0),
+    FA_DBG_VCAP_ACT_ENA(IS2, "rsdx", BASE_TYPE_RSDX_ENA, BASE_TYPE_RSDX_VAL),
+    FA_DBG_VCAP_ACT(IS2, "mirror_probe", BASE_TYPE_MIRROR_PROBE),
+    FA_DBG_VCAP_ACT_BITS(IS2, "rew_cmd", BASE_TYPE_REW_CMD),
+    FA_DBG_VCAP_ACT(IS2, "ttl_update_ena", BASE_TYPE_TTL_UPDATE_ENA),
+    FA_DBG_VCAP_ACT_NL(IS2, "sam_seq_ena", BASE_TYPE_SAM_SEQ_ENA),
+    FA_DBG_VCAP_ACT(IS2, "tcp_udp_ena", BASE_TYPE_TCP_UDP_ENA),
+    FA_DBG_VCAP_ACT(IS2, "tcp_udp_dport", BASE_TYPE_TCP_UDP_DPORT),
+    FA_DBG_VCAP_ACT_NL(IS2, "tcp_udp_sport", BASE_TYPE_TCP_UDP_SPORT),
+    FA_DBG_VCAP_ACT_BITS(IS2, "match_id", BASE_TYPE_MATCH_ID),
+    FA_DBG_VCAP_ACT_BITS_NL(IS2, "match_id_mask", BASE_TYPE_MATCH_ID_MASK),
+    FA_DBG_VCAP_ACT(IS2, "swap_mac_ena", BASE_TYPE_SWAP_MAC_ENA),
+#if defined(VTSS_ARCH_LAN969X)
+    FA_DBG_VCAP_ACT(IS2, "mac_rew_sel", BASE_TYPE_MAC_REW_SEL),
+#endif
+    FA_DBG_VCAP_ACT_NL(IS2, "acl_rt_mode", BASE_TYPE_ACL_RT_MODE),
+    {"acl_mac", IS2_AO_BASE_TYPE_ACL_MAC_0, 48U, VCAP_DBG_FLAG_BITS},
+    FA_DBG_VCAP_ACT(IS2, "dmac_offset_ena", BASE_TYPE_DMAC_OFFSET_ENA),
+    FA_DBG_VCAP_ACT(IS2, "ptp_master_sel", BASE_TYPE_PTP_MASTER_SEL),
+    FA_DBG_VCAP_ACT(IS2, "log_msg_interval", BASE_TYPE_LOG_MSG_INTERVAL),
+    FA_DBG_VCAP_ACT_NL(IS2, "sip_idx", BASE_TYPE_SIP_IDX),
+    FA_DBG_VCAP_ACT(IS2, "rleg_stat_idx", BASE_TYPE_RLEG_STAT_IDX),
+    FA_DBG_VCAP_ACT(IS2, "igr_acl_ena", BASE_TYPE_IGR_ACL_ENA),
+    FA_DBG_VCAP_ACT(IS2, "egr_acl_ena", BASE_TYPE_EGR_ACL_ENA),
+#if defined(VTSS_ARCH_LAN969X)
+    FA_DBG_VCAP_ACT(IS2, "rb_fwd_sel", BASE_TYPE_RB_FWD_SEL),
+    FA_DBG_VCAP_ACT(IS2, "rb_tc0_ena", BASE_TYPE_RB_TC0_ENA),
+    FA_DBG_VCAP_ACT(IS2, "rb_ptp_ena", BASE_TYPE_RB_PTP_ENA),
+#endif
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_quarter[] = {
+    FA_DBG_VCAP_BITS(IS2, "first", IP4_VID_FIRST),
+    FA_DBG_VCAP_BITS(IS2, "pag", IP4_VID_PAG),
+    FA_DBG_VCAP_BITS(IS2, "service_frm", IP4_VID_SERVICE_FRM),
+    FA_DBG_VCAP_BITS_NL(IS2, "isdx", IP4_VID_ISDX),
+    FA_DBG_VCAP_BITS_NL(IS2, "xvid", IP4_VID_XVID),
+    FA_DBG_VCAP_BITS(IS2, "l3_smac_sip_match", IP4_VID_L3_SMAC_SIP_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "l3_dmac_dip_match", IP4_VID_L3_DMAC_DIP_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "l3_rt", IP4_VID_L3_RT),
+    FA_DBG_VCAP_BITS_NL(IS2, "l3_dst", IP4_VID_L3_DST),
+    FA_DBG_VCAP_BITS(IS2, "l3_ip4_dip", IP4_VID_L3_IP4_DIP),
+    FA_DBG_VCAP_BITS(IS2, "l3_ip4_sip", IP4_VID_L3_IP4_SIP),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_full[] = {
+    FA_DBG_VCAP_FBITS(IS2, "first", FIRST),
+    FA_DBG_VCAP_FBITS(IS2, "pag", PAG),
+    FA_DBG_VCAP_FBITS(IS2, "igr_port_mask_l3", IGR_PORT_MASK_L3),
+    FA_DBG_VCAP_FBITS_NL(IS2, "igr_port_mask_rng", IGR_PORT_MASK_RNG),
+    FA_DBG_VCAP_FBITS(IS2, "igr_port_mask_sel", IGR_PORT_MASK_SEL),
+    FA_DBG_VCAP_FBITS(IS2, "igr_port_mask", IGR_PORT_MASK_0),
+    FA_DBG_VCAP_FBITS(IS2, "l2_mc", L2_MC),
+    FA_DBG_VCAP_FBITS(IS2, "l2_bc", L2_BC),
+    FA_DBG_VCAP_FBITS(IS2, "vlan_tagged", VLAN_TAGGED),
+    FA_DBG_VCAP_FBITS(IS2, "service_frm", SERVICE_FRM),
+    FA_DBG_VCAP_FBITS_NL(IS2, "isdx", ISDX),
+    FA_DBG_VCAP_FBITS(IS2, "xvid", XVID),
+    FA_DBG_VCAP_FBITS(IS2, "pcp", PCP),
+    FA_DBG_VCAP_FBITS(IS2, "dei", DEI),
+    FA_DBG_VCAP_FBITS_NL(IS2, "l2_fwd", L2_FWD),
+    FA_DBG_VCAP_FBITS(IS2, "l3_smac_sip_match", L3_SMAC_SIP_MATCH),
+    FA_DBG_VCAP_FBITS(IS2, "l3_dmac_dip_match", L3_DMAC_DIP_MATCH),
+    FA_DBG_VCAP_FBITS(IS2, "l3_rt", L3_RT),
+    FA_DBG_VCAP_FBITS_NL(IS2, "l3_dst", L3_DST),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_7tuple[] = {
+    FA_DBG_VCAP_MAC(IS2, "dmac", X12_L2_DMAC_0),
+    FA_DBG_VCAP_MAC(IS2, "smac", X12_L2_SMAC_0),
+#if defined(VTSS_FEATURE_ACL_EXT_ETYPE)
+    FA_DBG_VCAP_BITS(IS2, "et_len", IP_7TUPLE_ETYPE_LEN),
+    FA_DBG_VCAP_BITS(IS2, "ip_snap", IP_7TUPLE_IP_SNAP),
+#endif
+    FA_DBG_VCAP_BITS(IS2, "ip4", IP_7TUPLE_IP4),
+    FA_DBG_VCAP_BITS(IS2, "l3_ttl_gt0", IP_7TUPLE_L3_TTL_GT0),
+    FA_DBG_VCAP_BITS(IS2, "l3_tos", IP_7TUPLE_L3_TOS),
+    FA_DBG_VCAP_BITS(IS2, "dip_eq_sip", IP_7TUPLE_DIP_EQ_SIP),
+    FA_DBG_VCAP_BITS(IS2, "tcp_udp", IP_7TUPLE_TCP_UDP),
+    FA_DBG_VCAP_BITS_NL(IS2, "tcp", IP_7TUPLE_TCP),
+    FA_DBG_VCAP_IPV6(IS2, "l3_ip6_dip", IP_7TUPLE_L3_IP6_DIP_0),
+    FA_DBG_VCAP_IPV6(IS2, "l3_ip6_sip", IP_7TUPLE_L3_IP6_SIP_0),
+    FA_DBG_VCAP_BITS(IS2, "l4_dport", IP_7TUPLE_L4_DPORT),
+    FA_DBG_VCAP_BITS(IS2, "l4_sport", IP_7TUPLE_L4_SPORT),
+    FA_DBG_VCAP_BITS_NL(IS2, "l4_rng", IP_7TUPLE_L4_RNG),
+    FA_DBG_VCAP_BITS(IS2, "sport_eq_dport", IP_7TUPLE_SPORT_EQ_DPORT),
+    FA_DBG_VCAP_BITS(IS2, "sequence_eq0", IP_7TUPLE_SEQUENCE_EQ0),
+    FA_DBG_VCAP_BITS(IS2, "l4_fin", IP_7TUPLE_L4_FIN),
+    FA_DBG_VCAP_BITS(IS2, "l4_syn", IP_7TUPLE_L4_SYN),
+    FA_DBG_VCAP_BITS(IS2, "l4_rst", IP_7TUPLE_L4_RST),
+    FA_DBG_VCAP_BITS(IS2, "l4_psh", IP_7TUPLE_L4_PSH),
+    FA_DBG_VCAP_BITS(IS2, "l4_ack", IP_7TUPLE_L4_ACK),
+    FA_DBG_VCAP_BITS_NL(IS2, "l4_urg", IP_7TUPLE_L4_URG),
+    FA_DBG_VCAP_BITS_64(IS2, "l4_payload", IP_7TUPLE_L4_PAYLOAD_0),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_ip6_vid[] = {
+    FA_DBG_VCAP_BITS(IS2, "service_frm", IP6_VID_SERVICE_FRM),
+    FA_DBG_VCAP_BITS_NL(IS2, "isdx", IP6_VID_ISDX),
+    FA_DBG_VCAP_BITS_NL(IS2, "xvid", IP6_VID_XVID),
+    FA_DBG_VCAP_BITS(IS2, "l3_smac_sip_match", IP6_VID_L3_SMAC_SIP_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "l3_dmac_dip_match", IP6_VID_L3_DMAC_DIP_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "l3_rt", IP6_VID_L3_RT),
+    FA_DBG_VCAP_BITS_NL(IS2, "l3_dst", IP6_VID_L3_DST),
+    FA_DBG_VCAP_IPV6(IS2, "l3_ip6_dip", IP6_VID_L3_IP6_DIP_0),
+    FA_DBG_VCAP_IPV6(IS2, "l3_ip6_sip", IP6_VID_L3_IP6_SIP_0),
+};
+
+#if !VTSS_OPT_LIGHT
+static const vtss_vcap_dbg_t fa_is2_dbg_key_half[] = {
+    FA_DBG_VCAP_HBITS(IS2, "igr_port_mask_l3", IGR_PORT_MASK_L3),
+    FA_DBG_VCAP_HBITS_NL(IS2, "igr_port_mask_rng", IGR_PORT_MASK_RNG),
+    FA_DBG_VCAP_HBITS(IS2, "igr_port_mask_sel", IGR_PORT_MASK_SEL),
+    FA_DBG_VCAP_HBITS(IS2, "igr_port_mask", IGR_PORT_MASK_0),
+    FA_DBG_VCAP_HBITS(IS2, "l2_mc", L2_MC),
+    FA_DBG_VCAP_HBITS(IS2, "l2_bc", L2_BC),
+    FA_DBG_VCAP_HBITS(IS2, "vlan_tagged", VLAN_TAGGED),
+    FA_DBG_VCAP_HBITS(IS2, "service_frm", SERVICE_FRM),
+    FA_DBG_VCAP_HBITS_NL(IS2, "isdx", ISDX),
+    FA_DBG_VCAP_HBITS(IS2, "xvid", XVID),
+    FA_DBG_VCAP_HBITS(IS2, "pcp", PCP),
+    FA_DBG_VCAP_HBITS(IS2, "dei", DEI),
+    FA_DBG_VCAP_HBITS_NL(IS2, "l2_fwd", L2_FWD),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_arp[] = {
+    FA_DBG_VCAP_MAC(IS2, "smac", ARP_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(IS2, "addr_space_ok", ARP_ARP_ADDR_SPACE_OK),
+    FA_DBG_VCAP_BITS(IS2, "proto_space_ok", ARP_ARP_PROTO_SPACE_OK),
+    FA_DBG_VCAP_BITS(IS2, "len_ok", ARP_ARP_LEN_OK),
+    FA_DBG_VCAP_BITS(IS2, "tgt_match", ARP_ARP_TGT_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "sender_match", ARP_ARP_SENDER_MATCH),
+    FA_DBG_VCAP_BITS(IS2, "opcode_unknown", ARP_ARP_OPCODE_UNKNOWN),
+    FA_DBG_VCAP_BITS_NL(IS2, "opcode", ARP_ARP_OPCODE),
+    FA_DBG_VCAP_BITS(IS2, "l3_ip4_dip", ARP_L3_IP4_DIP),
+    FA_DBG_VCAP_BITS(IS2, "l3_ip4_sip", ARP_L3_IP4_SIP),
+    FA_DBG_VCAP_BITS(IS2, "dip_eq_sip", ARP_DIP_EQ_SIP),
+    FA_DBG_VCAP_BITS(IS2, "l4_rng", ARP_L4_RNG),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_etype_ip4[] = {
+    FA_DBG_VCAP_HBITS(IS2, "l3_smac_sip_match", L3_SMAC_SIP_MATCH),
+    FA_DBG_VCAP_HBITS(IS2, "l3_dmac_dip_match", L3_DMAC_DIP_MATCH),
+    FA_DBG_VCAP_HBITS(IS2, "l3_rt", L3_RT),
+    FA_DBG_VCAP_HBITS_NL(IS2, "l3_dst", L3_DST),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_etype[] = {
+    FA_DBG_VCAP_MAC(IS2, "dmac", MAC_ETYPE_L2_DMAC_0),
+    FA_DBG_VCAP_MAC(IS2, "smac", MAC_ETYPE_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(IS2, "etype_len", MAC_ETYPE_ETYPE_LEN),
+    FA_DBG_VCAP_BITS(IS2, "etype", MAC_ETYPE_ETYPE),
+    FA_DBG_VCAP_BITS_NL(IS2, "oam_y1731", MAC_ETYPE_OAM_Y1731),
+    FA_DBG_VCAP_BITS_64(IS2, "l2_payload", MAC_ETYPE_L2_PAYLOAD_ETYPE_0),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_ip4[] = {
+    FA_DBG_VCAP_HBITS(IS2, "ip4", IP4),
+    FA_DBG_VCAP_HBITS(IS2, "l3_fragment_type", L3_FRAGMENT_TYPE),
+    FA_DBG_VCAP_HBITS(IS2, "l3_frag_invld_l4_len", L3_FRAG_INVLD_L4_LEN),
+    FA_DBG_VCAP_HBITS(IS2, "l3_options", L3_OPTIONS),
+    FA_DBG_VCAP_HBITS(IS2, "l3_ttl_gt0", L3_TTL_GT0),
+    FA_DBG_VCAP_HBITS_NL(IS2, "l3_tos", L3_TOS),
+    FA_DBG_VCAP_HBITS(IS2, "l3_ip4_dip", L3_IP4_DIP),
+    FA_DBG_VCAP_HBITS(IS2, "l3_ip4_sip", L3_IP4_SIP),
+    FA_DBG_VCAP_HBITS(IS2, "dip_eq_sip", DIP_EQ_SIP),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_ip4_other[] = {
+    FA_DBG_VCAP_BITS(IS2, "l3_proto", IP4_OTHER_L3_PROTO),
+    FA_DBG_VCAP_BITS_NL(IS2, "l4_rng", IP4_OTHER_L4_RNG),
+    FA_DBG_VCAP_BITS_96(IS2, "l3_payload", IP4_OTHER_L3_PAYLOAD_0),
+};
+
+static const vtss_vcap_dbg_t fa_is2_dbg_key_ip4_tcp_udp[] = {
+    FA_DBG_VCAP_BITS(IS2, "tcp", IP4_TCP_UDP_TCP),
+    FA_DBG_VCAP_BITS(IS2, "l4_dport", IP4_TCP_UDP_L4_DPORT),
+    FA_DBG_VCAP_BITS(IS2, "l4_sport", IP4_TCP_UDP_L4_SPORT),
+    FA_DBG_VCAP_BITS_NL(IS2, "l4_rng", IP4_TCP_UDP_L4_RNG),
+    FA_DBG_VCAP_BITS(IS2, "sport_eq_dport", IP4_TCP_UDP_SPORT_EQ_DPORT),
+    FA_DBG_VCAP_BITS(IS2, "sequence_eq0", IP4_TCP_UDP_SEQUENCE_EQ0),
+    FA_DBG_VCAP_BITS(IS2, "l4_fin", IP4_TCP_UDP_L4_FIN),
+    FA_DBG_VCAP_BITS(IS2, "l4_syn", IP4_TCP_UDP_L4_SYN),
+    FA_DBG_VCAP_BITS(IS2, "l4_rst", IP4_TCP_UDP_L4_RST),
+    FA_DBG_VCAP_BITS(IS2, "l4_psh", IP4_TCP_UDP_L4_PSH),
+    FA_DBG_VCAP_BITS(IS2, "l4_ack", IP4_TCP_UDP_L4_ACK),
+    FA_DBG_VCAP_BITS_NL(IS2, "l4_urg", IP4_TCP_UDP_L4_URG),
+    FA_DBG_VCAP_BITS_64(IS2, "l4_payload", IP4_TCP_UDP_L4_PAYLOAD_0),
+};
+#endif // !VTSS_OPT_LIGHT
+
 static vtss_rc fa_debug_is2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 {
+    vtss_rc     rc = VTSS_RC_OK;
     lmu_ss_t   *ss = data->ss;
     u32         cnt_id, cnt, type, mask;
     i32         i;
@@ -3580,82 +3857,60 @@ static vtss_rc fa_debug_is2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
     }
 
     if (data->is_action) {
-        FA_DEBUG_ACT(IS2, "is_inner_acl", BASE_TYPE_IS_INNER_ACL);
-        FA_DEBUG_ACT_ENA(IS2, "pipeline_pt", BASE_TYPE_PIPELINE_FORCE_ENA, BASE_TYPE_PIPELINE_PT);
-        FA_DEBUG_ACT(IS2, "hit_me_once", BASE_TYPE_HIT_ME_ONCE);
-        FA_DEBUG_ACT(IS2, "intr_ena", BASE_TYPE_INTR_ENA);
-        FA_DEBUG_ACT_ENA(IS2, "cpu_copy", BASE_TYPE_CPU_COPY_ENA, BASE_TYPE_CPU_QU_NUM);
-        FA_DEBUG_ACT(IS2, "cpu_dis", BASE_TYPE_CPU_DIS);
-        pr("\n");
-        FA_DEBUG_ACT(IS2, "lrn_dis", BASE_TYPE_LRN_DIS);
-        FA_DEBUG_ACT(IS2, "rt_dis", BASE_TYPE_RT_DIS);
-        FA_DEBUG_ACT_ENA(IS2, "police", BASE_TYPE_POLICE_ENA, BASE_TYPE_POLICE_IDX);
-        FA_DEBUG_ACT(IS2, "ignore_pipeline_ctrl", BASE_TYPE_IGNORE_PIPELINE_CTRL);
-        FA_DEBUG_ACT(IS2, "dlb_offset/resv", BASE_TYPE_DLB_OFFSET);
-        FA_DEBUG_ACT(IS2, "mask_mode", BASE_TYPE_MASK_MODE);
-        pr("\n");
-        fa_debug_bits(data, "port_mask", IS2_AO_BASE_TYPE_PORT_MASK_0, RT_CHIP_PORTS);
-        FA_DEBUG_ACT_ENA(IS2, "rsdx", BASE_TYPE_RSDX_ENA, BASE_TYPE_RSDX_VAL);
-        FA_DEBUG_ACT(IS2, "mirror_probe", BASE_TYPE_MIRROR_PROBE);
-        FA_DEBUG_ACT_BITS(IS2, "rew_cmd", BASE_TYPE_REW_CMD);
-        FA_DEBUG_ACT(IS2, "ttl_update_ena", BASE_TYPE_TTL_UPDATE_ENA);
-        FA_DEBUG_ACT(IS2, "sam_seq_ena", BASE_TYPE_SAM_SEQ_ENA);
-        pr("\n");
-        FA_DEBUG_ACT(IS2, "tcp_udp_ena", BASE_TYPE_TCP_UDP_ENA);
-        FA_DEBUG_ACT(IS2, "tcp_udp_dport", BASE_TYPE_TCP_UDP_DPORT);
-        FA_DEBUG_ACT(IS2, "tcp_udp_sport", BASE_TYPE_TCP_UDP_SPORT);
-        pr("\n");
-        FA_DEBUG_ACT_BITS(IS2, "match_id", BASE_TYPE_MATCH_ID);
-        FA_DEBUG_ACT_BITS(IS2, "match_id_mask", BASE_TYPE_MATCH_ID_MASK);
-        pr("\n");
-        FA_DEBUG_ACT(IS2, "swap_mac_ena", BASE_TYPE_SWAP_MAC_ENA);
-        FA_DEBUG_ACT(IS2, "acl_rt_mode", BASE_TYPE_ACL_RT_MODE);
-#if defined(VTSS_ARCH_LAN969X)
-        FA_DEBUG_ACT(IS2, "mac_rew_sel", BASE_TYPE_MAC_REW_SEL);
-#endif
-        pr("\n");
-        fa_debug_bits(data, "acl_mac", IS2_AO_BASE_TYPE_ACL_MAC_0, 48U);
-        FA_DEBUG_ACT(IS2, "dmac_offset_ena", BASE_TYPE_DMAC_OFFSET_ENA);
-        FA_DEBUG_ACT(IS2, "ptp_master_sel", BASE_TYPE_PTP_MASTER_SEL);
-        FA_DEBUG_ACT(IS2, "log_msg_interval", BASE_TYPE_LOG_MSG_INTERVAL);
-        FA_DEBUG_ACT(IS2, "sip_idx", BASE_TYPE_SIP_IDX);
-        pr("\n");
-        FA_DEBUG_ACT(IS2, "rleg_stat_idx", BASE_TYPE_RLEG_STAT_IDX);
-        FA_DEBUG_ACT(IS2, "igr_acl_ena", BASE_TYPE_IGR_ACL_ENA);
-        FA_DEBUG_ACT(IS2, "egr_acl_ena", BASE_TYPE_EGR_ACL_ENA);
-#if defined(VTSS_ARCH_LAN969X)
-        FA_DEBUG_ACT(IS2, "rb_fwd_sel", BASE_TYPE_RB_FWD_SEL);
-        FA_DEBUG_ACT(IS2, "rb_tc0_ena", BASE_TYPE_RB_TC0_ENA);
-        FA_DEBUG_ACT(IS2, "rb_ptp_ena", BASE_TYPE_RB_PTP_ENA);
-#endif
+        FA_DBG_VCAP(fa_is2_dbg_act);
         cnt_id = fa_act_get(data, IS2_AO_BASE_TYPE_CNT_ID, IS2_AL_BASE_TYPE_CNT_ID);
         VTSS_RC(fa_is2_cnt_get(vtss_state, data->vcap_type, cnt_id, &cnt));
         pr("\ncnt[%u]: %u, cnt: %u", cnt_id, cnt, data->counter);
-        return VTSS_RC_OK;
+        return rc;
     }
 
     /* Show key fields */
-    if (data->tg == FA_VCAP_TG_X3) {
-        FA_DEBUG_BITS(IS2, "first", IP4_VID_FIRST);
-        FA_DEBUG_BITS(IS2, "pag", IP4_VID_PAG);
-        FA_DEBUG_BITS(IS2, "service_frm", IP4_VID_SERVICE_FRM);
-        FA_DEBUG_BITS(IS2, "isdx", IP4_VID_ISDX);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "xvid", IP4_VID_XVID);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "l3_smac_sip_match", IP4_VID_L3_SMAC_SIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_dmac_dip_match", IP4_VID_L3_DMAC_DIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_rt", IP4_VID_L3_RT);
-        FA_DEBUG_BITS(IS2, "l3_dst", IP4_VID_L3_DST);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "l3_ip4_dip", IP4_VID_L3_IP4_DIP);
-        FA_DEBUG_BITS(IS2, "l3_ip4_sip", IP4_VID_L3_IP4_SIP);
-        pr("\n");
-        return VTSS_RC_OK;
-    }
+    switch (data->tg) {
+    case FA_VCAP_TG_QUARTER: FA_DBG_VCAP(fa_is2_dbg_key_quarter); break;
 
-    if (data->tg == FA_VCAP_TG_X12) {
-        FA_DEBUG_BITS(IS2, "type", X12_TYPE);
+    case FA_VCAP_TG_HALF:
+        FA_DEBUG_BITS(IS2, "type", X6_TYPE);
+        type = fa_entry_bs_get(data, IS2_KO_X6_TYPE, IS2_KL_X6_TYPE);
+        i = (i32)type;
+        str = (i == IS2_X6_TYPE_MAC_ETYPE     ? "etype"
+               : i == IS2_X6_TYPE_ARP         ? "arp"
+               : i == IS2_X6_TYPE_IP4_TCP_UDP ? "ip4_tcp_udp"
+               : i == IS2_X6_TYPE_IP4_OTHER   ? "ip4_other"
+               : i == IS2_X6_TYPE_IP6_VID     ? "ip6_vid"
+                                              : NULL);
+        if (str == NULL) {
+            break;
+        }
+        mask = fa_mask_bs_get(data, IS2_KO_X6_TYPE, IS2_KL_X6_TYPE);
+        pr("(%s) ", mask == 0U ? "any" : str);
+        FA_DEBUG_HBITS(IS2, "first", FIRST);
+        FA_DEBUG_HBITS(IS2, "pag", PAG);
+        if (i == IS2_X6_TYPE_IP6_VID) {
+            FA_DBG_VCAP(fa_is2_dbg_key_ip6_vid);
+            break;
+        }
+#if !VTSS_OPT_LIGHT
+        FA_DBG_VCAP(fa_is2_dbg_key_half);
+        if (i == IS2_X6_TYPE_ARP) {
+            FA_DBG_VCAP(fa_is2_dbg_key_arp);
+            break;
+        }
+        FA_DBG_VCAP(fa_is2_dbg_key_etype_ip4);
+        if (i == IS2_X6_TYPE_MAC_ETYPE) {
+            FA_DBG_VCAP(fa_is2_dbg_key_etype);
+            break;
+        }
+        FA_DBG_VCAP(fa_is2_dbg_key_ip4);
+        if (i == IS2_X6_TYPE_IP4_OTHER) {
+            FA_DBG_VCAP(fa_is2_dbg_key_ip4_other);
+        } else {
+            FA_DBG_VCAP(fa_is2_dbg_key_ip4_tcp_udp);
+        }
+#endif
+        break;
+
+    case FA_VCAP_TG_FULL:
+        FA_DEBUG_FBITS(IS2, "type", TYPE);
         type = fa_entry_bs_get(data, IS2_KO_X12_TYPE, IS2_KL_X12_TYPE);
         i = (i32)type;
         str = (i == IS2_X12_TYPE_IP6_TCP_UDP ? "ip6_tcp_udp"
@@ -3667,191 +3922,18 @@ static vtss_rc fa_debug_is2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         }
         mask = fa_mask_bs_get(data, IS2_KO_X12_TYPE, IS2_KL_X12_TYPE);
         pr("(%s) ", mask == 0U ? "any" : str);
-        FA_DEBUG_BITS(IS2, "first", X12_FIRST);
-        FA_DEBUG_BITS(IS2, "pag", X12_PAG);
-        FA_DEBUG_BITS(IS2, "igr_port_mask_l3", X12_IGR_PORT_MASK_L3);
-        FA_DEBUG_BITS(IS2, "igr_port_mask_rng", X12_IGR_PORT_MASK_RNG);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "igr_port_mask_sel", X12_IGR_PORT_MASK_SEL);
-        FA_DEBUG_BITS(IS2, "igr_port_mask", X12_IGR_PORT_MASK_0);
-        FA_DEBUG_BITS(IS2, "l2_mc", X12_L2_MC);
-        FA_DEBUG_BITS(IS2, "l2_bc", X12_L2_BC);
-        FA_DEBUG_BITS(IS2, "vlan_tagged", X12_VLAN_TAGGED);
-        FA_DEBUG_BITS(IS2, "service_frm", X12_SERVICE_FRM);
-        FA_DEBUG_BITS(IS2, "isdx", X12_ISDX);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "xvid", X12_XVID);
-        FA_DEBUG_BITS(IS2, "pcp", X12_PCP);
-        FA_DEBUG_BITS(IS2, "dei", X12_DEI);
-        FA_DEBUG_BITS(IS2, "l2_fwd", X12_L2_FWD);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "l3_smac_sip_match", X12_L3_SMAC_SIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_dmac_dip_match", X12_L3_DMAC_DIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_rt", X12_L3_RT);
-        FA_DEBUG_BITS(IS2, "l3_dst", X12_L3_DST);
-        pr("\n");
-        if (i > IS2_X12_TYPE_IP_7TUPLE) {
-            return VTSS_RC_OK;
+        FA_DBG_VCAP(fa_is2_dbg_key_full);
+        if (i == IS2_X12_TYPE_IP_7TUPLE) {
+            FA_DBG_VCAP(fa_is2_dbg_key_7tuple);
         }
+        break;
 
-        FA_DEBUG_MAC(IS2, "dmac", X12_L2_DMAC_0);
-        FA_DEBUG_MAC(IS2, "smac", X12_L2_SMAC_0);
-        if (i != IS2_X12_TYPE_IP_7TUPLE) {
-            return VTSS_RC_OK;
-        }
-
-#if defined(VTSS_FEATURE_ACL_EXT_ETYPE)
-        FA_DEBUG_BITS(IS2, "et_len", IP_7TUPLE_ETYPE_LEN);
-        FA_DEBUG_BITS(IS2, "ip_snap", IP_7TUPLE_IP_SNAP);
-#endif
-        FA_DEBUG_BITS(IS2, "ip4", IP_7TUPLE_IP4);
-        FA_DEBUG_BITS(IS2, "l3_ttl_gt0", IP_7TUPLE_L3_TTL_GT0);
-        FA_DEBUG_BITS(IS2, "l3_tos", IP_7TUPLE_L3_TOS);
-        FA_DEBUG_BITS(IS2, "dip_eq_sip", IP_7TUPLE_DIP_EQ_SIP);
-        FA_DEBUG_BITS(IS2, "tcp_udp", IP_7TUPLE_TCP_UDP);
-        FA_DEBUG_BITS(IS2, "tcp", IP_7TUPLE_TCP);
-        pr("\n");
-        FA_DEBUG_IPV6(IS2, "l3_ip6_dip", IP_7TUPLE_L3_IP6_DIP_0);
-        FA_DEBUG_IPV6(IS2, "l3_ip6_sip", IP_7TUPLE_L3_IP6_SIP_0);
-
-        FA_DEBUG_BITS(IS2, "l4_dport", IP_7TUPLE_L4_DPORT);
-        FA_DEBUG_BITS(IS2, "l4_sport", IP_7TUPLE_L4_SPORT);
-        FA_DEBUG_BITS(IS2, "l4_rng", IP_7TUPLE_L4_RNG);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "sport_eq_dport", IP_7TUPLE_SPORT_EQ_DPORT);
-        FA_DEBUG_BITS(IS2, "sequence_eq0", IP_7TUPLE_SEQUENCE_EQ0);
-        FA_DEBUG_BITS(IS2, "l4_fin", IP_7TUPLE_L4_FIN);
-        FA_DEBUG_BITS(IS2, "l4_syn", IP_7TUPLE_L4_SYN);
-        FA_DEBUG_BITS(IS2, "l4_rst", IP_7TUPLE_L4_RST);
-        FA_DEBUG_BITS(IS2, "l4_psh", IP_7TUPLE_L4_PSH);
-        FA_DEBUG_BITS(IS2, "l4_ack", IP_7TUPLE_L4_ACK);
-        FA_DEBUG_BITS(IS2, "l4_urg", IP_7TUPLE_L4_URG);
-        pr("\n");
-        FA_DEBUG_BITS_64(IS2, "l4_payload", IP_7TUPLE_L4_PAYLOAD_0);
-        return VTSS_RC_OK;
+    default:
+        VTSS_E("unknown TG: %u", data->tg);
+        rc = VTSS_RC_ERROR;
+        break;
     }
-
-    if (data->tg != FA_VCAP_TG_X6) {
-        VTSS_E("not TG_X6: %u", data->tg);
-        return VTSS_RC_ERROR;
-    }
-
-    FA_DEBUG_BITS(IS2, "type", X6_TYPE);
-    type = fa_entry_bs_get(data, IS2_KO_X6_TYPE, IS2_KL_X6_TYPE);
-    i = (i32)type;
-    str = (i == IS2_X6_TYPE_MAC_ETYPE     ? "etype"
-           : i == IS2_X6_TYPE_ARP         ? "arp"
-           : i == IS2_X6_TYPE_IP4_TCP_UDP ? "ip4_tcp_udp"
-           : i == IS2_X6_TYPE_IP4_OTHER   ? "ip4_other"
-           : i == IS2_X6_TYPE_IP6_VID     ? "ip6_vid"
-                                          : NULL);
-    if (str == NULL) {
-        return VTSS_RC_OK;
-    }
-    mask = fa_mask_bs_get(data, IS2_KO_X6_TYPE, IS2_KL_X6_TYPE);
-    pr("(%s) ", mask == 0U ? "any" : str);
-    FA_DEBUG_BITS(IS2, "first", X6_FIRST);
-    FA_DEBUG_BITS(IS2, "pag", X6_PAG);
-
-    if (i == IS2_X6_TYPE_IP6_VID) {
-        FA_DEBUG_BITS(IS2, "service_frm", IP6_VID_SERVICE_FRM);
-        FA_DEBUG_BITS(IS2, "isdx", IP6_VID_ISDX);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "xvid", IP6_VID_XVID);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "l3_smac_sip_match", IP6_VID_L3_SMAC_SIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_dmac_dip_match", IP6_VID_L3_DMAC_DIP_MATCH);
-        FA_DEBUG_BITS(IS2, "l3_rt", IP6_VID_L3_RT);
-        FA_DEBUG_BITS(IS2, "l3_dst", IP6_VID_L3_DST);
-        pr("\n");
-        FA_DEBUG_IPV6(IS2, "l3_ip6_dip", IP6_VID_L3_IP6_DIP_0);
-        FA_DEBUG_IPV6(IS2, "l3_ip6_sip", IP6_VID_L3_IP6_SIP_0);
-        return VTSS_RC_OK;
-    }
-
-    FA_DEBUG_BITS(IS2, "igr_port_mask_l3", X6_IGR_PORT_MASK_L3);
-    FA_DEBUG_BITS(IS2, "igr_port_mask_rng", X6_IGR_PORT_MASK_RNG);
-    pr("\n");
-    FA_DEBUG_BITS(IS2, "igr_port_mask_sel", X6_IGR_PORT_MASK_SEL);
-    FA_DEBUG_BITS(IS2, "igr_port_mask", X6_IGR_PORT_MASK_0);
-    FA_DEBUG_BITS(IS2, "l2_mc", X6_L2_MC);
-    FA_DEBUG_BITS(IS2, "l2_bc", X6_L2_BC);
-    FA_DEBUG_BITS(IS2, "vlan_tagged", X6_VLAN_TAGGED);
-    FA_DEBUG_BITS(IS2, "service_frm", X6_SERVICE_FRM);
-    FA_DEBUG_BITS(IS2, "isdx", X6_ISDX);
-    pr("\n");
-    FA_DEBUG_BITS(IS2, "xvid", X6_XVID);
-    FA_DEBUG_BITS(IS2, "pcp", X6_PCP);
-    FA_DEBUG_BITS(IS2, "dei", X6_DEI);
-    FA_DEBUG_BITS(IS2, "l2_fwd", X6_L2_FWD);
-    pr("\n");
-    if (i == IS2_X6_TYPE_ARP) {
-        FA_DEBUG_MAC(IS2, "smac", ARP_L2_SMAC_0);
-        FA_DEBUG_BITS(IS2, "addr_space_ok", ARP_ARP_ADDR_SPACE_OK);
-        FA_DEBUG_BITS(IS2, "proto_space_ok", ARP_ARP_PROTO_SPACE_OK);
-        FA_DEBUG_BITS(IS2, "len_ok", ARP_ARP_LEN_OK);
-        FA_DEBUG_BITS(IS2, "tgt_match", ARP_ARP_TGT_MATCH);
-        FA_DEBUG_BITS(IS2, "sender_match", ARP_ARP_SENDER_MATCH);
-        FA_DEBUG_BITS(IS2, "opcode_unknown", ARP_ARP_OPCODE_UNKNOWN);
-        FA_DEBUG_BITS(IS2, "opcode", ARP_ARP_OPCODE);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "l3_ip4_dip", ARP_L3_IP4_DIP);
-        FA_DEBUG_BITS(IS2, "l3_ip4_sip", ARP_L3_IP4_SIP);
-        FA_DEBUG_BITS(IS2, "dip_eq_sip", ARP_DIP_EQ_SIP);
-        FA_DEBUG_BITS(IS2, "l4_rng", ARP_L4_RNG);
-        return VTSS_RC_OK;
-    }
-
-    FA_DEBUG_BITS(IS2, "l3_smac_sip_match", X6_L3_SMAC_SIP_MATCH);
-    FA_DEBUG_BITS(IS2, "l3_dmac_dip_match", X6_L3_DMAC_DIP_MATCH);
-    FA_DEBUG_BITS(IS2, "l3_rt", X6_L3_RT);
-    FA_DEBUG_BITS(IS2, "l3_dst", X6_L3_DST);
-    pr("\n");
-    if (i == IS2_X6_TYPE_MAC_ETYPE) {
-        FA_DEBUG_MAC(IS2, "dmac", MAC_ETYPE_L2_DMAC_0);
-        FA_DEBUG_MAC(IS2, "smac", MAC_ETYPE_L2_SMAC_0);
-        FA_DEBUG_BITS(IS2, "etype_len", MAC_ETYPE_ETYPE_LEN);
-        FA_DEBUG_BITS(IS2, "etype", MAC_ETYPE_ETYPE);
-        FA_DEBUG_BITS(IS2, "oam_y1731", MAC_ETYPE_OAM_Y1731);
-        pr("\n");
-        FA_DEBUG_BITS_64(IS2, "l2_payload", MAC_ETYPE_L2_PAYLOAD_ETYPE_0);
-        return VTSS_RC_OK;
-    }
-
-    FA_DEBUG_BITS(IS2, "ip4", X6_IP4);
-    FA_DEBUG_BITS(IS2, "l3_fragment_type", X6_L3_FRAGMENT_TYPE);
-    FA_DEBUG_BITS(IS2, "l3_frag_invld_l4_len", X6_L3_FRAG_INVLD_L4_LEN);
-    FA_DEBUG_BITS(IS2, "l3_options", X6_L3_OPTIONS);
-    FA_DEBUG_BITS(IS2, "l3_ttl_gt0", X6_L3_TTL_GT0);
-    FA_DEBUG_BITS(IS2, "l3_tos", X6_L3_TOS);
-    pr("\n");
-    FA_DEBUG_BITS(IS2, "l3_ip4_dip", X6_L3_IP4_DIP);
-    FA_DEBUG_BITS(IS2, "l3_ip4_sip", X6_L3_IP4_SIP);
-    FA_DEBUG_BITS(IS2, "dip_eq_sip", X6_DIP_EQ_SIP);
-    if (i == IS2_X6_TYPE_IP4_OTHER) {
-        FA_DEBUG_BITS(IS2, "l3_proto", IP4_OTHER_L3_PROTO);
-        FA_DEBUG_BITS(IS2, "l4_rng", IP4_OTHER_L4_RNG);
-        pr("\n");
-        FA_DEBUG_BITS_96(IS2, "l3_payload", IP4_OTHER_L3_PAYLOAD_0);
-    } else {
-        /* IS2_X6_TYPE_IP4_TCP_UDP */
-        FA_DEBUG_BITS(IS2, "tcp", IP4_TCP_UDP_TCP);
-        FA_DEBUG_BITS(IS2, "l4_dport", IP4_TCP_UDP_L4_DPORT);
-        FA_DEBUG_BITS(IS2, "l4_sport", IP4_TCP_UDP_L4_SPORT);
-        FA_DEBUG_BITS(IS2, "l4_rng", IP4_TCP_UDP_L4_RNG);
-        pr("\n");
-        FA_DEBUG_BITS(IS2, "sport_eq_dport", IP4_TCP_UDP_SPORT_EQ_DPORT);
-        FA_DEBUG_BITS(IS2, "sequence_eq0", IP4_TCP_UDP_SEQUENCE_EQ0);
-        FA_DEBUG_BITS(IS2, "l4_fin", IP4_TCP_UDP_L4_FIN);
-        FA_DEBUG_BITS(IS2, "l4_syn", IP4_TCP_UDP_L4_SYN);
-        FA_DEBUG_BITS(IS2, "l4_rst", IP4_TCP_UDP_L4_RST);
-        FA_DEBUG_BITS(IS2, "l4_psh", IP4_TCP_UDP_L4_PSH);
-        FA_DEBUG_BITS(IS2, "l4_ack", IP4_TCP_UDP_L4_ACK);
-        FA_DEBUG_BITS(IS2, "l4_urg", IP4_TCP_UDP_L4_URG);
-        pr("\n");
-        FA_DEBUG_BITS_64(IS2, "l4_payload", IP4_TCP_UDP_L4_PAYLOAD_0);
-    }
-    return VTSS_RC_OK;
+    return rc;
 }
 #endif // VTSS_FEATURE_IS2
 
@@ -4093,8 +4175,101 @@ static vtss_rc fa_es2_entry_get(vtss_state_t    *vtss_state,
     return (clear ? fa_es2_cnt_set(vtss_state, cnt_id, 0) : VTSS_RC_OK);
 }
 
+static const vtss_vcap_dbg_t fa_es2_dbg_act[] = {
+    FA_DBG_VCAP_ACT(ES2, "hit_me_once", BASE_TYPE_HIT_ME_ONCE),
+    FA_DBG_VCAP_ACT(ES2, "intr_ena", BASE_TYPE_INTR_ENA),
+    FA_DBG_VCAP_ACT(ES2, "fwd_mode", BASE_TYPE_FWD_MODE),
+    FA_DBG_VCAP_ACT(ES2, "copy_queue", BASE_TYPE_COPY_QUEUE_NUM),
+    FA_DBG_VCAP_ACT(ES2, "copy_port", BASE_TYPE_COPY_PORT_NUM),
+    FA_DBG_VCAP_ACT(ES2, "mirror_probe", BASE_TYPE_MIRROR_PROBE_ID),
+    FA_DBG_VCAP_ACT_ENA_NL(ES2, "cpu_copy", BASE_TYPE_CPU_COPY, BASE_TYPE_CPU_QUEUE_NUM),
+    FA_DBG_VCAP_ACT_ENA(ES2, "police", BASE_TYPE_POLICE_ENA, BASE_TYPE_POLICE_IDX),
+    FA_DBG_VCAP_ACT(ES2, "police_remark", BASE_TYPE_POLICE_REMARK),
+    FA_DBG_VCAP_ACT(ES2, "rew_cmd", BASE_TYPE_ES2_REW_CMD),
+    FA_DBG_VCAP_ACT(ES2, "ignore_pipeline_ctrl", BASE_TYPE_IGNORE_PIPELINE_CTRL),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_half[] = {
+    FA_DBG_VCAP_HBITS(ES2, "first", FIRST),
+    FA_DBG_VCAP_HBITS(ES2, "acl_grp_id", ACL_GRP_ID),
+    FA_DBG_VCAP_HBITS(ES2, "prot_active", PROT_ACTIVE),
+    FA_DBG_VCAP_HBITS(ES2, "l2_mc", L2_MC),
+    FA_DBG_VCAP_HBITS_NL(ES2, "l2_bc", L2_BC),
+    FA_DBG_VCAP_HBITS(ES2, "service_frm", SERVICE_FRM),
+    FA_DBG_VCAP_HBITS(ES2, "isdx", ISDX),
+    FA_DBG_VCAP_HBITS(ES2, "vlan_tagged", VLAN_TAGGED),
+    FA_DBG_VCAP_HBITS(ES2, "xvid", XVID),
+    FA_DBG_VCAP_HBITS(ES2, "pcp", PCP),
+    FA_DBG_VCAP_HBITS_NL(ES2, "dei", DEI),
+    FA_DBG_VCAP_HBITS(ES2, "egr_port_mask_rng", EGR_PORT_MASK_RNG),
+    FA_DBG_VCAP_HBITS(ES2, "egr_port_mask", EGR_PORT_MASK),
+    FA_DBG_VCAP_HBITS(ES2, "igr_port_sel", IGR_PORT_SEL),
+    FA_DBG_VCAP_HBITS(ES2, "igr_port", IGR_PORT),
+    FA_DBG_VCAP_HBITS(ES2, "cosid", COSID),
+    FA_DBG_VCAP_HBITS(ES2, "color", COLOR),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_arp[] = {
+    FA_DBG_VCAP_BITS(ES2, "es0_isdx_key_ena", ARP_ES0_ISDX_KEY_ENA),
+    FA_DBG_VCAP_BITS_NL(ES2, "mirror_probe", ARP_MIRROR_PROBE),
+    FA_DBG_VCAP_MAC(ES2, "smac", ARP_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(ES2, "addr_space_ok", ARP_ARP_ADDR_SPACE_OK),
+    FA_DBG_VCAP_BITS(ES2, "proto_space_ok", ARP_ARP_PROTO_SPACE_OK),
+    FA_DBG_VCAP_BITS(ES2, "len_ok", ARP_ARP_LEN_OK),
+    FA_DBG_VCAP_BITS(ES2, "tgt_match", ARP_ARP_TGT_MATCH),
+    FA_DBG_VCAP_BITS(ES2, "sender_match", ARP_ARP_SENDER_MATCH),
+    FA_DBG_VCAP_BITS(ES2, "opcode_unknown", ARP_ARP_OPCODE_UNKNOWN),
+    FA_DBG_VCAP_BITS_NL(ES2, "opcode", ARP_ARP_OPCODE),
+    FA_DBG_VCAP_BITS(ES2, "l3_ip4_dip", ARP_L3_IP4_DIP),
+    FA_DBG_VCAP_BITS(ES2, "l3_ip4_sip", ARP_L3_IP4_SIP),
+    FA_DBG_VCAP_BITS(ES2, "dip_eq_sip", ARP_DIP_EQ_SIP),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_etype[] = {
+    FA_DBG_VCAP_MAC(ES2, "dmac", MAC_ETYPE_L2_DMAC_0),
+    FA_DBG_VCAP_MAC(ES2, "smac", MAC_ETYPE_L2_SMAC_0),
+    FA_DBG_VCAP_BITS(ES2, "etype_len", MAC_ETYPE_ETYPE_LEN),
+    FA_DBG_VCAP_BITS(ES2, "etype", MAC_ETYPE_ETYPE),
+    FA_DBG_VCAP_BITS(ES2, "oam_ccm_cnts_eq0", MAC_ETYPE_OAM_CCM_CNTS_EQ0),
+    FA_DBG_VCAP_BITS_NL(ES2, "oam_y1731", MAC_ETYPE_OAM_Y1731),
+    FA_DBG_VCAP_BITS_64(ES2, "l2_payload", MAC_ETYPE_L2_PAYLOAD_ETYPE_0),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_ip4[] = {
+    FA_DBG_VCAP_BITS(ES2, "ip4", X6_IP4),
+    FA_DBG_VCAP_BITS(ES2, "l3_fragment_type", X6_L3_FRAGMENT_TYPE),
+    FA_DBG_VCAP_BITS(ES2, "l3_options", X6_L3_OPTIONS),
+    FA_DBG_VCAP_BITS(ES2, "l3_ttl_gt0", X6_L3_TTL_GT0),
+    FA_DBG_VCAP_BITS_NL(ES2, "l3_tos", X6_L3_TOS),
+    FA_DBG_VCAP_BITS(ES2, "l3_ip4_dip", X6_L3_IP4_DIP),
+    FA_DBG_VCAP_BITS(ES2, "l3_ip4_sip", X6_L3_IP4_SIP),
+    FA_DBG_VCAP_BITS(ES2, "dip_eq_sip", X6_DIP_EQ_SIP),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_ip4_other[] = {
+    FA_DBG_VCAP_BITS_NL(ES2, "l3_proto", IP4_OTHER_L3_IP_PROTO),
+    FA_DBG_VCAP_BITS_96(ES2, "l3_payload", IP4_OTHER_L3_PAYLOAD_0),
+};
+
+static const vtss_vcap_dbg_t fa_es2_dbg_key_ip4_tcp_udp[] = {
+    FA_DBG_VCAP_BITS(ES2, "tcp", IP4_TCP_UDP_TCP),
+    FA_DBG_VCAP_BITS(ES2, "l4_dport", IP4_TCP_UDP_L4_DPORT),
+    FA_DBG_VCAP_BITS(ES2, "l4_sport", IP4_TCP_UDP_L4_SPORT),
+    FA_DBG_VCAP_BITS_NL(ES2, "l4_rng", IP4_TCP_UDP_L4_RNG),
+    FA_DBG_VCAP_BITS(ES2, "sport_eq_dport", IP4_TCP_UDP_SPORT_EQ_DPORT),
+    FA_DBG_VCAP_BITS(ES2, "sequence_eq0", IP4_TCP_UDP_SEQUENCE_EQ0),
+    FA_DBG_VCAP_BITS(ES2, "l4_fin", IP4_TCP_UDP_L4_FIN),
+    FA_DBG_VCAP_BITS(ES2, "l4_syn", IP4_TCP_UDP_L4_SYN),
+    FA_DBG_VCAP_BITS(ES2, "l4_rst", IP4_TCP_UDP_L4_RST),
+    FA_DBG_VCAP_BITS(ES2, "l4_psh", IP4_TCP_UDP_L4_PSH),
+    FA_DBG_VCAP_BITS(ES2, "l4_ack", IP4_TCP_UDP_L4_ACK),
+    FA_DBG_VCAP_BITS_NL(ES2, "l4_urg", IP4_TCP_UDP_L4_URG),
+    FA_DBG_VCAP_BITS_64(ES2, "l4_payload", IP4_TCP_UDP_L4_PAYLOAD_0),
+};
+
 static vtss_rc fa_debug_es2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 {
+    vtss_rc     rc = VTSS_RC_OK;
     lmu_ss_t   *ss = data->ss;
     u32         cnt_id, cnt, type;
     const char *str;
@@ -4105,18 +4280,7 @@ static vtss_rc fa_debug_es2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
     }
 
     if (data->is_action) {
-        FA_DEBUG_ACT(ES2, "hit_me_once", BASE_TYPE_HIT_ME_ONCE);
-        FA_DEBUG_ACT(ES2, "intr_ena", BASE_TYPE_INTR_ENA);
-        FA_DEBUG_ACT(ES2, "fwd_mode", BASE_TYPE_FWD_MODE);
-        FA_DEBUG_ACT(ES2, "copy_queue", BASE_TYPE_COPY_QUEUE_NUM);
-        FA_DEBUG_ACT(ES2, "copy_port", BASE_TYPE_COPY_PORT_NUM);
-        FA_DEBUG_ACT(ES2, "mirror_probe", BASE_TYPE_MIRROR_PROBE_ID);
-        FA_DEBUG_ACT_ENA(ES2, "cpu_copy", BASE_TYPE_CPU_COPY, BASE_TYPE_CPU_QUEUE_NUM);
-        pr("\n");
-        FA_DEBUG_ACT_ENA(ES2, "police", BASE_TYPE_POLICE_ENA, BASE_TYPE_POLICE_IDX);
-        FA_DEBUG_ACT(ES2, "police_remark", BASE_TYPE_POLICE_REMARK);
-        FA_DEBUG_ACT(ES2, "rew_cmd", BASE_TYPE_ES2_REW_CMD);
-        FA_DEBUG_ACT(ES2, "ignore_pipeline_ctrl", BASE_TYPE_IGNORE_PIPELINE_CTRL);
+        FA_DBG_VCAP(fa_es2_dbg_act);
         cnt_id = fa_act_get(data, ES2_AO_BASE_TYPE_CNT_ID, ES2_AL_BASE_TYPE_CNT_ID);
         VTSS_RC(fa_es2_cnt_get(vtss_state, cnt_id, &cnt));
         pr("\ncnt[%u]: %u, cnt: %u", cnt_id, cnt, data->counter);
@@ -4124,112 +4288,48 @@ static vtss_rc fa_debug_es2(vtss_state_t *vtss_state, fa_vcap_data_t *data)
     }
 
     /* Show key fields */
-    if (data->tg == FA_VCAP_TG_X3) {
-        pr("\n");
-        return VTSS_RC_OK;
-    }
-    if (data->tg != FA_VCAP_TG_X6) {
-        VTSS_E("not TG_X6: %u", data->tg);
-        return VTSS_RC_ERROR;
-    }
+    switch (data->tg) {
+    case FA_VCAP_TG_QUARTER: break;
 
-    FA_DEBUG_BITS(ES2, "type", X6_TYPE);
-    type = fa_entry_bs_get(data, ES2_KO_X6_TYPE, ES2_KL_X6_TYPE);
-    if ((str = (type == ES2_X6_TYPE_MAC_ETYPE     ? "etype"
-                : type == ES2_X6_TYPE_ARP         ? "arp"
-                : type == ES2_X6_TYPE_IP4_TCP_UDP ? "ip4_tcp_udp"
-                : type == ES2_X6_TYPE_IP4_OTHER   ? "ip4_other"
-                                                  : NULL)) == NULL) {
-        return VTSS_RC_OK;
-    }
+    case FA_VCAP_TG_HALF:
+        FA_DEBUG_HBITS(ES2, "type", TYPE);
+        type = FA_HENTRY_GET(ES2, TYPE);
+        str = (type == ES2_X6_TYPE_MAC_ETYPE     ? "etype"
+               : type == ES2_X6_TYPE_ARP         ? "arp"
+               : type == ES2_X6_TYPE_IP4_TCP_UDP ? "ip4_tcp_udp"
+               : type == ES2_X6_TYPE_IP4_OTHER   ? "ip4_other"
+                                                 : NULL);
+        if (str == NULL) {
+            break;
+        }
+        pr("(%s) ", fa_mask_bs_get(data, ES2_KO_X6_TYPE, ES2_KL_X6_TYPE) == 0 ? "any" : str);
+        FA_DBG_VCAP(fa_es2_dbg_key_half);
+        if (type == ES2_X6_TYPE_ARP) {
+            FA_DBG_VCAP(fa_es2_dbg_key_arp);
+            break;
+        }
+        FA_DEBUG_HBITS(ES2, "l3_rt", L3_RT);
+        FA_DEBUG_HBITS(ES2, "es0_isdx_key_ena", ES0_ISDX_KEY_ENA);
+        FA_DEBUG_HBITS(ES2, "mirror_probe", MIRROR_PROBE);
+        pr("\n");
+        if (type == ES2_X6_TYPE_MAC_ETYPE) {
+            FA_DBG_VCAP(fa_es2_dbg_key_etype);
+            break;
+        }
+        FA_DBG_VCAP(fa_es2_dbg_key_ip4);
+        if (type == ES2_X6_TYPE_IP4_OTHER) {
+            FA_DBG_VCAP(fa_es2_dbg_key_ip4_other);
+        } else {
+            FA_DBG_VCAP(fa_es2_dbg_key_ip4_tcp_udp);
+        }
+        break;
 
-    pr("(%s) ", fa_mask_bs_get(data, ES2_KO_X6_TYPE, ES2_KL_X6_TYPE) == 0 ? "any" : str);
-    FA_DEBUG_BITS(ES2, "first", X6_FIRST);
-    FA_DEBUG_BITS(ES2, "acl_grp_id", X6_ACL_GRP_ID);
-    FA_DEBUG_BITS(ES2, "prot_active", X6_PROT_ACTIVE);
-    FA_DEBUG_BITS(ES2, "l2_mc", X6_L2_MC);
-    FA_DEBUG_BITS(ES2, "l2_bc", X6_L2_BC);
-    pr("\n");
-    FA_DEBUG_BITS(ES2, "service_frm", X6_SERVICE_FRM);
-    FA_DEBUG_BITS(ES2, "isdx", X6_ISDX);
-    FA_DEBUG_BITS(ES2, "vlan_tagged", X6_VLAN_TAGGED);
-    FA_DEBUG_BITS(ES2, "xvid", X6_XVID);
-    FA_DEBUG_BITS(ES2, "pcp", X6_PCP);
-    FA_DEBUG_BITS(ES2, "dei", X6_DEI);
-    pr("\n");
-    FA_DEBUG_BITS(ES2, "egr_port_mask_rng", X6_EGR_PORT_MASK_RNG);
-    FA_DEBUG_BITS(ES2, "egr_port_mask", X6_EGR_PORT_MASK);
-    FA_DEBUG_BITS(ES2, "igr_port_sel", X6_IGR_PORT_SEL);
-    FA_DEBUG_BITS(ES2, "igr_port", X6_IGR_PORT);
-    FA_DEBUG_BITS(ES2, "cosid", X6_COSID);
-    FA_DEBUG_BITS(ES2, "color", X6_COLOR);
-    if (type == ES2_X6_TYPE_ARP) {
-        FA_DEBUG_BITS(ES2, "es0_isdx_key_ena", ARP_ES0_ISDX_KEY_ENA);
-        FA_DEBUG_BITS(ES2, "mirror_probe", ARP_MIRROR_PROBE);
-        pr("\n");
-        FA_DEBUG_MAC(ES2, "smac", ARP_L2_SMAC_0);
-        FA_DEBUG_BITS(ES2, "addr_space_ok", ARP_ARP_ADDR_SPACE_OK);
-        FA_DEBUG_BITS(ES2, "proto_space_ok", ARP_ARP_PROTO_SPACE_OK);
-        FA_DEBUG_BITS(ES2, "len_ok", ARP_ARP_LEN_OK);
-        FA_DEBUG_BITS(ES2, "tgt_match", ARP_ARP_TGT_MATCH);
-        FA_DEBUG_BITS(ES2, "sender_match", ARP_ARP_SENDER_MATCH);
-        FA_DEBUG_BITS(ES2, "opcode_unknown", ARP_ARP_OPCODE_UNKNOWN);
-        FA_DEBUG_BITS(ES2, "opcode", ARP_ARP_OPCODE);
-        pr("\n");
-        FA_DEBUG_BITS(ES2, "l3_ip4_dip", ARP_L3_IP4_DIP);
-        FA_DEBUG_BITS(ES2, "l3_ip4_sip", ARP_L3_IP4_SIP);
-        FA_DEBUG_BITS(ES2, "dip_eq_sip", ARP_DIP_EQ_SIP);
-        return VTSS_RC_OK;
+    default:
+        VTSS_E("unknown TG: %u", data->tg);
+        rc = VTSS_RC_ERROR;
+        break;
     }
-
-    FA_DEBUG_BITS(ES2, "l3_rt", X6_L3_RT);
-    FA_DEBUG_BITS(ES2, "es0_isdx_key_ena", X6_ES0_ISDX_KEY_ENA);
-    FA_DEBUG_BITS(ES2, "mirror_probe", X6_MIRROR_PROBE);
-    pr("\n");
-    if (type == ES2_X6_TYPE_MAC_ETYPE) {
-        FA_DEBUG_MAC(ES2, "dmac", MAC_ETYPE_L2_DMAC_0);
-        FA_DEBUG_MAC(ES2, "smac", MAC_ETYPE_L2_SMAC_0);
-        FA_DEBUG_BITS(ES2, "etype_len", MAC_ETYPE_ETYPE_LEN);
-        FA_DEBUG_BITS(ES2, "etype", MAC_ETYPE_ETYPE);
-        FA_DEBUG_BITS(ES2, "oam_ccm_cnts_eq0", MAC_ETYPE_OAM_CCM_CNTS_EQ0);
-        FA_DEBUG_BITS(ES2, "oam_y1731", MAC_ETYPE_OAM_Y1731);
-        pr("\n");
-        FA_DEBUG_BITS_64(ES2, "l2_payload", MAC_ETYPE_L2_PAYLOAD_ETYPE_0);
-        return VTSS_RC_OK;
-    }
-
-    FA_DEBUG_BITS(ES2, "ip4", X6_IP4);
-    FA_DEBUG_BITS(ES2, "l3_fragment_type", X6_L3_FRAGMENT_TYPE);
-    FA_DEBUG_BITS(ES2, "l3_options", X6_L3_OPTIONS);
-    FA_DEBUG_BITS(ES2, "l3_ttl_gt0", X6_L3_TTL_GT0);
-    FA_DEBUG_BITS(ES2, "l3_tos", X6_L3_TOS);
-    pr("\n");
-    FA_DEBUG_BITS(ES2, "l3_ip4_dip", X6_L3_IP4_DIP);
-    FA_DEBUG_BITS(ES2, "l3_ip4_sip", X6_L3_IP4_SIP);
-    FA_DEBUG_BITS(ES2, "dip_eq_sip", X6_DIP_EQ_SIP);
-    if (type == ES2_X6_TYPE_IP4_OTHER) {
-        FA_DEBUG_BITS(ES2, "l3_proto", IP4_OTHER_L3_IP_PROTO);
-        pr("\n");
-        FA_DEBUG_BITS_96(ES2, "l3_payload", IP4_OTHER_L3_PAYLOAD_0);
-    } else {
-        /* ES2_X6_TYPE_IP4_TCP_UDP */
-        FA_DEBUG_BITS(ES2, "tcp", IP4_TCP_UDP_TCP);
-        FA_DEBUG_BITS(ES2, "l4_dport", IP4_TCP_UDP_L4_DPORT);
-        FA_DEBUG_BITS(ES2, "l4_sport", IP4_TCP_UDP_L4_SPORT);
-        FA_DEBUG_BITS(ES2, "l4_rng", IP4_TCP_UDP_L4_RNG);
-        pr("\n");
-        FA_DEBUG_BITS(ES2, "sport_eq_dport", IP4_TCP_UDP_SPORT_EQ_DPORT);
-        FA_DEBUG_BITS(ES2, "sequence_eq0", IP4_TCP_UDP_SEQUENCE_EQ0);
-        FA_DEBUG_BITS(ES2, "l4_fin", IP4_TCP_UDP_L4_FIN);
-        FA_DEBUG_BITS(ES2, "l4_syn", IP4_TCP_UDP_L4_SYN);
-        FA_DEBUG_BITS(ES2, "l4_rst", IP4_TCP_UDP_L4_RST);
-        FA_DEBUG_BITS(ES2, "l4_psh", IP4_TCP_UDP_L4_PSH);
-        FA_DEBUG_BITS(ES2, "l4_ack", IP4_TCP_UDP_L4_ACK);
-        FA_DEBUG_BITS(ES2, "l4_urg", IP4_TCP_UDP_L4_URG);
-        pr("\n");
-        FA_DEBUG_BITS_64(ES2, "l4_payload", IP4_TCP_UDP_L4_PAYLOAD_0);
-    }
-    return VTSS_RC_OK;
+    return rc;
 }
 #endif
 
@@ -5571,6 +5671,44 @@ static void fa_debug_es0_tag(const char     *name,
     pr("\n");
 }
 
+static const vtss_vcap_dbg_t fa_es0_dbg_act[] = {
+    FA_DBG_VCAP_ACT(ES0, "pop_val", ES0_POP_VAL),
+    FA_DBG_VCAP_ACT(ES0, "dscp_sel", ES0_DSCP_SEL),
+    FA_DBG_VCAP_ACT(ES0, "dscp_val", ES0_DSCP_VAL),
+    FA_DBG_VCAP_ACT(ES0, "pop_cnt", ES0_POP_CNT),
+    FA_DBG_VCAP_ACT(ES0, "rtag_pop", ES0_RTAG_POP_ENA),
+    FA_DBG_VCAP_ACT_NL(ES0, "rtag_push", ES0_RTAG_PUSH_SEL),
+    FA_DBG_VCAP_ACT(ES0, "esdx_base", ES0_ESDX_BASE),
+    FA_DBG_VCAP_ACT_BITS_NL(ES0, "esdx_cosid_offs", ES0_ESDX_COSID_OFFSET),
+    FA_DBG_VCAP_ACT(ES0, "map_0_idx", ES0_MAP_0_IDX),
+    FA_DBG_VCAP_ACT(ES0, "map_1_idx", ES0_MAP_1_IDX),
+    FA_DBG_VCAP_ACT(ES0, "map_2_idx", ES0_MAP_2_IDX),
+    FA_DBG_VCAP_ACT_NL(ES0, "map_3_idx", ES0_MAP_3_IDX),
+    FA_DBG_VCAP_ACT(ES0, "map_0_key", ES0_MAP_0_KEY),
+    FA_DBG_VCAP_ACT(ES0, "map_1_key", ES0_MAP_1_KEY),
+    FA_DBG_VCAP_ACT(ES0, "map_2_key", ES0_MAP_2_KEY),
+    FA_DBG_VCAP_ACT_NL(ES0, "map_3_key", ES0_MAP_3_KEY),
+    FA_DBG_VCAP_ACT_ENA(ES0, "mep_idx", ES0_OAM_MEP_IDX_VLD, ES0_OAM_MEP_IDX),
+    FA_DBG_VCAP_ACT(ES0, "oam_indep_mel_ena", ES0_INDEPENDENT_MEL_ENA),
+    FA_DBG_VCAP_ACT(ES0, "mip_idx", ES0_MIP_IDX),
+    FA_DBG_VCAP_ACT_NL(ES0, "fwd_sel", ES0_FWD_SEL),
+    FA_DBG_VCAP_ACT(ES0, "cpu_qu", ES0_CPU_QU),
+    FA_DBG_VCAP_ACT(ES0, "pipeline_pt", ES0_PIPELINE_PT),
+    FA_DBG_VCAP_ACT(ES0, "pipeline_act", ES0_PIPELINE_ACT),
+    FA_DBG_VCAP_ACT(ES0, "swap_macs_ena", ES0_SWAP_MACS_ENA),
+};
+
+static const vtss_vcap_dbg_t fa_es0_dbg_key[] = {
+    FA_DBG_VCAP_BITS(ES0, "cosid", X1_COSID),
+    FA_DBG_VCAP_BITS(ES0, "tpid", X1_TPID),
+    FA_DBG_VCAP_BITS(ES0, "color", X1_COLOR),
+    FA_DBG_VCAP_BITS(ES0, "service_frm", X1_SERVICE_FRM),
+    FA_DBG_VCAP_BITS_NL(ES0, "prot_active", X1_PROT_ACTIVE),
+    FA_DBG_VCAP_BITS(ES0, "encap_id_ena", X1_ENCAP_ID_ENA),
+    FA_DBG_VCAP_BITS(ES0, "oam_y1731", X1_OAM_Y1731),
+    FA_DBG_VCAP_BITS_NL(ES0, "oam_mel_flags", X1_OAM_MEL_FLAGS),
+};
+
 static vtss_rc fa_debug_es0(vtss_state_t *vtss_state, fa_vcap_data_t *data)
 {
     lmu_ss_t   *ss = data->ss;
@@ -5603,36 +5741,7 @@ static vtss_rc fa_debug_es0(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         fa_debug_es0_tag("c", data, ES0_AO_ES0_TAG_C_TPID_SEL, ES0_AO_ES0_TAG_C_VID_SEL,
                          ES0_AO_ES0_TAG_C_PCP_SEL, ES0_AO_ES0_TAG_C_DEI_SEL, ES0_AO_ES0_VID_C_VAL,
                          ES0_AO_ES0_PCP_C_VAL, ES0_AO_ES0_DEI_C_VAL);
-        FA_DEBUG_ACT(ES0, "pop_val", ES0_POP_VAL);
-        FA_DEBUG_ACT(ES0, "dscp_sel", ES0_DSCP_SEL);
-        FA_DEBUG_ACT(ES0, "dscp_val", ES0_DSCP_VAL);
-        FA_DEBUG_ACT(ES0, "pop_cnt", ES0_POP_CNT);
-        FA_DEBUG_ACT(ES0, "rtag_pop", ES0_RTAG_POP_ENA);
-        FA_DEBUG_ACT(ES0, "rtag_push", ES0_RTAG_PUSH_SEL);
-        pr("\n");
-        FA_DEBUG_ACT(ES0, "esdx_base", ES0_ESDX_BASE);
-        FA_DEBUG_ACT_BITS(ES0, "esdx_cosid_offs", ES0_ESDX_COSID_OFFSET);
-        pr("\n");
-        FA_DEBUG_ACT(ES0, "map_0_idx", ES0_MAP_0_IDX);
-        FA_DEBUG_ACT(ES0, "map_1_idx", ES0_MAP_1_IDX);
-        FA_DEBUG_ACT(ES0, "map_2_idx", ES0_MAP_2_IDX);
-        FA_DEBUG_ACT(ES0, "map_3_idx", ES0_MAP_3_IDX);
-        pr("\n");
-        FA_DEBUG_ACT(ES0, "map_0_key", ES0_MAP_0_KEY);
-        FA_DEBUG_ACT(ES0, "map_1_key", ES0_MAP_1_KEY);
-        FA_DEBUG_ACT(ES0, "map_2_key", ES0_MAP_2_KEY);
-        FA_DEBUG_ACT(ES0, "map_3_key", ES0_MAP_3_KEY);
-        pr("\n");
-        FA_DEBUG_ACT_ENA(ES0, "mep_idx", ES0_OAM_MEP_IDX_VLD, ES0_OAM_MEP_IDX);
-        FA_DEBUG_ACT(ES0, "oam_indep_mel_ena", ES0_INDEPENDENT_MEL_ENA);
-        FA_DEBUG_ACT(ES0, "mip_idx", ES0_MIP_IDX);
-        FA_DEBUG_ACT(ES0, "fwd_sel", ES0_FWD_SEL);
-        pr("\n");
-        FA_DEBUG_ACT(ES0, "cpu_qu", ES0_CPU_QU);
-        FA_DEBUG_ACT(ES0, "pipeline_pt", ES0_PIPELINE_PT);
-        FA_DEBUG_ACT(ES0, "pipeline_act", ES0_PIPELINE_ACT);
-        FA_DEBUG_ACT(ES0, "swap_macs_ena", ES0_SWAP_MACS_ENA);
-        /* TBD_MPLS: MPLS action fields */
+        FA_DBG_VCAP(fa_es0_dbg_act);
         pr("\ncnt: %u", data->counter);
         return VTSS_RC_OK;
     }
@@ -5648,16 +5757,7 @@ static vtss_rc fa_debug_es0(vtss_state_t *vtss_state, fa_vcap_data_t *data)
         FA_DEBUG_BITS(ES0, "gvid", VID_GVID);
     }
     pr("\n");
-    FA_DEBUG_BITS(ES0, "cosid", X1_COSID);
-    FA_DEBUG_BITS(ES0, "tpid", X1_TPID);
-    FA_DEBUG_BITS(ES0, "color", X1_COLOR);
-    FA_DEBUG_BITS(ES0, "service_frm", X1_SERVICE_FRM);
-    FA_DEBUG_BITS(ES0, "prot_active", X1_PROT_ACTIVE);
-    pr("\n");
-    FA_DEBUG_BITS(ES0, "encap_id_ena", X1_ENCAP_ID_ENA);
-    FA_DEBUG_BITS(ES0, "oam_y1731", X1_OAM_Y1731);
-    FA_DEBUG_BITS(ES0, "oam_mel_flags", X1_OAM_MEL_FLAGS);
-    pr("\n");
+    FA_DBG_VCAP(fa_es0_dbg_key);
     return VTSS_RC_OK;
 }
 
