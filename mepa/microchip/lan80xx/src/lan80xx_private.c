@@ -1014,43 +1014,38 @@ mepa_rc lan80xx_ptp_block_preempt_conf(mepa_device_t *dev, mepa_port_no_t port_n
     return MEPA_RC_OK;
 }
 
-/* configure DISABLE_DIC and TX_FRM_GAP_COMP based on current state.
+/* Configure DISABLE_DIC (in HOST/LINE MAC_MODE_CFG) and TX_FRM_GAP_COMP
+ * (in MAC_FC_BUFFER) per Malibu-25G design doc section
+ * "Bus Alignment and DIC / H2L Direction":
  *
- * DISABLE_DIC and TX_FRM_GAP_COMP configuration rules:
+ *   - MACsec present (init.enable = TRUE): DISABLE_DIC = 0.
+ *     Line MAC DIC (0-3, 12B avg, 32-bit aligned) is needed for full rate.
+ *     MACsec absorbs backpressure.
  *
- * If flow control is enabled:
- *   - DISABLE_DIC = 0 (always, regardless of mode)
+ *   - MACsec bypass: DISABLE_DIC = 1, TX_FRM_GAP_COMP = 0x18.
+ *     FC Buffer DIC (0-7, 24B avg, 64-bit aligned) output is already
+ *     correct. Line MAC cannot backpressure; enabling DIC here causes
+ *     silent 8-byte truncation at high egress rate.
  *
- * If flow control is disabled:
- *   - PCS_RETIMER MODE: DISABLE_DIC = 0 (no effect, LMAC not used)
- *   - MAC_RETIMER MODE with MACsec enabled (not bypassed): DISABLE_DIC = 0
- *   - MAC_RETIMER MODE with MACsec bypass/disabled:
- *       - TX_FRM_GAP_COMP = 0x14 (to disable DIC in FC buffer)
- *       - DISABLE_DIC = 1 (disable DIC in LMAC)
+ *   - PCS_RETIMER: LINE MAC not in datapath; setting is don't-care.
+ *
+ * Flow control is NOT a factor per design doc. Do not add it back
+ * (Case 01729503 / MEPA-1345).
  */
 mepa_rc lan80xx_dic_config(const mepa_device_t *dev, mepa_port_no_t port_no)
 {
     phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
 
-    if (data->flow_control_ena ||
-        data->port_state.port_mode.oper_mode == PCS_RETIMER ||
+    if (data->port_state.port_mode.oper_mode == PCS_RETIMER ||
         data->macsec_conf.glb.init.enable) {
-        /* DISABLE_DIC = 0 when:
-         * - Flow control is enabled, OR
-         * - PCS_RETIMER mode (LMAC not used), OR
-         * - MACsec is enabled (not bypassed)
-         */
+        /* DISABLE_DIC = 0 */
         LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_MODE_CFG, 0,
                         LAN80XX_M_HOST_MAC_HOST_MAC_MAC_MODE_CFG_DISABLE_DIC);
 
         LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_MAC_LINE_MAC_MAC_MODE_CFG, 0,
                         LAN80XX_M_LINE_MAC_LINE_MAC_MAC_MODE_CFG_DISABLE_DIC);
     } else {
-        /* DISABLE_DIC = 1 and TX_FRM_GAP_COMP = 0x14 when:
-         * - Flow control is disabled, AND
-         * - MAC_RETIMER mode, AND
-         * - MACsec is bypassed or disabled
-         */
+        /* DISABLE_DIC = 1 */
         LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_MAC_HOST_MAC_MAC_MODE_CFG,
                         LAN80XX_M_HOST_MAC_HOST_MAC_MAC_MODE_CFG_DISABLE_DIC,
                         LAN80XX_M_HOST_MAC_HOST_MAC_MAC_MODE_CFG_DISABLE_DIC);
@@ -1064,7 +1059,7 @@ mepa_rc lan80xx_dic_config(const mepa_device_t *dev, mepa_port_no_t port_no)
                         LAN80XX_F_MAC_FC_BUFFER_MAC_FC_BUFFER_TX_FRM_GAP_COMP_TX_FRM_GAP_COMP(LAN80XX_TX_FRM_GAP_COMP_MACSEC_BYPASS),
                         LAN80XX_M_MAC_FC_BUFFER_MAC_FC_BUFFER_TX_FRM_GAP_COMP_TX_FRM_GAP_COMP);
     }
-    return MEPA_RC_OK; 
+    return MEPA_RC_OK;
 }
 
 /* 'enable' is used for Mac enable or disable */
@@ -6085,7 +6080,6 @@ mepa_rc lan80xx_flow_control_set_priv(const mepa_device_t     *dev,
                         LAN80XX_M_HOST_MAC_HOST_MAC_PAUSE_RX_FRAME_CONTROL_MAC_RX_PAUSE_FRAME_DROP_ENA);
 
         data->flow_control_ena = 1;
-        MEPA_RC(lan80xx_dic_config(dev, port_no));
         return MEPA_RC_OK;
     }
 
@@ -6109,7 +6103,6 @@ mepa_rc lan80xx_flow_control_set_priv(const mepa_device_t     *dev,
                     LAN80XX_M_HOST_MAC_HOST_MAC_PAUSE_RX_FRAME_CONTROL_MAC_RX_PAUSE_FRAME_DROP_ENA);
 
     data->flow_control_ena = 0;
-    MEPA_RC(lan80xx_dic_config(dev, port_no));
     return MEPA_RC_OK;
 }
 
