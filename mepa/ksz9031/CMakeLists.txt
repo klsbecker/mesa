@@ -2,6 +2,7 @@
 MEPA_DRV(LIB_NAME mepa_drv_ksz9031
          SRCS     src/ksz9031.c
                   ../microchip/common/src/phy_lib.c
+         DEFS     -DMEPA_HAS_KSZ9031
          INCL_PUB ../../me/include ../include ../microchip/common/include
          INCL_PRI .)
 
