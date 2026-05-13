@@ -134,24 +134,6 @@ static mepa_device_t *pfe_probe(mepa_driver_t *drv,
     return dev;
 }
 
-static mepa_rc pfe_reset(mepa_device_t *dev, const mepa_reset_param_t *rst_conf)
-{
-    mepa_rc rc;
-
-    if (rst_conf->reset_point == MEPA_RESET_POINT_DEFAULT) {
-        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_RESET, LAN8814_F_BASIC_CTRL_SOFT_RESET);
-    }
-    MEPA_MSLEEP(1);
-
-    rc = pfe_mmd_reg_wr(dev, LAN8841_MMD_ANALOG_REG,
-                        LAN8841_ANALOG_CONTROL_11,
-                        LAN8841_ANALOG_CONTROL_11_LDO_REF(1U),
-                        LAN8841_ANALOG_CONTROL_11_LDO_MASK);
-
-    (void)pfe_get_device_info(dev);
-    return rc;
-}
-
 static mepa_rc pfe_conf_get(mepa_device_t *dev, mepa_conf_t *const config)
 {
     lan884x_data_t *data = (lan884x_data_t *)dev->data;
@@ -183,7 +165,7 @@ static mesa_rc pfe_conf_set(mepa_device_t      *dev,
 static mesa_rc pfe_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
                           mesa_port_interface_t *mac_if)
 {
-    uint16_t val = 0, rxcdll_val, txcdll_val;
+    uint16_t val = 0;
     mesa_rc rc;
     lan884x_data_t *data = (lan884x_data_t *)dev->data;
 
@@ -193,23 +175,7 @@ static mesa_rc pfe_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
     }
 
     if ((val & LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER_STRAP_RGMII_EN) != 0U) {
-        rc = pfe_mmd_reg_rd(dev, PFE_MMD_COMMON_CTRL_REG, PFE_RXC_DLL_CTRL, &rxcdll_val);
-        if (rc == MEPA_RC_OK) {
-            rc = pfe_mmd_reg_rd(dev, PFE_MMD_COMMON_CTRL_REG, PFE_TXC_DLL_CTRL, &txcdll_val);
-        }
-        if (rc != MEPA_RC_OK) {
-            return rc;
-        }
-
-        if (((rxcdll_val & DISABLE_DLL_MASK) != 0U) && ((txcdll_val & DISABLE_DLL_MASK) != 0U)) {
-            *mac_if = MESA_PORT_INTERFACE_RGMII;
-        } else if (((rxcdll_val & DISABLE_DLL_MASK) == 0U) && ((txcdll_val & DISABLE_DLL_MASK) != 0U)) {
-            *mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
-        } else if (((rxcdll_val & DISABLE_DLL_MASK) != 0U) && ((txcdll_val & DISABLE_DLL_MASK) == 0U)) {
-            *mac_if = MESA_PORT_INTERFACE_RGMII_TXID;
-        } else {
-            *mac_if = MESA_PORT_INTERFACE_RGMII_ID;
-        }
+        *mac_if = data->mac_if;
     } else {
         *mac_if = MESA_PORT_INTERFACE_GMII;
     }
@@ -273,6 +239,7 @@ static mepa_rc pfe_config_rgmii_delay(mepa_device_t *dev, mepa_port_interface_t 
 static mepa_rc pfe_if_set(mepa_device_t *dev,
                           mepa_port_interface_t mac_if)
 {
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
 
     if (mac_if == MESA_PORT_INTERFACE_RGMII ||
@@ -280,6 +247,9 @@ static mepa_rc pfe_if_set(mepa_device_t *dev,
         mac_if == MESA_PORT_INTERFACE_RGMII_RXID ||
         mac_if == MESA_PORT_INTERFACE_RGMII_TXID) {
         rc = pfe_config_rgmii_delay(dev, mac_if);
+        if (rc == MEPA_RC_OK) {
+            data->mac_if = mac_if;
+        }
     }
 
     return rc;
@@ -299,6 +269,29 @@ static uint32_t pfe_capability(mepa_device_t *dev, uint32_t capability)
     }
 
     return c;
+}
+
+static mepa_rc pfe_reset(mepa_device_t *dev, const mepa_reset_param_t *rst_conf)
+{
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
+    mepa_rc rc;
+
+    if (rst_conf->reset_point == MEPA_RESET_POINT_DEFAULT) {
+        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_RESET, LAN8814_F_BASIC_CTRL_SOFT_RESET);
+        // The reset of the PHY will reset also RMII delays which are based on
+        // the MAC interface. Therfore after a reset of the PHY it is required
+        // to set again the interface to set the correct delays.
+        pfe_if_set(dev, data->mac_if);
+    }
+    MEPA_MSLEEP(1);
+
+    rc = pfe_mmd_reg_wr(dev, LAN8841_MMD_ANALOG_REG,
+                        LAN8841_ANALOG_CONTROL_11,
+                        LAN8841_ANALOG_CONTROL_11_LDO_REF(1U),
+                        LAN8841_ANALOG_CONTROL_11_LDO_MASK);
+
+    (void)pfe_get_device_info(dev);
+    return rc;
 }
 
 static mepa_rc pfe_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)

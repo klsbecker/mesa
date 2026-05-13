@@ -81,6 +81,7 @@ typedef struct {
     mepa_bool_t              link_status;
     mepa_port_speed_t        speed_status;
     mepa_bool_t              fdx_status;
+    mesa_port_interface_t    mac_if;
 } lan884x_data_t;
 
 #endif
