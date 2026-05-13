@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_LAN8814_REGISTERS_H
-#define _MEPA_LAN8814_REGISTERS_H
+#ifndef MEPA_LAN8814_REGISTERS_H
+#define MEPA_LAN8814_REGISTERS_H
 
 // Macros
 #define LAN8814_DEF_MASK 0xffff

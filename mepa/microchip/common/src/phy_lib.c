@@ -182,7 +182,7 @@ mepa_rc phy_mmd_reg_rd32(mepa_device_t *const dev,
         return rc;
     }
 
-    rc = phy_mmd_reg_rd(dev, devad, (addr + 1UL), &data_h);
+    rc = phy_mmd_reg_rd(dev, devad, (addr + 1U), &data_h);
     if (rc != MEPA_RC_OK) {
         return rc;
     }
@@ -201,7 +201,7 @@ mepa_rc phy_mmd_reg_wr32(mepa_device_t *const dev, uint8_t const mmd,
     uint16_t data_h = (uint16_t) (value >> 16U);
 
     /* Write msb first */
-    rc = phy_mmd_reg_wr(dev, mmd, (offset + 1UL), data_h);
+    rc = phy_mmd_reg_wr(dev, mmd, (offset + 1U), data_h);
     if (rc != MEPA_RC_OK) {
         return rc;
     }
@@ -242,7 +242,7 @@ mepa_rc phy_mmd_reg_poll(mepa_device_t *const dev, uint8_t const devad,
 
     // wait for reset to complete
     while (timeout == PHY_FALSE) {
-        timeout = (MEPA_MTIMER_TIMEOUT(&timer));
+        timeout = (mepa_bool_t)(MEPA_MTIMER_TIMEOUT(&timer));
         if (devad == 0U) {
             (void) phy_reg_rd(dev, addr, val);
         } else {
@@ -269,7 +269,7 @@ mepa_rc phy_mmd_reg_poll32(mepa_device_t *const dev, uint8_t const devad,
 
     // wait for reset to complete
     while (timeout == PHY_FALSE) {
-        timeout = (MEPA_MTIMER_TIMEOUT(&timer));
+        timeout = (mepa_bool_t)(MEPA_MTIMER_TIMEOUT(&timer));
         (void) phy_mmd_reg_rd32(dev, devad, addr, val);
         result = ((*val & mask) == match) ? 1U : 0U;
         if (result == cond) {

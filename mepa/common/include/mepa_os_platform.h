@@ -57,7 +57,7 @@ static inline time_t MEPA_UPTIME_SECONDS(void)
 
 #define MEPA_MTIMER_START(timer, msec) { \
     (timer)->now = os_platform_get_system_time();  \
-    (timer)->timeout = ((timer)->now + msec); \
+    (timer)->timeout = ((timer)->now + (uint32_t)(msec)); \
 } /**< Timer timeout macro */
 
 #endif /* _MEPA_OS_PLATFORM_H_ */

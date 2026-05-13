@@ -43,15 +43,15 @@ typedef struct {
 /** Sleep for \param msec milliseconds */
 #define MEPA_MSLEEP(msec) {                                     \
     struct timespec ts;                                         \
-    ts.tv_sec = msec / 1000;                                    \
-    ts.tv_nsec = (msec % 1000) * 1000000;                       \
+    ts.tv_sec = (msec) / 1000;                                  \
+    ts.tv_nsec = ((msec) % 1000) * 1000000;                     \
     while(nanosleep(&ts, &ts) == -1 && errno == EINTR) {        \
     }                                                           \
 }
 
 #define MEPA_MTIMER_START(timer,msec) { \
     (void) gettimeofday(&((timer)->timeout),NULL);   \
-    (timer)->timeout.tv_usec+=msec*1000; \
+    (timer)->timeout.tv_usec+=(long)(msec)*1000; \
     if ((timer)->timeout.tv_usec>=1000000) { (timer)->timeout.tv_sec+=(timer)->timeout.tv_usec/1000000; (timer)->timeout.tv_usec%=1000000; } \
 } /**< Start timer */
 

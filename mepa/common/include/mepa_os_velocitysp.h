@@ -39,7 +39,7 @@ typedef struct {
     mepa_timeval_t now;
 } mepa_mtimer_t;
 
-#define MEPA_TIMERCMP(time_a, time_b, cmp) ((time_a.tv_sec cmp time_b.tv_sec) ? 1 : 0)
+#define MEPA_TIMERCMP(time_a, time_b, cmp) (((time_a).tv_sec cmp (time_b).tv_sec) ? 1 : 0)
 
 #define MEPA_MTIMER_START(timer, msec) { \
     uint64_t ns = lm_os_time_get(); \
@@ -47,7 +47,7 @@ typedef struct {
     uint64_t usec = ((ns % 1000000000U) / 1000000U); \
     (timer)->timeout.tv_sec = (int32_t)sec; \
     (timer)->timeout.tv_usec = (int32_t)usec; \
-    (timer)->timeout.tv_usec += msec * 1000; \
+    (timer)->timeout.tv_usec += (long int)(msec) * 1000; \
     if ((timer)->timeout.tv_usec >= 1000000) { \
         (timer)->timeout.tv_sec += (timer)->timeout.tv_usec / 1000000; \
         (timer)->timeout.tv_usec %= 1000000; \
