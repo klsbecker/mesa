@@ -885,8 +885,8 @@
 #if VTSS_OPT_LIGHT
 // Number of entries for IS1/CLM, ES0, filters, gates, meters, counters etc.
 #define VTSS_STREAM_CNT 64U
-// Number of ACEs
-#define VTSS_ACE_CNT 68U
+// Number of ACEs, 64 user rules and 6 PTP rules
+#define VTSS_ACE_CNT 70U
 #endif
 
 /* ================================================================= *
