@@ -310,7 +310,7 @@ uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
 struct mepa_device *mepa_create_by_driver_id(const mepa_callout_t    MEPA_SHARED_PTR *callout,
                                              struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                              struct mepa_board_conf  *conf,
-                                             uint32_t id);
+                                             uint32_t driver_id);
 
 /**
  * \brief Clears up the data allocated in the probe function.

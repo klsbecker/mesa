@@ -9,7 +9,7 @@
 #define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 #define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 
-#define PHY_FAMILIES 16
+#define PHY_FAMILIES 16U
 
 #define MEPA_GLOBAL_REG_DEV_ID      0x1E /* MMD ID of GLOBAL Registers */
 #define MEPA_SILICON_REVISION_REG   0x2  /* Silicon Revision register */
@@ -288,34 +288,30 @@ static void mepa_initialize_libraries(void)
     }
 }
 
-struct mepa_device *mepa_probe_phy(const mepa_callout_t    MEPA_SHARED_PTR *callout,
-                                   struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
-                                   struct mepa_board_conf  *conf,
-                                   uint32_t id,
-                                   mesa_bool_t driver_id)
+static struct mepa_device *mepa_probe_phy(const mepa_callout_t    MEPA_SHARED_PTR *callout,
+                                          struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
+                                          struct mepa_board_conf  *conf,
+                                          uint32_t id,
+                                          uint8_t use_driver_id)
 {
     mepa_device_t *dev = NULL;
 
-    for (uint32_t i = 0; i < PHY_FAMILIES; i++) {
+    for (uint32_t i = 0U; i < PHY_FAMILIES; i++) {
         if ((MEPA_phy_lib[i].count == 0U) || (MEPA_phy_lib[i].phy_drv == NULL)) {
             continue;
         }
 
-        for (uint32_t j = 0; j < MEPA_phy_lib[i].count; j++) {
+        for (uint32_t j = 0U; j < MEPA_phy_lib[i].count; j++) {
             mepa_driver_t *driver = &MEPA_phy_lib[i].phy_drv[j];
-            mesa_bool_t match = 0U;
+            uint8_t match;
 
-            if (driver_id) {
-                if (driver->id == id) {
-                    match = 1U;
-                }
+            if (use_driver_id == 1U) {
+                match = (uint8_t)(driver->id == id);
             } else {
-                if ((driver->id & driver->mask) == (id & driver->mask)) {
-                    match = 1U;
-                }
+                match = (uint8_t)((driver->id & driver->mask) == (id & driver->mask));
             }
 
-            if (match == 1U) {
+            if (match == 0U) {
                 dev = driver->mepa_driver_probe(driver, callout, callout_ctx, conf);
                 if (dev != NULL) {
                     T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, id, i, j);
@@ -346,8 +342,8 @@ struct mepa_device *mepa_create(const mepa_callout_t    MEPA_SHARED_PTR *callout
 
     mepa_initialize_libraries();
 
-    if (conf->dummy_phy_cap > 0) {
-        phy_id = 0xdeadbeef;
+    if (conf->dummy_phy_cap > 0U) {
+        phy_id = 0xdeadbeefU;
     } else {
         phy_id = mepa_phy_id_get(callout, callout_ctx, conf->numeric_handle);
     }
