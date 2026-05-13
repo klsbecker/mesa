@@ -1,13 +1,15 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
+#include <stdbool.h>
+
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
 
 #include "../../common/include/lan8814_registers.h" // Re-use LAN8814 register defines
 #include "lan884x_private.h"
 
-mepa_rc pfe_direct_reg_rd(mepa_device_t *dev, uint16_t addr, uint16_t *value)
+static mepa_rc pfe_direct_reg_rd(mepa_device_t *dev, uint16_t addr, uint16_t *value)
 {
     if (dev->callout->miim_read(dev->callout_ctx, addr, value) != MESA_RC_OK) {
         T_E(MEPA_TRACE_GRP_GEN, "Port %d miim read failed\n", dev->numeric_handle);
@@ -15,7 +17,7 @@ mepa_rc pfe_direct_reg_rd(mepa_device_t *dev, uint16_t addr, uint16_t *value)
     return MEPA_RC_OK;
 }
 
-mepa_rc pfe_direct_reg_wr(mepa_device_t *dev, uint16_t addr, uint16_t value, uint16_t mask)
+static mepa_rc pfe_direct_reg_wr(mepa_device_t *dev, uint16_t addr, uint16_t value, uint16_t mask)
 {
     uint16_t reg_val = value;
     mesa_rc rc;
@@ -39,7 +41,7 @@ mepa_rc pfe_direct_reg_wr(mepa_device_t *dev, uint16_t addr, uint16_t value, uin
 
 // MMD read and write functions
 // MMD device range : 0 - 31
-mepa_rc pfe_mmd_reg_rd(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t *value)
+static mepa_rc pfe_mmd_reg_rd(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t *value)
 {
     // Set-up to MMD register.
     MEPA_RC(pfe_direct_reg_wr(dev, LAN8814_MMD_ACCESS_CTRL, mmd, LAN8814_DEF_MASK));
@@ -52,7 +54,7 @@ mepa_rc pfe_mmd_reg_rd(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t
     return MEPA_RC_OK;
 }
 
-mepa_rc pfe_mmd_reg_wr(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t value, uint16_t mask)
+static mepa_rc pfe_mmd_reg_wr(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t value, uint16_t mask)
 {
     // Set-up to MMD register.
     MEPA_RC(pfe_direct_reg_wr(dev, LAN8814_MMD_ACCESS_CTRL, mmd, LAN8814_DEF_MASK));
@@ -72,34 +74,43 @@ static mepa_rc pfe_delete(mepa_device_t *dev)
 
 static mepa_rc pfe_get_device_info(mepa_device_t *dev)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
     uint16_t id;
 
-    pfe_direct_reg_rd(dev, LAN8814_DEVICE_ID_2, &id);
+    (void)pfe_direct_reg_rd(dev, LAN8814_DEVICE_ID_2, &id);
 
-    data->dev.model = LAN8814_X_DEV_ID_MODEL(id);
-    data->dev.rev = LAN8814_X_DEV_ID_REV(id);
+    data->dev.model = (uint8_t)LAN8814_X_DEV_ID_MODEL(id);
+    data->dev.rev = (uint8_t)LAN8814_X_DEV_ID_REV(id);
     T_I(MEPA_TRACE_GRP_GEN, "model 0x%x rev %d\n", data->dev.model, data->dev.rev);
 
     return MEPA_RC_OK;
 }
 
-const char *if2txt(mesa_port_interface_t if_type)
+static const char *if2txt(mesa_port_interface_t if_type)
 {
+    const char *res;
+
     switch (if_type) {
     case MESA_PORT_INTERFACE_GMII:
-        return "GMII";
+        res = "GMII";
+        break;
     case MESA_PORT_INTERFACE_RGMII:
-        return "RGMII";
+        res = "RGMII";
+        break;
     case MESA_PORT_INTERFACE_RGMII_ID:
-        return "RGMII_ID";
+        res = "RGMII_ID";
+        break;
     case MESA_PORT_INTERFACE_RGMII_RXID:
-        return "RGMII_RXID";
+        res = "RGMII_RXID";
+        break;
     case MESA_PORT_INTERFACE_RGMII_TXID:
-        return "RGMII_TXID";
+        res = "RGMII_TXID";
+        break;
     default:
-        return "?   ";
+        res = "?   ";
+        break;
     }
+    return res;
 }
 
 static mepa_device_t *pfe_probe(mepa_driver_t *drv,
@@ -107,12 +118,12 @@ static mepa_device_t *pfe_probe(mepa_driver_t *drv,
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                 struct mepa_board_conf              *board_conf)
 {
-    mepa_device_t *dev;
-    phy_data_t *data;
+    mepa_device_t  *dev;
+    lan884x_data_t *data;
 
-    dev = mepa_create_int(drv, callout, callout_ctx, board_conf, sizeof(phy_data_t));
-    if (!dev) {
-        return 0;
+    dev = mepa_create_int(drv, callout, callout_ctx, board_conf, (int)sizeof(lan884x_data_t));
+    if (dev == NULL) {
+        return NULL;
     }
 
     data = dev->data;
@@ -128,22 +139,22 @@ static mepa_rc pfe_reset(mepa_device_t *dev, const mepa_reset_param_t *rst_conf)
     mepa_rc rc;
 
     if (rst_conf->reset_point == MEPA_RESET_POINT_DEFAULT) {
-        pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_RESET, LAN8814_F_BASIC_CTRL_SOFT_RESET);
+        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_RESET, LAN8814_F_BASIC_CTRL_SOFT_RESET);
     }
     MEPA_MSLEEP(1);
 
     rc = pfe_mmd_reg_wr(dev, LAN8841_MMD_ANALOG_REG,
                         LAN8841_ANALOG_CONTROL_11,
-                        LAN8841_ANALOG_CONTROL_11_LDO_REF(1),
+                        LAN8841_ANALOG_CONTROL_11_LDO_REF(1U),
                         LAN8841_ANALOG_CONTROL_11_LDO_MASK);
 
-    pfe_get_device_info(dev);
+    (void)pfe_get_device_info(dev);
     return rc;
 }
 
 static mepa_rc pfe_conf_get(mepa_device_t *dev, mepa_conf_t *const config)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
 
     MEPA_ENTER(dev);
     *config = data->conf;
@@ -155,15 +166,15 @@ static mepa_rc pfe_conf_get(mepa_device_t *dev, mepa_conf_t *const config)
 static mesa_rc pfe_conf_set(mepa_device_t      *dev,
                             const mepa_conf_t  *config)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
     MEPA_ENTER(dev);
     data->conf = *config;
     MEPA_EXIT(dev);
 
     if (config->admin.enable) {
-        pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, 0, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
+        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, 0, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
     } else {
-        pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
+        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
     }
 
     return MESA_RC_OK;
@@ -174,25 +185,27 @@ static mesa_rc pfe_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
 {
     uint16_t val = 0, rxcdll_val, txcdll_val;
     mesa_rc rc;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
 
     rc = pfe_mmd_reg_rd(dev, 2, LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER, &val);
     if (MEPA_RC_OK != rc) {
         T_E(MEPA_TRACE_GRP_GEN, "Could not read from port %d", data->port_no);
     }
 
-    if (val & LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER_STRAP_RGMII_EN) {
+    if ((val & LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER_STRAP_RGMII_EN) != 0U) {
         rc = pfe_mmd_reg_rd(dev, PFE_MMD_COMMON_CTRL_REG, PFE_RXC_DLL_CTRL, &rxcdll_val);
-        rc |= pfe_mmd_reg_rd(dev, PFE_MMD_COMMON_CTRL_REG,  PFE_TXC_DLL_CTRL, &txcdll_val);
+        if (rc == MEPA_RC_OK) {
+            rc = pfe_mmd_reg_rd(dev, PFE_MMD_COMMON_CTRL_REG, PFE_TXC_DLL_CTRL, &txcdll_val);
+        }
         if (rc != MEPA_RC_OK) {
             return rc;
         }
 
-        if ((rxcdll_val & DISABLE_DLL_MASK) && (txcdll_val & DISABLE_DLL_MASK)) {
+        if (((rxcdll_val & DISABLE_DLL_MASK) != 0U) && ((txcdll_val & DISABLE_DLL_MASK) != 0U)) {
             *mac_if = MESA_PORT_INTERFACE_RGMII;
-        } else if (!(rxcdll_val & DISABLE_DLL_MASK) && (txcdll_val & DISABLE_DLL_MASK)) {
+        } else if (((rxcdll_val & DISABLE_DLL_MASK) == 0U) && ((txcdll_val & DISABLE_DLL_MASK) != 0U)) {
             *mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
-        } else if ((rxcdll_val & DISABLE_DLL_MASK) && !(txcdll_val & DISABLE_DLL_MASK)) {
+        } else if (((rxcdll_val & DISABLE_DLL_MASK) != 0U) && ((txcdll_val & DISABLE_DLL_MASK) == 0U)) {
             *mac_if = MESA_PORT_INTERFACE_RGMII_TXID;
         } else {
             *mac_if = MESA_PORT_INTERFACE_RGMII_ID;
@@ -214,6 +227,10 @@ static mepa_rc pfe_config_rgmii_delay(mepa_device_t *dev, mepa_port_interface_t 
     // Extra phy delay in CONTROL_PAD_SKEW, RX_DATA_PAD_SKEW, TX_DATA_PAD_SKEW, CLK_PAD_SKEW
     // currently not supported
 
+    rxcdll_val = 0U;
+    txcdll_val = 0U;
+    rc = MEPA_RC_OK;
+
     switch (interface) {
     case MESA_PORT_INTERFACE_RGMII:
         rxcdll_val = DISABLE_DLL_RX_BIT;
@@ -232,7 +249,12 @@ static mepa_rc pfe_config_rgmii_delay(mepa_device_t *dev, mepa_port_interface_t 
         txcdll_val = PFE_DLL_ENABLE_DELAY;
         break;
     default:
-        return 0;
+        rc = MEPA_RC_ERROR;
+        break;
+    }
+
+    if (rc != MEPA_RC_OK) {
+        return rc;
     }
 
     rc = pfe_mmd_reg_wr(dev, PFE_MMD_COMMON_CTRL_REG,
@@ -268,11 +290,11 @@ static uint32_t pfe_capability(mepa_device_t *dev, uint32_t capability)
     uint32_t c;
 
     switch (capability) {
-    case MEPA_CAP_SPEED_1G:
-        c = 1;
+    case (uint32_t)MEPA_CAP_SPEED_1G:
+        c = 1U;
         break;
     default:
-        c = 0;
+        c = 0U;
         break;
     }
 
@@ -281,11 +303,11 @@ static uint32_t pfe_capability(mepa_device_t *dev, uint32_t capability)
 
 static mepa_rc pfe_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
 
     phy_info->part_number = 8841;
     phy_info->revision = data->dev.rev;
-    if (pfe_capability(dev, MEPA_CAP_SPEED_1G)) {
+    if (pfe_capability(dev, (uint32_t)MEPA_CAP_SPEED_1G) != 0U) {
         phy_info->cap = MEPA_CAP_SPEED_MASK_1G;
     }
 
@@ -298,74 +320,81 @@ static mepa_rc pfe_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)
 static mepa_rc pfe_poll(mepa_device_t *dev, mepa_status_t *status)
 {
     uint16_t val, val2 = 0;
-    phy_data_t *data = (phy_data_t *) dev->data;
+    lan884x_data_t *data = (lan884x_data_t *) dev->data;
 
     MEPA_ENTER(dev);
-    pfe_direct_reg_rd(dev, LAN8814_BASIC_STATUS, &val);
-    status->link = (val & LAN8814_F_BASIC_STATUS_LINK_STATUS) ? 1 : 0;
+    (void)pfe_direct_reg_rd(dev, LAN8814_BASIC_STATUS, &val);
+    status->link = ((val & LAN8814_F_BASIC_STATUS_LINK_STATUS) != 0U);
 
     if (data->loopback.near_end_ena == TRUE) {
         // loops back to Mac. Ignore Line side status to Link partner.
-        status->link = 1;
+        status->link = true;
     }
     if (data->conf.speed == MEPA_SPEED_AUTO || data->conf.speed == MEPA_SPEED_1G) {
         uint16_t lp_sym_pause = 0, lp_asym_pause = 0;
         // Default values
         status->speed = MEPA_SPEED_UNDEFINED;
-        status->fdx = 1;
+        status->fdx = true;
         // check if auto-negotiation is completed or not.
-        if (!data->loopback.near_end_ena && status->link && !(val & LAN8814_F_BASIC_STATUS_ANEG_COMPLETE)) {
+        if (!data->loopback.near_end_ena && status->link && ((val & LAN8814_F_BASIC_STATUS_ANEG_COMPLETE) == 0U)) {
             T_I(MEPA_TRACE_GRP_GEN, "Aneg is not completed for port %d", data->port_no);
-            status->link = 0;
+            status->link = false;
         } else if (data->loopback.near_end_ena) {
             status->speed = MEPA_SPEED_1G;
+        } else {
+            // aneg complete, no loopback
         }
         if (!status->link || data->loopback.near_end_ena) {
             // No need to read aneg values when link is down or when near-end loopback enabled.
             goto end;
         }
         // Obtain speed and duplex from link partner's advertised capability.
-        pfe_direct_reg_rd(dev, LAN8814_ANEG_LP_BASE, &val);
-        pfe_direct_reg_rd(dev, LAN8814_ANEG_MSTR_SLV_STATUS, &val2);
+        (void)pfe_direct_reg_rd(dev, LAN8814_ANEG_LP_BASE, &val);
+        (void)pfe_direct_reg_rd(dev, LAN8814_ANEG_MSTR_SLV_STATUS, &val2);
         // 1G half duplex is not supported. Refer direct register - 9
-        if ((val2 & LAN8814_F_ANEG_MSTR_SLV_STATUS_1000_T_FULL_DUP) &&
+        if (((val2 & LAN8814_F_ANEG_MSTR_SLV_STATUS_1000_T_FULL_DUP) != 0U) &&
             data->conf.aneg.speed_1g_fdx) {
             status->speed = MEPA_SPEED_1G;
-            status->fdx = 1;
-        } else if ((val & LAN8814_F_ANEG_LP_BASE_100_X_FULL_DUP) &&
+            status->fdx = true;
+        } else if (((val & LAN8814_F_ANEG_LP_BASE_100_X_FULL_DUP) != 0U) &&
                    data->conf.aneg.speed_100m_fdx) {
             status->speed = MEPA_SPEED_100M;
-            status->fdx = 1;
-        } else if ((val & LAN8814_F_ANEG_LP_BASE_100_X_HALF_DUP) &&
+            status->fdx = true;
+        } else if (((val & LAN8814_F_ANEG_LP_BASE_100_X_HALF_DUP) != 0U) &&
                    data->conf.aneg.speed_100m_hdx) {
             status->speed = MEPA_SPEED_100M;
-            status->fdx = 0;
-        } else if ((val & LAN8814_F_ANEG_LP_BASE_10_T_FULL_DUP) &&
+            status->fdx = false;
+        } else if (((val & LAN8814_F_ANEG_LP_BASE_10_T_FULL_DUP) != 0U) &&
                    data->conf.aneg.speed_10m_fdx) {
             status->speed = MEPA_SPEED_10M;
-            status->fdx = 1;
-        } else if ((val & LAN8814_F_ANEG_LP_BASE_10_T_HALF_DUP) &&
+            status->fdx = true;
+        } else if (((val & LAN8814_F_ANEG_LP_BASE_10_T_HALF_DUP) != 0U) &&
                    data->conf.aneg.speed_10m_hdx) {
             status->speed = MEPA_SPEED_10M;
-            status->fdx = 0;
+            status->fdx = false;
+        } else {
+            // no matching link partner capability
         }
         // Get flow control status
-        lp_sym_pause = (val & LAN8814_F_ANEG_LP_BASE_SYM_PAUSE) ? 1 : 0;
-        lp_asym_pause = (val & LAN8814_F_ANEG_LP_BASE_ASYM_PAUSE) ? 1 : 0;
-        status->aneg.obey_pause = data->conf.flow_control && (lp_sym_pause || lp_asym_pause);
-        status->aneg.generate_pause = data->conf.flow_control && lp_sym_pause;
+        lp_sym_pause = ((val & LAN8814_F_ANEG_LP_BASE_SYM_PAUSE) != 0U) ? 1U : 0U;
+        lp_asym_pause = ((val & LAN8814_F_ANEG_LP_BASE_ASYM_PAUSE) != 0U) ? 1U : 0U;
+        status->aneg.obey_pause = data->conf.flow_control && ((lp_sym_pause != 0U) || (lp_asym_pause != 0U));
+        status->aneg.generate_pause = data->conf.flow_control && (lp_sym_pause != 0U);
     } else {
         uint8_t speed;
+        uint8_t bit0;
+        uint8_t bit1;
         // Forced speed
-        pfe_direct_reg_rd(dev, LAN8814_BASIC_CONTROL, &val2);
-        speed = (!!(val2 & LAN8814_F_BASIC_CTRL_SPEED_SEL_BIT_0)) |
-                (!!(val2 & LAN8814_F_BASIC_CTRL_SPEED_SEL_BIT_1) << 1);
-        status->speed = (speed == 0) ? MEPA_SPEED_10M :
-                        (speed == 1) ? MEPA_SPEED_100M :
-                        (speed == 2) ? MEPA_SPEED_1G : MEPA_SPEED_UNDEFINED;
-        status->fdx = !!(val2 & LAN8814_F_BASIC_CTRL_DUP_MODE);
+        (void)pfe_direct_reg_rd(dev, LAN8814_BASIC_CONTROL, &val2);
+        bit0 = ((val2 & LAN8814_F_BASIC_CTRL_SPEED_SEL_BIT_0) != 0U) ? 1U : 0U;
+        bit1 = ((val2 & LAN8814_F_BASIC_CTRL_SPEED_SEL_BIT_1) != 0U) ? 1U : 0U;
+        speed = (uint8_t)(bit0 | (uint8_t)(bit1 << 1U));
+        status->speed = (speed == 0U) ? MEPA_SPEED_10M :
+                        (speed == 1U) ? MEPA_SPEED_100M :
+                        (speed == 2U) ? MEPA_SPEED_1G : MEPA_SPEED_UNDEFINED;
+        status->fdx = ((val2 & LAN8814_F_BASIC_CTRL_DUP_MODE) != 0U);
         //check that aneg is not enabled.
-        if (val2 & LAN8814_F_BASIC_CTRL_ANEG_ENA) {
+        if ((val2 & LAN8814_F_BASIC_CTRL_ANEG_ENA) != 0U) {
             T_W(MEPA_TRACE_GRP_GEN, "Aneg is enabled for forced speed config on port %d", data->port_no);
         }
     }
@@ -383,9 +412,9 @@ static mepa_rc pfe_aneg_status_get(mepa_device_t *dev, mepa_aneg_status_t *statu
     uint16_t val;
 
     MEPA_ENTER(dev);
-    pfe_direct_reg_rd(dev, LAN8814_ANEG_MSTR_SLV_STATUS, &val);
-    status->master_cfg_fault = (val & LAN8814_F_ANEG_MSTR_SLV_STATUS_CFG_FAULT) ? TRUE : FALSE;
-    status->master = val & LAN8814_F_ANEG_MSTR_SLV_STATUS_CFG_RES ? TRUE : FALSE;
+    (void)pfe_direct_reg_rd(dev, LAN8814_ANEG_MSTR_SLV_STATUS, &val);
+    status->master_cfg_fault = ((val & LAN8814_F_ANEG_MSTR_SLV_STATUS_CFG_FAULT) != 0U) ? TRUE : FALSE;
+    status->master = ((val & LAN8814_F_ANEG_MSTR_SLV_STATUS_CFG_RES) != 0U) ? TRUE : FALSE;
     MEPA_EXIT(dev);
     T_I(MEPA_TRACE_GRP_GEN, "aneg status get mstr %d", status->master);
     return MEPA_RC_OK;
@@ -395,7 +424,7 @@ static mepa_rc pfe_aneg_status_get(mepa_device_t *dev, mepa_aneg_status_t *statu
 static mepa_rc pfe_direct_reg_read(mepa_device_t *dev, uint32_t address, uint16_t *const value)
 {
     mepa_rc rc;
-    uint16_t addr = address & 0x1f;
+    uint16_t addr = (uint16_t)(address & 0x1fU);
 
     MEPA_ENTER(dev);
     rc = pfe_direct_reg_rd(dev, addr, value);
@@ -407,10 +436,10 @@ static mepa_rc pfe_direct_reg_read(mepa_device_t *dev, uint32_t address, uint16_
 static mepa_rc pfe_direct_reg_write(mepa_device_t *dev, uint32_t address, uint16_t value)
 {
     mepa_rc rc;
-    uint16_t addr = address & 0x1f;
+    uint16_t addr = (uint16_t)(address & 0x1fU);
 
     MEPA_ENTER(dev);
-    rc = pfe_direct_reg_wr(dev, addr, value, 0xFFFF);
+    rc = pfe_direct_reg_wr(dev, addr, value, 0xFFFFU);
     MEPA_EXIT(dev);
     return rc;
 }
@@ -419,11 +448,11 @@ static mepa_rc pfe_direct_reg_write(mepa_device_t *dev, uint32_t address, uint16
 static mepa_rc pfe_ext_mmd_reg_read(mepa_device_t *dev, uint32_t address, uint16_t *const value)
 {
     mepa_rc rc = MEPA_RC_OK;
-    uint16_t mmd = (address >> 16) & 0xffff;
-    uint16_t addr = address & 0xffff;
+    uint16_t mmd = (uint16_t)((address >> 16) & 0xffffU);
+    uint16_t addr = (uint16_t)(address & 0xffffU);
 
     MEPA_ENTER(dev);
-    if (mmd) {
+    if (mmd != 0U) {
         rc = pfe_mmd_reg_rd(dev, mmd, addr, value);
     }
     MEPA_EXIT(dev);
@@ -434,12 +463,12 @@ static mepa_rc pfe_ext_mmd_reg_read(mepa_device_t *dev, uint32_t address, uint16
 static mepa_rc pfe_ext_mmd_reg_write(mepa_device_t *dev, uint32_t address, uint16_t value)
 {
     mepa_rc rc = MEPA_RC_OK;
-    uint16_t mmd = (address >> 16) & 0xffff;
-    uint16_t addr = address & 0xffff;
+    uint16_t mmd = (uint16_t)((address >> 16) & 0xffffU);
+    uint16_t addr = (uint16_t)(address & 0xffffU);
 
     MEPA_ENTER(dev);
-    if (mmd) {
-        rc = pfe_mmd_reg_wr(dev, mmd, addr, value, 0xFFFF);
+    if (mmd != 0U) {
+        rc = pfe_mmd_reg_wr(dev, mmd, addr, value, 0xFFFFU);
     }
     MEPA_EXIT(dev);
     return rc;
@@ -451,18 +480,18 @@ static void pfe_phy_deb_pr_reg(mepa_device_t *dev,
                                const char *str, uint16_t *value)
 {
     mepa_rc rc = MEPA_RC_OK;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan884x_data_t *data = (lan884x_data_t *)dev->data;
     mepa_port_no_t port_no = data->port_no;
     uint16_t id = page;
 
-    if (mmd) {
+    if (mmd != 0U) {
         id = mmd;
         rc = pfe_mmd_reg_rd(dev, mmd, addr, value);
     } else {
         rc = pfe_direct_reg_rd(dev, addr, value);
     }
-    if (pr && (MEPA_RC_OK == rc)) {
-        pr("%-45s:  0x%02x  0x%02x   0x%04x     0x%08x\n", str, to_u32(port_no), id, addr, *value);
+    if (MEPA_RC_OK == rc) {
+        (void)pr("%-45s:  0x%02x  0x%02x   0x%04x     0x%08x\n", str, to_u32(port_no), id, addr, *value);
     }
 }
 
@@ -472,8 +501,8 @@ static mepa_rc reg_dump(struct mepa_device *dev,
     uint16_t val = 0;
 
     //Direct registers
-    pr("%-45s   PORT_NO PAGE_ID REG_ADDR   VALUE\n", "REG_NAME");
-    pr("Main Page Registers\n");
+    (void)pr("%-45s   PORT_NO PAGE_ID REG_ADDR   VALUE\n", "REG_NAME");
+    (void)pr("Main Page Registers\n");
     pfe_phy_deb_pr_reg(dev, pr, 0, 0, 0, "Basic Control Register", &val);
     pfe_phy_deb_pr_reg(dev, pr, 0, 0, 1, "Basic Status Register", &val);
     pfe_phy_deb_pr_reg(dev, pr, 0, 0, 2, "Device Identifier 1 Register", &val);
@@ -514,14 +543,14 @@ static mepa_rc pfe_debug_info_dump(struct mepa_device *dev,
 {
     mepa_rc rc = MEPA_RC_OK;
     mepa_phy_info_t phy_info;
-    mesa_port_interface_t mac_if = 0;
+    mesa_port_interface_t mac_if;
 
     (void)pfe_info_get(dev, &phy_info);
-    (void)pfe_if_get(dev, 1000,  &mac_if);
+    (void)pfe_if_get(dev, MESA_SPEED_1G, &mac_if);
 
     if (info->layer == MEPA_DEBUG_LAYER_AIL || info->layer == MEPA_DEBUG_LAYER_ALL) {
         MEPA_ENTER(dev);
-        pr("Port:%d   Family:Pfeiffer   Type:%d   Rev:%d   MacIf:%s\n", dev->numeric_handle,
+        (void)pr("Port:%d   Family:Pfeiffer   Type:%d   Rev:%d   MacIf:%s\n", dev->numeric_handle,
            phy_info.part_number, phy_info.revision, if2txt(mac_if));
         MEPA_EXIT(dev);
     }
@@ -538,6 +567,7 @@ static mepa_rc pfe_debug_info_dump(struct mepa_device *dev,
         break;
         default:
             rc = MEPA_RC_OK;
+            break;
         }
 
     }

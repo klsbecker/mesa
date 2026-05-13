@@ -1,18 +1,18 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_PFE_PRIVATE_H_
-#define _MEPA_PFE_PRIVATE_H_
+#ifndef MEPA_LAN884x_PRIVATE_H
+#define MEPA_LAN884x_PRIVATE_H
 
 #include <stdint.h>
 #include <microchip/ethernet/phy/api/types.h>
 #include <microchip/ethernet/phy/api/phy_ts.h>
 
-#define MEPA_RC(expr) { mesa_rc __rc__ = (expr); if (__rc__ < MESA_RC_OK) return __rc__; }
+#define MEPA_RC(expr) { mesa_rc __rc__ = (expr); if (__rc__ < MESA_RC_OK) { return __rc__; } }
 #define MEPA_ASSERT(x) if((x)) { return MESA_RC_ERROR;}
 
-#define TRUE  1
-#define FALSE 0
+#define TRUE  1U
+#define FALSE 0U
 #define EXT_PAGE 1 // extended page access
 #define MMD_DEV  2 // MMD device access
 
@@ -23,8 +23,8 @@
 
 #define LAN8841_MMD_ANALOG_REG    28
 #define LAN8841_ANALOG_CONTROL_11 14
-#define LAN8841_ANALOG_CONTROL_11_LDO_REF(x) (((x) & 0x7) << 12)
-#define LAN8841_ANALOG_CONTROL_11_LDO_MASK   0x7000
+#define LAN8841_ANALOG_CONTROL_11_LDO_REF(x) (((uint16_t)(x) & (uint16_t)0x7U) << 12U)
+#define LAN8841_ANALOG_CONTROL_11_LDO_MASK   0x7000U
 
 typedef enum {
     PHY_INTERFACE_MODE_RGMII,      // Reduced gigabit media-independent interface
@@ -38,7 +38,7 @@ typedef enum {
 #define DISABLE_DLL_MASK LAN8814_BIT(14)
 
 #define LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER 3
-#define LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER_STRAP_RGMII_EN 1
+#define LAN8840_OPERATION_MODE_STRAP_LOW_REGISTER_STRAP_RGMII_EN 1U
 
 #define T_D(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 #define T_I(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
@@ -52,8 +52,8 @@ typedef enum {
     lock.function = __FUNCTION__;                    \
     lock.file = __FILE__;                            \
     lock.line = __LINE__;                            \
-    if (dev->callout->lock_enter) {                  \
-        dev->callout->lock_enter(&lock);             \
+    if ((dev)->callout->lock_enter != NULL) {        \
+        (dev)->callout->lock_enter(&lock);           \
     }                                                \
 }
 
@@ -62,25 +62,25 @@ typedef enum {
     lock.function = __FUNCTION__;                    \
     lock.file = __FILE__;                            \
     lock.line = __LINE__;                            \
-    if (dev->callout->lock_exit) {                   \
-        dev->callout->lock_exit(&lock);              \
+    if ((dev)->callout->lock_exit != NULL) {         \
+        (dev)->callout->lock_exit(&lock);            \
     }                                                \
 }
 
 typedef struct {
     uint8_t  model;
     uint8_t  rev;
-} phy_dev_info_t;
+} lan884x_dev_info_t;
 
 typedef struct {
     mepa_port_no_t           port_no;
     mepa_conf_t              conf;
     mepa_event_t             events;
     mepa_loopback_t          loopback;
-    phy_dev_info_t           dev;
+    lan884x_dev_info_t       dev;
     mepa_bool_t              link_status;
     mepa_port_speed_t        speed_status;
     mepa_bool_t              fdx_status;
-} phy_data_t;
+} lan884x_data_t;
 
 #endif

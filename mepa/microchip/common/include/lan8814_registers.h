@@ -5,9 +5,9 @@
 #define MEPA_LAN8814_REGISTERS_H
 
 // Macros
-#define LAN8814_DEF_MASK 0xffff
-#define LAN8814_BIT(x) (1 << x)
-#define LAN8814_BIT_MASK(x) ((1U << (x)) - 1)
+#define LAN8814_DEF_MASK 0xffffU
+#define LAN8814_BIT(x) ((uint16_t)((uint16_t)1U << (x)))
+#define LAN8814_BIT_MASK(x) ((uint16_t)(((uint16_t)1U << (x)) - (uint16_t)1U))
 
 #define LAN8814_EXTRACT_BITFIELD(value, offset, width)  (((value) >> (offset)) & LAN8814_BIT_MASK(width))
 #define LAN8814_ENCODE_BITFIELD(value, offset, width)   (((value) & LAN8814_BIT_MASK(width)) << (offset))
@@ -93,7 +93,7 @@
 #define LAN8814_F_ANEG_MSTR_SLV_STATUS_1000_T_HALF_DUP LAN8814_BIT(10)
 
 #define LAN8814_MMD_ACCESS_CTRL 13
-#define LAN8814_F_MMD_ACCESS_CTRL_MMD_FUNC 0x4000
+#define LAN8814_F_MMD_ACCESS_CTRL_MMD_FUNC 0x4000U
 
 #define LAN8814_MMD_ACCESS_ADDR_DATA 14
 
@@ -125,8 +125,8 @@
 
 // Register - 22
 #define LAN8814_EXT_PAGE_ACCESS_CTRL 22
-#define LAN8814_F_EXT_PAGE_ACCESS_CTRL_EP_FUNC 0x4000
-#define LAN8814_F_EXT_PAGE_ACCESS_CTRL_INCR_RD_WR 0x8000
+#define LAN8814_F_EXT_PAGE_ACCESS_CTRL_EP_FUNC 0x4000U
+#define LAN8814_F_EXT_PAGE_ACCESS_CTRL_INCR_RD_WR 0x8000U
 
 #define LAN8814_EXT_PAGE_ACCESS_ADDR_DATA 23
 

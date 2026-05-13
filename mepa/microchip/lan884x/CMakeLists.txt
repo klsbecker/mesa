@@ -1,6 +1,7 @@
 
 MEPA_DRV(LIB_NAME mepa_drv_lan884x
          SRCS     src/lan884x.c
+         DEFS     -DMEPA_HAS_LAN884x
          INCL_PUB ../../../me/include ../../include
          INCL_PRI lan884x)
 

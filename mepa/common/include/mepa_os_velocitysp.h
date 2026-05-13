@@ -26,7 +26,7 @@ typedef unsigned char      BOOL;
 #define MEPA_LLABS(arg) (((arg) > 0) ? arg : -arg)
 #define MEPA_ABS(arg)   (((arg) > 0) ? arg : -arg)
 
-#define MEPA_MSLEEP(msec) { lm_os_nssleep(msec * 1000000); }
+#define MEPA_MSLEEP(msec) { lm_os_nssleep((msec) * 1000000); }
 #define MEPA_NSLEEP(nsec) { lm_os_nssleep(nsec); }
 
 typedef struct {
