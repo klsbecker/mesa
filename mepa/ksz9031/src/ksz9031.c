@@ -10,7 +10,7 @@
 #include <mepa_driver.h>
 #include <mepa_ts_driver.h>
 
-#include "phy_driver.h"
+#include "ksz9031_private.h"
 #include <phy_lib.h>
 
 #define KSZ9031_PHY_CHIPID 0x00221622
