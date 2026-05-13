@@ -1,8 +1,8 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _VTSS_PHY_DRIVER_HXX_
-#define _VTSS_PHY_DRIVER_HXX_
+#ifndef MEPA_KSZ9031_PRIVATE_H
+#define MEPA_KSZ9031_PRIVATE_H
 
 #include <microchip/ethernet/phy/api.h>
 

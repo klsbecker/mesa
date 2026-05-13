@@ -26,13 +26,13 @@ typedef struct {
     unsigned link;
     int speed;
     BOOL duplex;
-} phy_device;
+} ksz_device_t;
 
 typedef struct {
-    phy_device    phydev;
+    ksz_device_t  phydev;
     mepa_conf_t   conf;
     uint8_t       rev;
-} priv_data_t;
+} ksz_data_t;
 
 /* Center KSZ9031RNX FLP timing at 16ms. */
 static mepa_rc ksz_restart_aneg(mepa_device_t *dev)
@@ -58,17 +58,9 @@ static mepa_rc ksz_center_flp_timing(mepa_device_t  *dev)
     return ksz_restart_aneg(dev);
 }
 
-/**
- * genphy_update_link - update link status in @phydev
- * @phydev: target phy_device struct
- *
- * Description: Update the value in phydev->link to reflect the
- *   current link value.  In order to do this, we need to read
- *   the status register twice, keeping the second value.
- */
 static mepa_rc ksz_update_link(mepa_device_t  *dev)
 {
-    phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
+    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
     uint16_t status = 0, bmcr;
     mepa_rc rc;
 
@@ -97,7 +89,7 @@ done:
 
 static mepa_rc ksz_read_status(mepa_device_t  *dev)
 {
-    phy_device  *phydev = &((priv_data_t *)dev->data)->phydev;
+    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
     uint16_t bmcr;
     mepa_rc rc;
 
@@ -134,7 +126,7 @@ static mepa_rc ksz_read_status(mepa_device_t  *dev)
 
 static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 {
-    phy_device *phydev = &((priv_data_t *)dev->data)->phydev;
+    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
     mepa_rc rc;
 
     T_D("Enter  port_no %u", dev->numeric_handle);
@@ -153,7 +145,7 @@ static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 
 static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
 {
-    priv_data_t *data = (priv_data_t *)dev->data;
+    ksz_data_t *data = (ksz_data_t *)dev->data;
     uint16_t old_adv, new_adv;
     uint16_t val;
     mepa_bool_t restart_aneg = 0U;
@@ -255,7 +247,7 @@ static mepa_rc ksz9131_conf_set(mepa_device_t      *dev,
 static mepa_rc ksz_conf_get(mepa_device_t *dev,
                             mepa_conf_t *const config)
 {
-    priv_data_t *data = (priv_data_t *)dev->data;
+    ksz_data_t *data = (ksz_data_t *)dev->data;
 
     *config = data->conf;
 
@@ -267,12 +259,12 @@ static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
                                 struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
                                 struct mepa_board_conf              *board_conf)
 {
-    priv_data_t   *data;
+    ksz_data_t   *data;
     uint16_t       rev;
     mepa_rc        rc;
     mepa_device_t *dev;
 
-    dev = mepa_create_int(drv, callout, callout_ctx, board_conf, sizeof(priv_data_t));
+    dev = mepa_create_int(drv, callout, callout_ctx, board_conf, sizeof(ksz_data_t));
     if (!dev) {
         return 0;
     }
@@ -282,7 +274,7 @@ static mepa_device_t *ksz_probe(mepa_driver_t                       *drv,
         return NULL;
     }
 
-    data = (priv_data_t *)dev->data;
+    data = (ksz_data_t *)dev->data;
     data->rev = rev & 0xFFFF;
 
     return dev;
@@ -414,7 +406,7 @@ static mepa_rc ksz9131_rgmii_if_set(mepa_device_t *dev, mepa_port_interface_t ma
 
 static mepa_rc ksz_phy_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)
 {
-    priv_data_t *data = (priv_data_t *)dev->data;
+    ksz_data_t *data = (ksz_data_t *)dev->data;
 
     phy_info->manufactor_name = "Microchip";
     phy_info->cap = 0;
