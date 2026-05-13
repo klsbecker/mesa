@@ -2943,7 +2943,7 @@ vtss_rc vtss_cil_port_serdes_prbs_conf_set(struct vtss_state_s                  
                                            const vtss_port_no_t                      port_no,
                                            const vtss_port_serdes_prbs_conf_t *const conf)
 {
-    u32 tgt, serdes_inst, serdes_type, port = VTSS_CHIP_PORT(port_no);
+    u32 tgt, serdes_inst, serdes_type;
 
     VTSS_RC(jr2_port_inst_get(vtss_state, port_no, &tgt, &serdes_inst, &serdes_type));
 
