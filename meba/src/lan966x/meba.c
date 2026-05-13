@@ -166,51 +166,74 @@ static port_map_t port_table_eds2[] = {
     {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814, false, 1},
 };
 
-static port_map_t port_table_eds2_lan8840[] = {
+static port_map_t port_table_eds2_lan8840_slot_a[] = {
     //--------------------------------------------------------------------------------------------------------------------------
     // Chip | MII-Controller           | MII |            MAC |              CAP
     // | PoE    | PoE  |
     // Port |                          | Addr|            INTERFACE | | Support|
     // Port |
     //--------------------------------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
-    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
     {2, 0, MESA_MIIM_CONTROLLER_0, 1, MESA_PORT_INTERFACE_RGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
-     false,                                                                                             1},
+     false, 1},
 };
 
-static port_map_t port_table_eds2_lan8842[] = {
+static port_map_t port_table_eds2_lan8840_slot_b[] = {
     //--------------------------------------------------------------------------------------------------------------------------
     // Chip | MII-Controller           | MII |            MAC |              CAP
     // | PoE    | PoE  |
     // Port |                          | Addr|            INTERFACE | | Support|
     // Port |
     //--------------------------------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
-    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
+    {3, 0, MESA_MIIM_CONTROLLER_0, 3, MESA_PORT_INTERFACE_RGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
+     false, 1},
+};
+
+static port_map_t port_table_eds2_lan8842_slot_a[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
     {3, 0, MESA_MIIM_CONTROLLER_0, 0, MESA_PORT_INTERFACE_SGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
-     false,                                                                                             1},
+     false, 1},
+};
+
+static port_map_t port_table_eds2_lan8842_slot_b[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
     {4, 0, MESA_MIIM_CONTROLLER_0, 2, MESA_PORT_INTERFACE_SGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
-     false,                                                                                             1},
+     false, 1},
 };
 
 #define MEBA_CAP_LAN8870 (MEBA_PORT_CAP_TRI_SPEED_COPPER & ~MEBA_PORT_CAP_AUTONEG)
-static port_map_t port_table_eds2_lan8870[] = {
+static port_map_t port_table_eds2_lan8870_slot_a[] = {
     //--------------------------------------------------------------------------------------------------------------------------
     // Chip | MII-Controller           | MII |            MAC |              CAP
     // | PoE    | PoE  |
     // Port |                          | Addr|            INTERFACE | | Support|
     // Port |
     //--------------------------------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_1, 1,  MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814, false, 0},
-    {1, 0, MESA_MIIM_CONTROLLER_1, 2,  MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814, false, 1},
-    {2, 0, MESA_MIIM_CONTROLLER_0, 3,  MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,     false, 1},
-    {3, 0, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870,     false, 1},
+    {2, 0, MESA_MIIM_CONTROLLER_0, 3, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870, false, 1},
+};
+
+static port_map_t port_table_eds2_lan8870_slot_b[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
+    {3, 0, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_RGMII, MEBA_CAP_LAN8870, false, 1},
 };
 
 // When using QSGMII, the SERDES_TX_INVERT must be enabled for the EDS2 board
 #define MEBA_CAP_EDS2_LAN8814 (MEBA_PORT_CAP_TRI_SPEED_COPPER | MEBA_PORT_CAP_SERDES_TX_INVERT)
-static port_map_t port_table_eds2_lan8814[] = {
+static port_map_t port_table_eds2_lan8814_slot_a[] = {
     //----------------------------------------------------------------------------------------------------
     // Chip | MII-Controller | MII |     MAC                  |       CAP               | PoE    |
     // PoE  |
@@ -223,35 +246,66 @@ static port_map_t port_table_eds2_lan8814[] = {
     {1, 0, MESA_MIIM_CONTROLLER_0, 8,  MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_LAN8814, false, 0},
 };
 
-#define MEBA_CAP_EDS2_VSC8574 (MEBA_PORT_CAP_TRI_SPEED_COPPER)
-static port_map_t port_table_eds2_vsc8574[] = {
+static port_map_t port_table_eds2_lan8814_slot_b[] = {
     //----------------------------------------------------------------------------------------------------
     // Chip | MII-Controller | MII |     MAC                  |       CAP               | PoE    |
     // PoE  |
     // Port |                | Addr| INTERFACE                |                         | Support|
     // Port |
     //----------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_0, 0x10, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false,
-     0},
-    {1, 0, MESA_MIIM_CONTROLLER_0, 0x11, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false,
-     0},
-    {2, 0, MESA_MIIM_CONTROLLER_0, 0x12, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false,
-     0},
-    {3, 0, MESA_MIIM_CONTROLLER_0, 0x13, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false,
-     0},
+    {6, 4, MESA_MIIM_CONTROLLER_0, 17, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_LAN8814, false, 0},
+    {7, 4, MESA_MIIM_CONTROLLER_0, 18, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_LAN8814, false, 0},
+    {4, 4, MESA_MIIM_CONTROLLER_0, 15, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_LAN8814, false, 0},
+    {5, 4, MESA_MIIM_CONTROLLER_0, 16, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_LAN8814, false, 0},
 };
 
-static port_map_t port_table_eds2_ksz9131[] = {
+#define MEBA_CAP_EDS2_VSC8574 (MEBA_PORT_CAP_TRI_SPEED_COPPER)
+static port_map_t port_table_eds2_vsc8574_slot_a[] = {
+    //----------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller | MII |     MAC                  |       CAP               | PoE    |
+    // PoE  |
+    // Port |                | Addr| INTERFACE                |                         | Support|
+    // Port |
+    //----------------------------------------------------------------------------------------------------
+    {0, 0, MESA_MIIM_CONTROLLER_0, 16, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {1, 0, MESA_MIIM_CONTROLLER_0, 17, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {2, 0, MESA_MIIM_CONTROLLER_0, 18, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {3, 0, MESA_MIIM_CONTROLLER_0, 19, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+};
+
+static port_map_t port_table_eds2_vsc8574_slot_b[] = {
+    //----------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller | MII |     MAC                  |       CAP               | PoE    |
+    // PoE  |
+    // Port |                | Addr| INTERFACE                |                         | Support|
+    // Port |
+    //----------------------------------------------------------------------------------------------------
+    {4, 4, MESA_MIIM_CONTROLLER_0, 20, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {5, 4, MESA_MIIM_CONTROLLER_0, 21, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {6, 4, MESA_MIIM_CONTROLLER_0, 22, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+    {7, 4, MESA_MIIM_CONTROLLER_0, 23, MESA_PORT_INTERFACE_QSGMII, MEBA_CAP_EDS2_VSC8574, false, 0},
+};
+
+static port_map_t port_table_eds2_ksz9131_slot_a[] = {
     //--------------------------------------------------------------------------------------------------------------------------
     // Chip | MII-Controller           | MII |            MAC |              CAP
     // | PoE    | PoE  |
     // Port |                          | Addr|            INTERFACE | | Support|
     // Port |
     //--------------------------------------------------------------------------------------------------------------------------
-    {0, 0, MESA_MIIM_CONTROLLER_1, 1, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 0},
-    {1, 0, MESA_MIIM_CONTROLLER_1, 2, MESA_PORT_INTERFACE_SGMII, MEBA_CAP_INT_LAN8814,           false, 1},
     {2, 0, MESA_MIIM_CONTROLLER_0, 1, MESA_PORT_INTERFACE_RGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
-     false,                                                                                             1},
+     false, 1},
+};
+
+static port_map_t port_table_eds2_ksz9131_slot_b[] = {
+    //--------------------------------------------------------------------------------------------------------------------------
+    // Chip | MII-Controller           | MII |            MAC |              CAP
+    // | PoE    | PoE  |
+    // Port |                          | Addr|            INTERFACE | | Support|
+    // Port |
+    //--------------------------------------------------------------------------------------------------------------------------
+    {3, 0, MESA_MIIM_CONTROLLER_0, 3, MESA_PORT_INTERFACE_RGMII, MEBA_PORT_CAP_TRI_SPEED_COPPER,
+     false, 1},
 };
 
 #define CAP_SFP    (MEBA_PORT_CAP_SFP_2_5G - MEBA_PORT_CAP_100M_FDX)
@@ -489,6 +543,21 @@ static void lan966x_init_port_table(meba_inst_t inst, int port_cnt, port_map_t *
     for (port_no = 0; port_no < port_cnt; port_no++) {
         port_entry_map(&board->entry[port_no], &map[port_no]);
         T_I(inst, "port_no= %d, poe_support=%d", port_no, board->entry->poe_support);
+    }
+}
+
+static void lan966x_append_port_table(meba_inst_t inst,
+                                      uint8_t     offset,
+                                      int         port_cnt,
+                                      port_map_t *map)
+{
+    meba_board_state_t *board = INST2BOARD(inst);
+    mesa_port_no_t      port_no;
+
+    /* Append to port mapping table */
+    board->port_cnt += port_cnt;
+    for (port_no = 0; port_no < port_cnt; port_no++) {
+        port_entry_map(&board->entry[port_no + offset], &map[port_no]);
     }
 }
 
@@ -1149,16 +1218,23 @@ const char *ev35h80a = "EV16T60A";
 
 mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_module)
 {
-    char eeprom_name[128];
-    char eeprom[128];
+    char  eeprom_name[128];
+    char  eeprom[128];
+    char *uboot_env = NULL;
+    char *slot = NULL;
 
     *plugin_module = NULL; // No plugin module found yet;
+    if (address == 0x54) {
+        slot = "A";
+    } else {
+        slot = "B";
+    }
 
     sprintf(eeprom_name, "/sys/bus/i2c/devices/0-00%x/eeprom", address);
 
     FILE *f = fopen(eeprom_name, "r");
     if (!f) {
-        return MESA_RC_ERROR;
+        goto use_uboot;
     }
 
     int i;
@@ -1175,27 +1251,27 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
     char *p = eeprom;
     while (p < eeprom + sizeof(eeprom) - 1) {
         if (strstr(p, ev16r73a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev16r73a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev16r73a, slot);
             *plugin_module = ev16r73a;
             return MESA_RC_OK;
         } else if (strstr(p, ev12n54a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev12n54a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev12n54a, slot);
             *plugin_module = ev12n54a;
             return MESA_RC_OK;
         } else if (strstr(p, ev87s66a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev87s66a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev87s66a, slot);
             *plugin_module = ev87s66a;
             return MESA_RC_OK;
         } else if (strstr(p, ev42y23a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev42y23a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev42y23a, slot);
             *plugin_module = ev42y23a;
             return MESA_RC_OK;
         } else if (strstr(p, ev58g16a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev58g16a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev58g16a, slot);
             *plugin_module = ev58g16a;
             return MESA_RC_OK;
         } else if (strstr(p, ev35h80a)) {
-            T_I(inst, "Found plugin module %s in slot A\n", ev35h80a);
+            T_I(inst, "Found plugin module %s in slot %s\n", ev35h80a, slot);
             *plugin_module = ev35h80a;
             return MESA_RC_OK;
         }
@@ -1203,9 +1279,16 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
     }
 
     // Unrecognized pluging module
+use_uboot:
     char buf[64];
-    T_W(inst, "Unrecognized plugin module in slot A\n");
-    if (inst->iface.conf_get("plugin_module", buf, sizeof(buf), NULL) == MESA_RC_OK) {
+    if (address == 0x54) {
+        uboot_env = "plugin_module";
+    } else {
+        uboot_env = "plugin_module2";
+    }
+
+    T_W(inst, "Unrecognized plugin module in slot %s\n", slot);
+    if (inst->iface.conf_get(uboot_env, buf, sizeof(buf), NULL) == MESA_RC_OK) {
         if (strstr(buf, ev16r73a)) {
             *plugin_module = ev16r73a;
             T_W(inst, "Assume %s\n", *plugin_module);
@@ -1235,6 +1318,44 @@ mesa_rc read_plugin_module(meba_inst_t inst, int address, const char **plugin_mo
     return MESA_RC_OK;
 }
 
+static mesa_bool_t lan966x_port_map_use_internal_ports(port_map_t *port_map, size_t len)
+{
+    size_t i;
+
+    for (i = 0; i < len; ++i) {
+        if (port_map[i].chip_port == 0 || port_map[i].chip_port == 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static mesa_port_mux_mode_t lan966x_determine_mux_mode(meba_inst_t inst)
+{
+    meba_board_state_t *board = INST2BOARD(inst);
+    mesa_port_no_t      port_no;
+
+    // There are more combination possible but for now keep it to a minimum
+    for (port_no = 0; port_no < board->port_cnt; ++port_no) {
+        if ((board->entry[port_no].map.chip_port == 2 ||
+             board->entry[port_no].map.chip_port == 3) &&
+            board->entry[port_no].mac_if == MESA_PORT_INTERFACE_RGMII) {
+            return MESA_PORT_MUX_MODE_3;
+        }
+        if ((board->entry[port_no].map.chip_port == 3 ||
+             board->entry[port_no].map.chip_port == 4) &&
+            board->entry[port_no].mac_if == MESA_PORT_INTERFACE_SGMII) {
+            return MESA_PORT_MUX_MODE_5;
+        }
+        if (board->entry[port_no].mac_if == MESA_PORT_INTERFACE_QSGMII) {
+            return MESA_PORT_MUX_MODE_0;
+        }
+    }
+
+    return MESA_PORT_MUX_MODE_1;
+}
+
 meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *callouts)
 {
     meba_inst_t         inst;
@@ -1242,6 +1363,13 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
     int                 pcb;
     uint32_t            type;
     const char         *plugin_module;
+    const char         *plugin_module2;
+    uint8_t             port_cnt;
+    port_map_t         *port_map_slot_a = NULL;
+    port_map_t         *port_map_slot_b = NULL;
+    uint8_t             port_map_slot_a_cnt = 0;
+    uint8_t             port_map_slot_b_cnt = 0;
+    mesa_bool_t         add_internal_ports;
 
     if (callouts_size < sizeof(*callouts)) {
         fprintf(stderr, "Callouts size problem, expected %zd, got %zd\n", sizeof(*callouts),
@@ -1311,50 +1439,96 @@ meba_inst_t meba_initialize(size_t callouts_size, const meba_board_interface_t *
         // MESA_PORT_MUX_MODE_2: 2xCu + 1x2.5G + 2xRGMII
         // MESA_PORT_MUX_MODE_3: 2xCu + 2xRGMII + 1xQSGMII (LAN9668)
         // MESA_PORT_MUX_MODE_5: 2xCu + 3x1G (LAN9668)
+        (void)read_plugin_module(inst, 0x54, &plugin_module);
+        (void)read_plugin_module(inst, 0x55, &plugin_module2);
 
-        if (MESA_RC_ERROR == read_plugin_module(inst, 0x54, &plugin_module)) {
-            T_W(inst, "No plugin module found, use internal PHY only\n");
-            // Just using the builtin PHYs
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
-            lan966x_init_port_table(inst, 2, port_table_eds2);
-        } else if (plugin_module == ev16r73a) {
-            // Using QSGMII for both plugin modules
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_0;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_vsc8574) / sizeof(port_map_t),
-                                    port_table_eds2_vsc8574);
-        } else if (plugin_module == ev12n54a) {
-            // Using the builtin PHYs + LAN8840 in first slot
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8840) / sizeof(port_map_t),
-                                    port_table_eds2_lan8840);
-        } else if (plugin_module == ev87s66a) {
-            // Using QSGMII for both plugin modules
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_0;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8814) / sizeof(port_map_t),
-                                    port_table_eds2_lan8814);
-        } else if (plugin_module == ev42y23a) {
-            // Using QSGMII for both plugin modules
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8870) / sizeof(port_map_t),
-                                    port_table_eds2_lan8870);
-        } else if (plugin_module == ev58g16a) {
-            // Using the builtin PHYs + lan8842 in first slot
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_5;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_lan8842) / sizeof(port_map_t),
-                                    port_table_eds2_lan8842);
-        } else if (plugin_module == ev35h80a) {
-            // Using the buildin PHYs + ksz9131 in first slot
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_3;
-            lan966x_init_port_table(inst, sizeof(port_table_eds2_ksz9131) / sizeof(port_map_t),
-                                    port_table_eds2_ksz9131);
-        } else {
-            T_W(inst,
-                "Use internal PHY only. Plugin module can be specified in uboot variable 'plugin_module'\n");
-            // Just using the builtin PHYs
-            inst->props.mux_mode = MESA_PORT_MUX_MODE_1;
-            lan966x_init_port_table(inst, 2, port_table_eds2);
+        port_cnt = 0;
+        if (plugin_module != NULL) {
+            if (plugin_module == ev16r73a) {
+                port_map_slot_a = port_table_eds2_vsc8574_slot_a;
+                port_map_slot_a_cnt = 4;
+            }
+            if (plugin_module == ev12n54a) {
+                port_map_slot_a = port_table_eds2_lan8840_slot_a;
+                port_map_slot_a_cnt = 1;
+            }
+            if (plugin_module == ev87s66a) {
+                port_map_slot_a = port_table_eds2_lan8814_slot_a;
+                port_map_slot_a_cnt = 4;
+            }
+            if (plugin_module == ev42y23a) {
+                port_map_slot_a = port_table_eds2_lan8870_slot_a;
+                port_map_slot_a_cnt = 1;
+            }
+            if (plugin_module == ev58g16a) {
+                port_map_slot_a = port_table_eds2_lan8842_slot_a;
+                port_map_slot_a_cnt = 1;
+            }
+            if (plugin_module == ev35h80a) {
+                port_map_slot_a = port_table_eds2_ksz9131_slot_a;
+                port_map_slot_a_cnt = 1;
+            }
         }
 
+        if (plugin_module2 != NULL) {
+            if (plugin_module2 == ev16r73a) {
+                port_map_slot_b = port_table_eds2_vsc8574_slot_b;
+                port_map_slot_b_cnt = 4;
+            }
+            if (plugin_module2 == ev12n54a) {
+                port_map_slot_b = port_table_eds2_lan8840_slot_b;
+                port_map_slot_b_cnt = 1;
+            }
+            if (plugin_module2 == ev87s66a) {
+                port_map_slot_b = port_table_eds2_lan8814_slot_b;
+                port_map_slot_b_cnt = 4;
+            }
+            if (plugin_module2 == ev42y23a) {
+                port_map_slot_b = port_table_eds2_lan8870_slot_b;
+                port_map_slot_b_cnt = 1;
+            }
+            if (plugin_module2 == ev58g16a) {
+                port_map_slot_b = port_table_eds2_lan8842_slot_b;
+                port_map_slot_b_cnt = 1;
+            }
+            if (plugin_module2 == ev35h80a) {
+                port_map_slot_b = port_table_eds2_ksz9131_slot_b;
+                port_map_slot_b_cnt = 1;
+            }
+        }
+
+        // Go through all the chip ports and if the chip port 0 and 1 are
+        // already in used then we can't add also the internal PHYs otherwise
+        // add them
+        add_internal_ports = true;
+        if (port_map_slot_a != NULL &&
+            lan966x_port_map_use_internal_ports(port_map_slot_a, port_map_slot_a_cnt)) {
+            add_internal_ports = false;
+        }
+        if (port_map_slot_b != NULL &&
+            lan966x_port_map_use_internal_ports(port_map_slot_b, port_map_slot_b_cnt)) {
+            add_internal_ports = false;
+        }
+
+        if (add_internal_ports == true) {
+            lan966x_init_port_table(inst, 2, port_table_eds2);
+            port_cnt += 2;
+        }
+
+        if (port_map_slot_a != NULL) {
+            lan966x_append_port_table(inst, port_cnt, port_map_slot_a_cnt, port_map_slot_a);
+            port_cnt += port_map_slot_a_cnt;
+        }
+
+        if (port_map_slot_b != NULL) {
+            lan966x_append_port_table(inst, port_cnt, port_map_slot_b_cnt, port_map_slot_b);
+            port_cnt += port_map_slot_b_cnt;
+        }
+
+        // Now that we add all the ports, it is time to figure out which mux
+        // mode needs to be set. For this we need to look at which chip ports
+        // are used and which interfaces are used.
+        inst->props.mux_mode = lan966x_determine_mux_mode(inst);
         break;
     default: break;
     }
