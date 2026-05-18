@@ -1,0 +1,35 @@
+// Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
+// SPDX-License-Identifier: MIT
+
+= MEPA-2026.06
+
+== MEPA-2026.06
+[cols="25%,75%"]
+|===
+|Version:          |MEPA-2026.06
+|Previous Version: |MEPA-2026.03
+|Date:             |2026-06-30
+|Description:      |Release Notes
+|===
+
+=== Release Status
+
+==== Bugs Fixed
+
+  * VSC8254/56/57/58 (Malibu-10) repeater mode now passes traffic at 10/100/1000 Mbps. The driver sets the SerDes rate to 1.25 Gbps (`VTSS_RPTR_RATE_1_25`) for 1G-class SFPs in repeater mode; previously the SerDes stayed at the default 10.3125 Gbps and could not link to a sub-10G partner.
+  * Fixed Malibu 10G I²C bus-busy detection — the read path truncated the status `u16` to `u8` before checking bit 15, so the busy bit was never observed and callers could receive byte 0 of an in-flight transaction.
+  * Malibu 10G `mepa_i2c_read()` / `mepa_i2c_write()` wrappers now honour `i2c_dev_addr` and `cnt` — previously both fields were ignored, collapsing every call to a single-byte access against the last-configured slave id. Multi-byte SFP EEPROM accesses now work.
+
+==== New features and API enhancements
+
+  * Full VSC8254/56/57/58 SFP coverage in repeater + non-repeater mode:
+    ** Repeater mode: 1000BASE-X optical, 100BASE-FX optical, DAC/twinax, 1G CuSFP, and 10/100M CuSFP all link and pass traffic.
+    ** Non-repeater (1G_MODE SGMII): 1G CuSFP keeps the Malibu Line/Host MAC, MACsec and 1588 blocks engaged in the datapath.
+    ** Mode is selected by the application via `meba_phy_conf_set` with `conf_10g.oper_mode = MEPA_PHY_LAN_MODE | MEPA_PHY_1G_MODE | MEPA_PHY_REPEATER_MODE`.
+  * Added `vtss_phy_10g_sgmii_status_get()` — reads `LINE_PCS1G.PCS1G_ANEG_STATUS2.LP_ADV_ABILITY` per Cisco-SGMII bit layout (link bit 15, fdx bit 12, speed bits 11:10) and returns link / fdx / speed in a new `vtss_phy_10g_sgmii_status_t`. Use this on SGMII-configured ports instead of `vtss_phy_10g_clause_37_status_get()` whose 1000BASE-X bit layout differs.
+  * The 10G poll callback (`phy_10g_poll`) now decodes the SGMII partner page on every poll, re-runs `vtss_phy_10g_sgmii_mode_set()` on partner-speed change, and reports the resolved partner state through the standard `mepa_status_t` — no application-side change required beyond calling `mepa_poll()`.
+
+==== Known limitations
+
+  * VSC8254/56/57/58 non-repeater mode at 10/100M: Malibu Rev D silicon has no byte-decimation circuit for SGMII byte-repeated frames, so sub-1G partners cannot be carried in `VTSS_PHY_1G_MODE`. The driver detects this case and forces link-down. Use repeater mode for 10/100M CuSFP partners.
+  * VSC8254/56/57/58 1000BASE-X CuSFP in non-repeater mode: support in development, expected to land before the v2026.06 final tag. Will be removed from this list once merged.
