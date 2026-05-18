@@ -311,7 +311,7 @@ static struct mepa_device *mepa_probe_phy(const mepa_callout_t    MEPA_SHARED_PT
                 match = (uint8_t)((driver->id & driver->mask) == (id & driver->mask));
             }
 
-            if (match == 0U) {
+            if (match == 1U) {
                 dev = driver->mepa_driver_probe(driver, callout, callout_ctx, conf);
                 if (dev != NULL) {
                     T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, id, i, j);
