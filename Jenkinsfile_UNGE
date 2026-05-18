@@ -50,14 +50,17 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
                     def systemSuites  = suitesCfg["suites_${suiteType}"] ?: []
                     def systemTimeout = suitesCfg.timeout ?: DEFAULT_SUITE_TIMEOUT_SECS
                     def suiteArgs     = systemSuites.collect { "-T \"${it}\"" }.join(" ")
-                    def branchArg     = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
+
+                    // Pin SHA so the suite list and the suite files come from the same commit
+                    def systemSha     = sh(returnStdout: true, script: "git rev-parse 'origin/${s.branch}'").trim()
+                    def shaArg        = "--sha ${systemSha}"
 
                     // Per-system console log — archived as artifact, survives even if build's main log is lost
                     def logFile       = "${sessionDir}/${s.system}.console.log"
 
                     sh "mkdir -p '${sessionDir}'"
                     // Breadcrumb line per DUT — grep the console for `[<system>]` to see what was dispatched
-                    echo "[${s.system}] branch=${s.branch} suites=${systemSuites} timeout=${systemTimeout}"
+                    echo "[${s.system}] branch=${s.branch} sha=${systemSha} suites=${systemSuites} timeout=${systemTimeout}"
 
                     // Loud failure on empty list — silent skip would mask "forgot to declare suites_${suiteType}"
                     if (systemSuites.isEmpty()) {
@@ -73,7 +76,7 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
                         "-o \"${sessionDir}\"",
                         "-t \"${systemTimeout}\"",
                         suiteArgs,
-                        branchArg,
+                        shaArg,
                     ]
                     def cmd = cmdParts.join(' ')
 

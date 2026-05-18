@@ -133,11 +133,11 @@ end
 def run_suites(system, image, out, tests_to_run, timeout)
     topo = YAML.load_file(".mscc-libeasy-topology#{system}.yaml")
     uri  = URI("http://#{topo["easytest_server"]}/run")
-    # Use branch-specific SHA if --branch is given, otherwise use HEAD (current branch)
-    sha = $options[:branch] ?
-        %x{git rev-parse origin/#{$options[:branch]}}.strip :
-        %x{git rev-parse HEAD}.strip
-    log_local("Branch: #{$options[:branch] || 'HEAD'} (#{sha})")
+    # Caller (typically Jenkins) is responsible for resolving the branch they
+    # want to test into a concrete SHA and passing it via --sha. Falls back to
+    # the working tree's HEAD for ad-hoc/manual use.
+    sha = $options[:sha] || %x{git rev-parse HEAD}.strip
+    log_local("Test SHA: #{sha} (#{$options[:sha] ? 'explicit' : 'from HEAD'})")
 
     tests_to_run.each_with_index do |suite, index|
         post_suite(uri, image, out, system, suite, index, timeout, sha)
@@ -218,7 +218,7 @@ OptionParser.new do |opts|
     opts.on("-t", "--timeout secs",  "Timeout in seconds (default: #{DEFAULT_TIMEOUT})")                        { |v| $options[:timeout]      = v.to_i }
     opts.on("-T", "--test path",     "Test suite to run (repeatable)")                                          { |v| $options[:tests_to_run] << v }
     opts.on("-o", "--output folder", "Session output folder (created by caller, suites written to <out>/suites/)") { |v| $options[:out] = File.expand_path(v); FileUtils.mkdir_p($options[:out]) }
-    opts.on("-b", "--branch name",  "Branch to test against (default: HEAD); determines which commit the remote server checks out") { |v| $options[:branch] = v }
+    opts.on("-S", "--sha sha",      "Exact commit SHA the remote server should check out (default: working tree HEAD)") { |v| $options[:sha] = v }
 end.parse!
 
 # ---------------------------------------------------------------------------------------------------------------------
