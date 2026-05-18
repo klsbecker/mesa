@@ -17,19 +17,22 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
     def config    = readYaml file: 'mesa/demo/test/utils/dispatch/test-config.yaml'
     def suites    = config["suites_${suiteType}"]
     def suiteArgs = suites.collect { "-T \"${it}\"" }.join(" ")
-    // Run all systems in parallel
+    // Run all systems in parallel.
+    // Each system gets its own console log file and is wrapped in catchError so
+    // one DUT failure does not abort siblings — every system's log survives.
     parallel config.systems.collectEntries { s ->
         ["${s.system} (${s.dut})", {
-            container('pod-mesa-base') {
-                // For nightly runs, pass the per-system branch so the remote server
-                // checks out the correct commit (e.g. master.hallberg for dk-t38-0).
-                // For regular builds, always use HEAD (current branch).
-                def branchArg = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
-                def rc = sh(returnStatus: true, script: """./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs} ${branchArg}""")
-                if (rc == 7) {
-                    unstable("Reserve timed out for ${s.system} (${s.dut})")
-                } else if (rc != 0) {
-                    error("Tests failed for ${s.system} (${s.dut})")
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE', message: "Tests failed for ${s.system} (${s.dut})") {
+                container('pod-mesa-base') {
+                    def branchArg = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
+                    def logFile = "${sessionDir}/${s.system}.console.log"
+                    sh "mkdir -p '${sessionDir}'"
+                    def rc = sh(returnStatus: true, script: """set -o pipefail; ./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs} ${branchArg} 2>&1 | tee "${logFile}" """)
+                    if (rc == 7) {
+                        unstable("Reserve timed out for ${s.system} (${s.dut})")
+                    } else if (rc != 0) {
+                        error("Tests failed for ${s.system} (${s.dut})")
+                    }
                 }
             }
         }]
@@ -53,11 +56,14 @@ pipeline {
     // Options directive is for configuration that applies to the whole job
     options {
         timestamps ()
-                // Only keep 5 builds at a time to avoid fill up the storage
-                buildDiscarder(logRotator(numToKeepStr:'5'))
+                // Keep more builds so a failing nightly is still around for forensics.
+                buildDiscarder(logRotator(numToKeepStr:'20'))
                 // Make sure this build ad tests don't hang forever
                 timeout(time: PIPELINE_TIMEOUT_HOURS, unit: 'HOURS')
                 skipDefaultCheckout()
+                // Flush pipeline state to disk on every step so a controller/agent
+                // crash leaves a readable build log instead of an empty file.
+                durabilityHint('MAX_SURVIVABILITY')
     }
 
     agent { kubernetes { yamlFile '.cmake/pod-base.yaml' } }
@@ -265,12 +271,24 @@ pipeline {
         }
         stage("Run test suites (nightly)") {
             when { triggeredBy 'TimerTrigger' }
+            options {
+                // Explicit stage-level cap so an abort here is clearly attributed
+                // to the test stage rather than the generic pipeline timeout.
+                timeout(time: 5, unit: 'HOURS')
+            }
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
                         def sessionDir = "easytest-logs/nightly-${env.BUILD_NUMBER}"
                         runTestsOnAllSystems("nightly", sessionDir)
                     }
+                }
+            }
+            post {
+                always {
+                    // Archive per-system console logs immediately, even if the
+                    // Publish stage never runs (e.g. mass test failure path).
+                    archiveArtifacts artifacts: 'easytest-logs/**/*.console.log', allowEmptyArchive: true
                 }
             }
         }
