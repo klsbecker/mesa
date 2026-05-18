@@ -2,11 +2,12 @@
 MEPA_DRV(LIB_NAME mepa_drv_lan8814
          SRCS     src/lan8814.c
                   src/lan8814_ts.c
+         DEFS     -DMEPA_HAS_LAN8814
          INCL_PUB ../../../me/include ../../include include
          INCL_PRI lan8814)
 
 MEPA_DRV(LIB_NAME mepa_drv_lan8814_light
-         DEFS     -DMEPA_LAN8814_LIGHT=1
+         DEFS     -DMEPA_LAN8814_LIGHT=1 -DMEPA_HAS_LAN8814
          SRCS     src/lan8814.c
                   src/lan8814_ts.c
          INCL_PUB ../../../me/include ../../include include

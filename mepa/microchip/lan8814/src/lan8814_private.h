@@ -1,15 +1,15 @@
 // Copyright (c) 2004-2020 Microchip Technology Inc. and its subsidiaries.
 // SPDX-License-Identifier: MIT
 
-#ifndef _MEPA_LAN8814_PRIVATE_H_
-#define _MEPA_LAN8814_PRIVATE_H_
+#ifndef MEPA_LAN8814_PRIVATE_H
+#define MEPA_LAN8814_PRIVATE_H
 
 #include <stdint.h>
 #include <microchip/ethernet/phy/api/types.h>
 #include <microchip/ethernet/phy/api/phy_ts.h>
 #include <microchip/lan8814_cs.h>
 
-#define MEPA_RC(expr) { mesa_rc __rc__ = (expr); if (__rc__ < MESA_RC_OK) return __rc__; }
+#define MEPA_RC(expr) { mesa_rc __rc__ = (expr); if (__rc__ < MESA_RC_OK) { return __rc__; } }
 #define MEPA_RC_ERR(expr, str) { mesa_rc __rc__ = (expr); if (__rc__ < MESA_RC_OK) {T_E(MEPA_TRACE_GRP_GEN, str); return __rc__; }}
 #define MEPA_ASSERT(x) if((x)) { return MESA_RC_ERROR;}
 
@@ -19,26 +19,26 @@
 #define MMD_DEV  2 // MMD device access
 
 // cable diagnostics constants
-#define LAN8814_CABLE_MODE_POWER_DOWN 2
+#define LAN8814_CABLE_MODE_POWER_DOWN 2U
 
-#define LAN8814_CABLE_NORMAL 0
-#define LAN8814_CABLE_OPEN   1
-#define LAN8814_CABLE_SHORT  2
-#define LAN8814_CABLE_FAIL   3
+#define LAN8814_CABLE_NORMAL 0U
+#define LAN8814_CABLE_OPEN   1U
+#define LAN8814_CABLE_SHORT  2U
+#define LAN8814_CABLE_FAIL   3U
 
 // number of pairs that the cable has, as this is a 1000BaseT then it should
 // have 4 pairs
-#define LAN8814_PAIRS        4
+#define LAN8814_PAIRS        4U
 
-#define LAN8814_CABLE_DIAG_STATE_INIT 0
-#define LAN8814_CABLE_DIAG_STATE_POLL 1
-#define LAN8814_CABLE_DIAG_STATE_DONE 2
+#define LAN8814_CABLE_DIAG_STATE_INIT 0U
+#define LAN8814_CABLE_DIAG_STATE_POLL 1U
+#define LAN8814_CABLE_DIAG_STATE_DONE 2U
 
-#define LAN8814_REV_D        4
-#define LAN8814_REV_C1       3
-#define LAN8814_REV_C0       2
-#define LAN8814_REV_B        1
-#define LAN8814_REV_A        0
+#define LAN8814_REV_D        4U
+#define LAN8814_REV_C1       3U
+#define LAN8814_REV_C0       2U
+#define LAN8814_REV_B        1U
+#define LAN8814_REV_A        0U
 
 // register access functions
 mepa_rc lan8814_direct_reg_rd(mepa_device_t *dev, uint16_t addr, uint16_t *value);
@@ -49,9 +49,11 @@ mepa_rc lan8814_ext_incr_reg_rd(mepa_device_t *dev, uint16_t page, uint16_t addr
 
 mepa_rc lan8814_mmd_reg_rd(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t *value);
 mepa_rc lan8814_mmd_reg_wr(mepa_device_t *dev, uint16_t mmd, uint16_t addr, uint16_t value, uint16_t mask);
+#if !defined(MEPA_LAN8814_LIGHT)
 mepa_rc lan8814_ts_debug_info_dump(struct mepa_device *dev,
                                    const mepa_debug_print_t pr,
                                    const mepa_debug_info_t   *const info);
+#endif
 
 //Direct register access macros
 #define RD(dev, addr, value) lan8814_direct_reg_rd(dev, addr, value)
@@ -82,8 +84,8 @@ mepa_rc lan8814_ts_debug_info_dump(struct mepa_device *dev,
     lock.function = __FUNCTION__;                    \
     lock.file = __FILE__;                            \
     lock.line = __LINE__;                            \
-    if (dev->callout->lock_enter) {                  \
-        dev->callout->lock_enter(&lock);             \
+    if ((dev)->callout->lock_enter != NULL) {        \
+        (dev)->callout->lock_enter(&lock);           \
     }                                                \
 }
 
@@ -92,8 +94,8 @@ mepa_rc lan8814_ts_debug_info_dump(struct mepa_device *dev,
     lock.function = __FUNCTION__;                    \
     lock.file = __FILE__;                            \
     lock.line = __LINE__;                            \
-    if (dev->callout->lock_exit) {                   \
-        dev->callout->lock_exit(&lock);              \
+    if ((dev)->callout->lock_exit != NULL) {         \
+        (dev)->callout->lock_exit(&lock);            \
     }                                                \
 }
 

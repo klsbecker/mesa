@@ -4,8 +4,8 @@
 // This file contains the chip specific api's and its corresponding
 // data structures for lan8814
 
-#ifndef _LAN8814_CS_H_
-#define _LAN8814_CS_H_
+#ifndef MEPA_LAN8814_CS_H
+#define MEPA_LAN8814_CS_H
 
 #include <microchip/ethernet/phy/api.h>
 

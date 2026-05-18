@@ -16,8 +16,8 @@
 static  uint16_t lan8814_ing_latencies[MEPA_TS_CLOCK_FREQ_MAX - 1][3] = {
     // 1000,  100,    10 speeds
     [MEPA_TS_CLOCK_FREQ_25M] =    {  415, 144, 8377 }, // Internal clock is 250 MHz
-    [MEPA_TS_CLOCK_FREQ_125M] =   {  000, 0000, 00000 },
-    [MEPA_TS_CLOCK_FREQ_15625M] = {  000, 0000, 00000 },
+    [MEPA_TS_CLOCK_FREQ_125M] =   {  0, 0, 0 },
+    [MEPA_TS_CLOCK_FREQ_15625M] = {  0, 0, 0 },
     [MEPA_TS_CLOCK_FREQ_200M] =   {  417, 1441, 8380 },
     [MEPA_TS_CLOCK_FREQ_250M] =   {  415, 627, 8377 }, // 415 1447
 };
@@ -25,8 +25,8 @@ static  uint16_t lan8814_ing_latencies[MEPA_TS_CLOCK_FREQ_MAX - 1][3] = {
 static  uint16_t lan8814_egr_latencies[MEPA_TS_CLOCK_FREQ_MAX - 1][3] = {
     // 1000,  100,    10 speeds
     [MEPA_TS_CLOCK_FREQ_25M] =    {  196,  296, 11353 }, // Internal clock is 250 MHz
-    [MEPA_TS_CLOCK_FREQ_125M] =   {  000, 0000, 00000 },
-    [MEPA_TS_CLOCK_FREQ_15625M] = {  000, 0000, 00000 },
+    [MEPA_TS_CLOCK_FREQ_125M] =   {  0, 0, 0 },
+    [MEPA_TS_CLOCK_FREQ_15625M] = {  0, 0, 0 },
     [MEPA_TS_CLOCK_FREQ_200M] =   {  189,  300, 11355 },
     [MEPA_TS_CLOCK_FREQ_250M] =   {  186,  296, 11353 }, // 186 296
 };
@@ -429,6 +429,7 @@ static mepa_rc lan8814_ts_ltc_ls_en_set(mepa_device_t *dev, const mepa_ts_ls_typ
             EP_WRM(base_dev, LAN8814_PTP_LTC_EXT_ADJ_CFG, 0, LAN8814_DEF_MASK);
             break;
         default:
+            T_D(MEPA_TRACE_GRP_TS, "Unhandled ls_type %d", ls_type);
             break;
         }
     }
@@ -645,6 +646,7 @@ static mepa_rc lan8814_ts_clock_adj1ns(mepa_device_t *dev, const mepa_bool_t inc
             }
             break;
         default:
+            T_D(MEPA_TRACE_GRP_TS, "Unhandled clk_freq %d", base_data->ts_state.clk_freq);
             break;
         }
         EP_WRM(dev, LAN8814_PTP_LTC_STEP_ADJ_HI, val, LAN8814_DEF_MASK);
@@ -689,6 +691,8 @@ static mepa_rc lan8814_ts_clock_adjns(mepa_device_t *dev, const mepa_bool_t incr
             }
             break;
         default:
+            T_D(MEPA_TRACE_GRP_TS, "Unhandled clk_freq %d", base_data->ts_state.clk_freq);
+            break;
         }
         EP_WRM(dev, LAN8814_PTP_LTC_STEP_ADJ_HI, val, LAN8814_DEF_MASK);
         EP_WRM(dev, LAN8814_PTP_LTC_STEP_ADJ_LO, adj, LAN8814_DEF_MASK);
@@ -794,6 +798,7 @@ static mepa_rc lan8814_ts_clock_egress_latency_get(mepa_device_t *dev, mepa_time
         *latency = data->ts_state.ts_port_conf.port_latencies.tx1000mbps;
         break;
     default:
+        T_D(MEPA_TRACE_GRP_TS, "Unhandled tx speed %d", status.speed);
         break;
     }
     MEPA_EXIT(dev);
@@ -974,6 +979,7 @@ static mepa_rc lan8814_ts_clock_ingress_latency_get(mepa_device_t *dev, mepa_tim
         *latency = data->ts_state.ts_port_conf.port_latencies.rx1000mbps;
         break;
     default:
+        T_D(MEPA_TRACE_GRP_TS, "Unhandled rx speed %d", status.speed);
         break;
     }
     MEPA_EXIT(dev);
@@ -1048,6 +1054,7 @@ static mepa_rc lan8814_ts_clock_ingress_latency_set(mepa_device_t *dev, const me
         data->ts_state.ts_port_conf.port_latencies.rx1000mbps = *latency;
         break;
     default:
+        T_D(MEPA_TRACE_GRP_TS, "Unhandled rx speed %d", status.speed);
         break;
     }
     MEPA_EXIT(dev);
@@ -2037,6 +2044,7 @@ static mepa_rc lan8814_ts_tx_ptp_clock_conf_set(mepa_device_t *dev, uint16_t clo
             ts_insert = SYNC_PACKET | DELAY_REQ_PACKET | PDELAY_REQ_PACKET | PDELAY_RESP_PACKET;
             break;
         default:
+            T_D(MEPA_TRACE_GRP_TS, "Unhandled clk_mode %d", ptpclock_conf->clk_mode);
             break;
         }
         EP_WRM(dev, LAN8814_PTP_TX_TIMESTAMP_EN, ts_insert, LAN8814_DEF_MASK);

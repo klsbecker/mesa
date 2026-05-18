@@ -27,13 +27,13 @@
 #define LAN8814_MMD_7      7
 
 // Macros for Drivers and SKU's
-#define LAN8814_DEF_DRV_ID      0x221660 // default PHY ID stored in Reg 2 and 3
-#define LAN8814_INT_PHY_DRV_ID  0x221670 // PHY ID stored in Reg 2 and 3 for Internal PHY inside LAN9668
-#define LAN8842_DRV_ID          0x2216c0 // PHY ID of LAN8842 and LAN8832
+#define LAN8814_DEF_DRV_ID      0x221660U // default PHY ID stored in Reg 2 and 3
+#define LAN8814_INT_PHY_DRV_ID  0x221670U // PHY ID stored in Reg 2 and 3 for Internal PHY inside LAN9668
+#define LAN8842_DRV_ID          0x2216c0U // PHY ID of LAN8842 and LAN8832
 
-#define LAN8814_SKU    0x8814
-#define LAN8804_SKU    0x8804
-#define LAN8832_SKU    0x8832
+#define LAN8814_SKU    0x8814U
+#define LAN8804_SKU    0x8804U
+#define LAN8832_SKU    0x8832U
 
 // Direct registers
 
