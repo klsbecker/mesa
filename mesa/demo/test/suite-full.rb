@@ -12,6 +12,7 @@ run %w{./suite_examples.rb}
 run %w{./suite_l2_basic.rb}
 run %w{./suite_l3_rt.rb}
 run %w{./suite_packet.rb}
+run %w{./suite_phy.rb}
 run %w{./suite_port.rb}
 run %w{./suite_protection.rb}
 run %w{./suite_qos.rb}

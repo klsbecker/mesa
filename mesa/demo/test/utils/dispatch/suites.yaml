@@ -22,6 +22,7 @@ suites_nightly:
   - suite_l2_basic.rb
   - suite_l3_rt.rb
   - suite_packet.rb
+  - suite_phy.rb
   - suite_port.rb
   - suite_protection.rb
   - suite_qos.rb
