@@ -14,7 +14,6 @@
 # `git show origin/<branch>:suites.yaml`.
 
 systems:
-  # dk-t34, Fireant systems
   - system: dk-t34-0
     dut: jr2
     branch: master
@@ -31,7 +30,6 @@ systems:
     dut: fireant
     branch: master
     image: arm64/mesa/demo/arm64_vsc7558TSN.itb
-  # dk-t35, MIPS systems
   - system: dk-t35-0
     dut: lan966x
     branch: master
@@ -48,7 +46,6 @@ systems:
     dut: luton10
     branch: master
     image: mipsel/mesa/demo/mipsel_vsc7428.mfi
-  # dk-t36, Laguna systems
   - system: dk-t36-1
     dut: lan966x
     branch: master
@@ -65,7 +62,6 @@ systems:
     dut: lan969x
     branch: master
     image: arm64/mesa/demo/arm64_lan9698RED.itb
-  # dk-t38, Hallberg FPGA systems
   - system: dk-t38-0
     dut: lan932x
     branch: master.hallberg-2
