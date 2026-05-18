@@ -6,28 +6,83 @@
 // ============================================================================================================
 
 // Jenkins-specific scheduling config
-def TEST_NIGHTLY_BRANCH_NAME = 'master.nightly'
-def TEST_NIGHTLY_TIME_HOUR   = 20
-def TEST_NIGHTLY_TIME_MIN    = 0
-def PIPELINE_TIMEOUT_HOURS   = 6
+def TEST_NIGHTLY_BRANCH_NAME    = 'master.nightly'
+def TEST_NIGHTLY_TIME_HOUR      = 20
+def TEST_NIGHTLY_TIME_MIN       = 0
+def PIPELINE_TIMEOUT_HOURS      = 6
+// Fallback for branches that omit a `timeout:` field in their suites.yaml.
+def DEFAULT_SUITE_TIMEOUT_SECS  = 18000  // 5 hours
+
+// ============================================================================================================
+// Helper functions
+// ============================================================================================================
 
 // Run a named suite type ("nightly" or "basic") on all systems in parallel,
 // all writing results into the same shared session directory.
+//
+// Configuration lives in two files:
+//   systems.yaml — hardware inventory (DUTs + per-system branch). Read once
+//                  from the controller workspace. Authoritative copy lives on
+//                  the branch the controller has checked out at this point
+//                  (master, after the "Prepare for tests (nightly)" stage).
+//   suites.yaml  — per-branch test recipe (suite list, timeout). Read via
+//                  `git show origin/<branch>:.../suites.yaml` for each
+//                  system, so each branch controls what runs on its DUTs.
 def runTestsOnAllSystems = { suiteType, sessionDir ->
-    def config    = readYaml file: 'mesa/demo/test/utils/dispatch/test-config.yaml'
-    def suites    = config["suites_${suiteType}"]
-    def suiteArgs = suites.collect { "-T \"${it}\"" }.join(" ")
-    // Run all systems in parallel.
-    // Each system gets its own console log file and is wrapped in catchError so
-    // one DUT failure does not abort siblings — every system's log survives.
-    parallel config.systems.collectEntries { s ->
+
+    // Top level systems configuration is read always from master branch
+    def systems = readYaml(file: 'mesa/demo/test/utils/dispatch/systems.yaml').systems
+
+    // Fan out across DUTs in parallel — DUTs are independent; one slow DUT must not block siblings
+    parallel systems.collectEntries { s ->
         ["${s.system} (${s.dut})", {
+            // Per-DUT catchError — one DUT failing must not abort siblings
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE', message: "Tests failed for ${s.system} (${s.dut})") {
                 container('pod-mesa-base') {
-                    def branchArg = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
-                    def logFile = "${sessionDir}/${s.system}.console.log"
+
+                    // Pull suite list from this DUT's branch via `git show` — branches diverge in suites
+                    def suitesTextRaw = sh(
+                        returnStdout: true,
+                        script: "git show 'origin/${s.branch}:mesa/demo/test/utils/dispatch/suites.yaml'"
+                    )
+
+                    def suitesCfg     = readYaml text: suitesTextRaw
+                    def systemSuites  = suitesCfg["suites_${suiteType}"] ?: []
+                    def systemTimeout = suitesCfg.timeout ?: DEFAULT_SUITE_TIMEOUT_SECS
+                    def suiteArgs     = systemSuites.collect { "-T \"${it}\"" }.join(" ")
+                    def branchArg     = (suiteType == 'nightly') ? "--branch \"${s.branch}\"" : ""
+
+                    // Per-system console log — archived as artifact, survives even if build's main log is lost
+                    def logFile       = "${sessionDir}/${s.system}.console.log"
+
                     sh "mkdir -p '${sessionDir}'"
-                    def rc = sh(returnStatus: true, script: """set -o pipefail; ./mesa/demo/test/utils/dispatch/run-suites-on.rb -s "${s.system}" -i "${s.image}" -o "${sessionDir}" -t "${config.timeout}" ${suiteArgs} ${branchArg} 2>&1 | tee "${logFile}" """)
+                    // Breadcrumb line per DUT — grep the console for `[<system>]` to see what was dispatched
+                    echo "[${s.system}] branch=${s.branch} suites=${systemSuites} timeout=${systemTimeout}"
+
+                    // Loud failure on empty list — silent skip would mask "forgot to declare suites_${suiteType}"
+                    if (systemSuites.isEmpty()) {
+                        unstable("No suites_${suiteType} declared on branch ${s.branch} for ${s.system} (${s.dut})")
+                        return
+                    }
+
+                    // Create arguments 
+                    def cmdParts = [
+                        './mesa/demo/test/utils/dispatch/run-suites-on.rb',
+                        "-s \"${s.system}\"",
+                        "-i \"${s.image}\"",
+                        "-o \"${sessionDir}\"",
+                        "-t \"${systemTimeout}\"",
+                        suiteArgs,
+                        branchArg,
+                    ]
+                    def cmd = cmdParts.join(' ')
+
+                    // pipefail keeps run-suites-on.rb's exit code (tee always returns 0); tee → log file + console
+                    def rc = sh(returnStatus: true, script: """
+                        set -o pipefail
+                        ${cmd} 2>&1 | tee "${logFile}" """)
+
+                    // Exit 7 = DUT reservation timeout (env issue, not test failure) — unstable, not error
                     if (rc == 7) {
                         unstable("Reserve timed out for ${s.system} (${s.dut})")
                     } else if (rc != 0) {
@@ -39,10 +94,21 @@ def runTestsOnAllSystems = { suiteType, sessionDir ->
     }
 }
 
-// Generate combined Allure report from all system results and publish
+// Generate combined Allure report from all system results and publish.
+// Suite list is the UNION of per-branch suites_${suiteType} across every
+// system, so the report covers everything that may have run.
 def generateReport = { suiteType, sessionDir ->
-    def config     = readYaml file: 'mesa/demo/test/utils/dispatch/test-config.yaml'
-    def suiteArgs  = config["suites_${suiteType}"].collect { "--suite \"${it}\"" }.join(" ")
+    def systems   = readYaml(file: 'mesa/demo/test/utils/dispatch/systems.yaml').systems
+    def allSuites = [] as Set
+    systems.each { s ->
+        def text = sh(
+            returnStdout: true,
+            script: "git show 'origin/${s.branch}:mesa/demo/test/utils/dispatch/suites.yaml'"
+        )
+        def cfg = readYaml text: text
+        allSuites.addAll(cfg["suites_${suiteType}"] ?: [])
+    }
+    def suiteArgs = allSuites.collect { "--suite \"${it}\"" }.join(" ")
     withCredentials([sshUserPrivateKey(credentialsId: 'lon-vm-ung-mdi', keyFileVariable: 'keyfile')]) {
         sh """./mesa/demo/test/utils/dispatch/generate-report.rb -o "${sessionDir}" ${suiteArgs} --publish --report-only --keyfile \$keyfile"""
     }

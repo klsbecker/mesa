@@ -20,12 +20,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 RUNNER="${SCRIPT_DIR}/utils/dispatch/run-suites-on.rb"
 REPORT="${SCRIPT_DIR}/utils/dispatch/generate-report.rb"
-CONFIG="${SCRIPT_DIR}/utils/dispatch/test-config.yaml"
+SYSTEMS_CFG="${SCRIPT_DIR}/utils/dispatch/systems.yaml"
+SUITES_CFG="${SCRIPT_DIR}/utils/dispatch/suites.yaml"
 
 usage() {
     local duts
-    duts=$(ruby -r yaml -e "puts YAML.load_file('${CONFIG}')['systems'].map { |s| s['dut'] }.uniq.sort.join(' | ')" 2>/dev/null) \
-        || duts="see ${CONFIG}"
+    duts=$(ruby -r yaml -e "puts YAML.load_file('${SYSTEMS_CFG}')['systems'].map { |s| s['dut'] }.uniq.sort.join(' | ')" 2>/dev/null) \
+        || duts="see ${SYSTEMS_CFG}"
     cat <<EOF
 Usage: $0 [--clean] <dut> [<system>] <test_script> [<test_script> ...]
 
@@ -105,12 +106,13 @@ fi
 # -------------------------------------------------------
 
 resolved=$(ruby -r yaml -e "
-  cfg  = YAML.load_file(ARGV[0])
-  dut  = ARGV[1]
-  forced = ARGV[2]
-  candidates = cfg['systems'].select { |s| s['dut'] == dut }
+  systems_cfg = YAML.load_file(ARGV[0])
+  suites_cfg  = YAML.load_file(ARGV[1])
+  dut         = ARGV[2]
+  forced      = ARGV[3]
+  candidates  = systems_cfg['systems'].select { |s| s['dut'] == dut }
   if candidates.empty?
-    duts = cfg['systems'].map { |s| s['dut'] }.uniq.sort.join(', ')
+    duts = systems_cfg['systems'].map { |s| s['dut'] }.uniq.sort.join(', ')
     abort \"Unknown dut '#{dut}'. Available: #{duts}\"
   end
   entry = forced.empty? ? candidates.first \
@@ -121,8 +123,8 @@ resolved=$(ruby -r yaml -e "
   end
   puts entry['system']
   puts entry['image']
-  puts cfg['timeout']
-" "${CONFIG}" "${dut}" "${forced_system}") || exit 1
+  puts (suites_cfg['timeout'] || 18000)
+" "${SYSTEMS_CFG}" "${SUITES_CFG}" "${dut}" "${forced_system}") || exit 1
 
 system=$(echo "$resolved"       | sed -n '1p')
 image_yaml=$(echo "$resolved"   | sed -n '2p')

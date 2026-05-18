@@ -1,0 +1,29 @@
+# Copyright (c) 2004-2026 Microchip Technology Inc. and its subsidiaries.
+# SPDX-License-Identifier: MIT
+#
+# Per-branch test recipe.  Owns:
+#   - suites_basic   — suites to run on every commit / PR build
+#   - suites_nightly — suites to run on the scheduled nightly pipeline
+#   - timeout        — per-suite timeout in seconds (optional)
+#
+# Read by Jenkins via `git show origin/<branch>:suites.yaml` for each system,
+# where <branch> is the branch declared for that system in `systems.yaml`.
+# So a branch's own copy of this file controls what runs on the DUT(s) that
+# point at it.  See companion `systems.yaml` for hardware inventory.
+
+timeout: 18000  # 5 hours per suite
+
+suites_basic: []  # Add suites here when basic per-commit tests are desired
+
+suites_nightly:
+  - suite_acl.rb
+  - suite_examples.rb
+  - suite_hqos.rb
+  - suite_l2_basic.rb
+  - suite_l3_rt.rb
+  - suite_packet.rb
+  - suite_port.rb
+  - suite_protection.rb
+  - suite_qos.rb
+  - suite_ts.rb
+  - suite_vop.rb

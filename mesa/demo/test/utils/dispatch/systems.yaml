@@ -1,35 +1,17 @@
 # Copyright (c) 2004-2026 Microchip Technology Inc. and its subsidiaries.
 # SPDX-License-Identifier: MIT
-
-# -------------------------------------------------------------------------------------------------
-# Configs
-# -------------------------------------------------------------------------------------------------
-
-timeout: 18000 # 5 hours
-
-# -------------------------------------------------------------------------------------------------
-# Suites
-# -------------------------------------------------------------------------------------------------
-
-suites_basic: []  # Add suites here when basic per-commit tests are desired
-
-suites_nightly:
-  - suite_acl.rb
-  - suite_examples.rb
-  - suite_hqos.rb
-  - suite_l2_basic.rb
-  - suite_l3_rt.rb
-  - suite_packet.rb
-  - suite_port.rb
-  - suite_protection.rb
-  - suite_qos.rb
-  - suite_ts.rb
-  - suite_vop.rb
-
-
-# -------------------------------------------------------------------------------------------------
-# Systems
-# -------------------------------------------------------------------------------------------------
+#
+# Hardware inventory for the dispatch system.
+#
+# This file is the AUTHORITATIVE list of which DUTs the nightly pipeline
+# tests on, and which branch's code each DUT runs.  It is read by Jenkins
+# from the controller workspace (i.e. master, after the "Prepare for tests
+# (nightly)" stage) — copies of this file living on other branches are
+# ignored.
+#
+# Per-branch suite lists (what tests to run, timeouts, etc.) live in the
+# companion file `suites.yaml`, which IS read per-branch via
+# `git show origin/<branch>:suites.yaml`.
 
 systems:
   # dk-t34, Fireant systems
