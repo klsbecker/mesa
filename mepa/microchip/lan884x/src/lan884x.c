@@ -5,6 +5,7 @@
 
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
+#include <phy_lib.h>
 
 #include "../../common/include/lan8814_registers.h" // Re-use LAN8814 register defines
 #include "lan884x_private.h"
@@ -149,17 +150,90 @@ static mesa_rc pfe_conf_set(mepa_device_t      *dev,
                             const mepa_conf_t  *config)
 {
     lan884x_data_t *data = (lan884x_data_t *)dev->data;
+    uint16_t old_adv, new_adv;
+    uint16_t val;
+    mepa_bool_t restart_aneg = false;
+    mepa_rc rc = MEPA_RC_OK;
+
     MEPA_ENTER(dev);
-    data->conf = *config;
-    MEPA_EXIT(dev);
-
-    if (config->admin.enable) {
-        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, 0, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
+    if (!config->admin.enable) {
+        rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN, BMCR_PDOWN);
     } else {
-        (void)pfe_direct_reg_wr(dev, LAN8814_BASIC_CONTROL, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN, LAN8814_F_BASIC_CTRL_SOFT_POW_DOWN);
-    }
+        if (config->speed == MEPA_SPEED_AUTO || config->speed == MEPA_SPEED_1G) {
+            if (config->admin.enable != data->conf.admin.enable) {
+                restart_aneg = true;
+            }
 
-    return MESA_RC_OK;
+            /* Check the 1000 advertise */
+            rc = phy_reg_rd(dev, MII_CTRL1000, &old_adv);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
+            new_adv = config->aneg.speed_1g_fdx ? CTRL1000_1000FULL : 0U;
+            if (config->man_neg != MEPA_MANUAL_NEG_DISABLED) {
+                new_adv |= (config->man_neg == MEPA_MANUAL_NEG_REF) ? CTRL1000_AS_MASTER : 0U;
+                new_adv |= CTRL1000_ENABLE_MASTER;
+            }
+
+            if (old_adv != new_adv) {
+                restart_aneg = true;
+
+                rc = phy_reg_wr(dev, MII_CTRL1000, new_adv);
+                if (rc != MEPA_RC_OK) {
+                    goto out;
+                }
+            }
+
+            /* Check the 10/100 advertise */
+            rc = phy_reg_rd(dev, MII_ADVERTISE, &old_adv);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
+            new_adv = (config->aneg.tx_remote_fault ? ADVERTISE_RFAULT : 0U) |
+                      (config->flow_control ? ADVERTISE_PAUSE_ASYM : 0U) |
+                      (config->flow_control ? ADVERTISE_PAUSE_CAP : 0U) |
+                      (config->aneg.speed_100m_fdx ? ADVERTISE_100FULL : 0U) |
+                      (config->aneg.speed_100m_hdx ? ADVERTISE_100HALF : 0U) |
+                      (config->aneg.speed_10m_fdx ? ADVERTISE_10FULL : 0U) |
+                      (config->aneg.speed_10m_hdx ? ADVERTISE_10HALF : 0U) |
+                      ADVERTISE_CSMA;
+
+            if (old_adv != new_adv) {
+                restart_aneg = true;
+
+                rc = phy_reg_wr(dev, MII_ADVERTISE, new_adv);
+                if (rc != MEPA_RC_OK) {
+                    goto out;
+                }
+            }
+
+            rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN | BMCR_ANENABLE,
+                                BMCR_ANENABLE);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
+            if (restart_aneg) {
+                rc = phy_reg_modify(dev, MII_BMCR, BMCR_ANRESTART, BMCR_ANRESTART);
+            }
+        } else {
+            if (config->speed == MEPA_SPEED_UNDEFINED) {
+                goto out;
+            }
+
+            val = (config->speed == MEPA_SPEED_100M ? BMCR_SPEED100 : 0U) |
+                  (config->fdx ? BMCR_FULLDPLX : 0U);
+            rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN | BMCR_ANENABLE | BMCR_SPEED1000 |
+                                BMCR_SPEED100 | BMCR_FULLDPLX, val);
+        }
+    }
+    data->conf = *config;
+
+out:
+    MEPA_EXIT(dev);
+    return rc;
 }
 
 static mesa_rc pfe_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
