@@ -2448,68 +2448,70 @@ mepa_rc lan80xx_serdes_configuration(mepa_device_t *dev, mepa_port_no_t port_no,
 static mepa_rc lan80xx_fec_configuration(mepa_device_t *dev, mepa_port_no_t port_no)
 {
     phy25g_phy_state_t *data = (phy25g_phy_state_t *)dev->data;
-    u32 val = 0, h_val = 0, l_val = 0;
+    u32 val = 0;
+    mepa_bool_t config_host = FALSE;
+    mepa_bool_t config_line = FALSE;
 
-    if (data->conf.conf_25g.base_r_10gfec || data->conf.conf_25g.base_r_25gfec) {
-        val = (LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ENA_RX |
-               LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ENA_TX |
-               LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ERR_ENA);
-        T_I(MEPA_TRACE_GRP_GEN, "BASE-R FEC Enabled on port : %d\n", port_no);
-    } else {
-        val = 0;
-        T_I(MEPA_TRACE_GRP_GEN, "BASE-R FEC Disabled on port : %d\n", port_no);
-    }
+    /* Determine which side(s) to configure based on advertise_dir.
+     * This allows configuring different FEC modes on each side by calling
+     * conf_set twice with different advertise_dir values. */
     switch (data->conf.aneg.advertise_dir) {
     case MEPA_ADV_SIDE_LINE:
-        l_val = val;
+        config_line = TRUE;
         break;
     case MEPA_ADV_SIDE_HOST:
-        h_val = val;
+        config_host = TRUE;
         break;
     case MEPA_ADV_SIDE_HOST_LINE:
-        h_val = l_val = val;
+        config_host = TRUE;
+        config_line = TRUE;
         break;
     default:
-        h_val = l_val = 0;
+        config_host = TRUE;
+        config_line = TRUE;
         data->conf.conf_25g.base_r_10gfec = 0;
         data->conf.conf_25g.base_r_25gfec = 0;
-        break;
-    }
-
-    LAN80XX_CSR_WR(dev, port_no, LAN80XX_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL, h_val);
-
-    LAN80XX_CSR_WR(dev, port_no, LAN80XX_LINE_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL, l_val);
-
-    val = 0;
-    if (data->conf.conf_25g.rs_fec_25g) {
-        val = (LAN80XX_M_HOST_PCS_CFG_PCS25G_RSFEC_CFG_FEC91_ENA | LAN80XX_M_HOST_PCS_CFG_PCS25G_RSFEC_CFG_FEC91_RADAPT_ENA);
-        T_I(MEPA_TRACE_GRP_GEN, "25G RS FEC Enabled on port : %d\n", port_no);
-    } else {
-        val = 0;
-        T_I(MEPA_TRACE_GRP_GEN, "25G RS FEC Disabled on port : %d\n", port_no);
-    }
-    switch (data->conf.aneg.advertise_dir) {
-    case MEPA_ADV_SIDE_LINE:
-        l_val = val;
-        h_val = 0;
-        break;
-    case MEPA_ADV_SIDE_HOST:
-        h_val = val;
-        l_val = 0;
-        break;
-    case MEPA_ADV_SIDE_HOST_LINE:
-        h_val = l_val = val;
-        break;
-    default:
-        h_val = l_val = 0;
         data->conf.conf_25g.rs_fec_25g = 0;
         break;
     }
 
-    LAN80XX_CSR_WR(dev, port_no, LAN80XX_HOST_PCS_CFG_PCS25G_RSFEC_CFG, h_val);
+    /* Base-R FEC Configuration */
+    if (data->conf.conf_25g.base_r_10gfec || data->conf.conf_25g.base_r_25gfec) {
+        val = (LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ENA_RX |
+               LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ENA_TX |
+               LAN80XX_M_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL_FEC74_ERR_ENA);
+    } else {
+        val = 0;
+    }
 
-    LAN80XX_CSR_WR(dev, port_no, LAN80XX_LINE_PCS_CFG_PCS25G_RSFEC_CFG, l_val);
+    if (config_host) {
+        LAN80XX_CSR_WR(dev, port_no, LAN80XX_HOST_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL, val);
+        T_I(MEPA_TRACE_GRP_GEN, "BASE-R FEC %s on HOST side, port: %d\n", val ? "Enabled" : "Disabled", port_no);
+    }
 
+    if (config_line) {
+        LAN80XX_CSR_WR(dev, port_no, LAN80XX_LINE_PCS_CFG_PCS25G_BASE_R_FEC_CONTROL, val);
+        T_I(MEPA_TRACE_GRP_GEN, "BASE-R FEC %s on LINE side, port: %d\n", val ? "Enabled" : "Disabled", port_no);
+    }
+
+    /* RS-FEC Configuration */
+    if (data->conf.conf_25g.rs_fec_25g) {
+        val = (LAN80XX_M_HOST_PCS_CFG_PCS25G_RSFEC_CFG_FEC91_ENA | LAN80XX_M_HOST_PCS_CFG_PCS25G_RSFEC_CFG_FEC91_RADAPT_ENA);
+    } else {
+        val = 0;
+    }
+
+    if (config_host) {
+        LAN80XX_CSR_WR(dev, port_no, LAN80XX_HOST_PCS_CFG_PCS25G_RSFEC_CFG, val);
+        T_I(MEPA_TRACE_GRP_GEN, "RS-FEC %s on HOST side, port: %d\n", val ? "Enabled" : "Disabled", port_no);
+    }
+
+    if (config_line) {
+        LAN80XX_CSR_WR(dev, port_no, LAN80XX_LINE_PCS_CFG_PCS25G_RSFEC_CFG, val);
+        T_I(MEPA_TRACE_GRP_GEN, "RS-FEC %s on LINE side, port: %d\n", val ? "Enabled" : "Disabled", port_no);
+    }
+
+    /* CWM RADAPT Configuration - apply to both sides always */
     LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PCS_CFG_CWM_RADAPT_CFG,
                     LAN80XX_F_HOST_PCS_CFG_CWM_RADAPT_CFG_CWM_RADAPT_MIN_IFG(0x1) |
                     LAN80XX_F_HOST_PCS_CFG_CWM_RADAPT_CFG_CWM_RADAPT_ADD_LVL(0x3) |
@@ -2530,30 +2532,35 @@ static mepa_rc lan80xx_fec_configuration(mepa_device_t *dev, mepa_port_no_t port
         return MEPA_RC_OK;
     }
 
-    /* MEPA-1028 SW Workarround to avoid hanging of RA FIFO when RSFEC in Enabled */
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_SER_RST,
-                    LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST,
-                    LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST);
+    /* MEPA-1028 SW Workaround to avoid hanging of RA FIFO when RSFEC is Enabled.
+     * Only apply to the side(s) where RS-FEC is being configured. */
+    if (config_line) {
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_SER_RST,
+                        LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST,
+                        LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_DES_RST,
-                    LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST,
-                    LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_DES_RST,
+                        LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST,
+                        LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_SER_RST, 0, LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_SER_RST, 0, LAN80XX_M_LINE_PMA_SD_SER_RST_PCS_KR_TX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_DES_RST, 0, LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_LINE_PMA_SD_DES_RST, 0, LAN80XX_M_LINE_PMA_SD_DES_RST_PCS_KR_RX_RST);
+    }
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_SER_RST,
-                    LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST,
-                    LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST);
+    if (config_host) {
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_SER_RST,
+                        LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST,
+                        LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_DES_RST,
-                    LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST,
-                    LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_DES_RST,
+                        LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST,
+                        LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_SER_RST, 0, LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_SER_RST, 0, LAN80XX_M_HOST_PMA_SD_SER_RST_PCS_KR_TX_RST);
 
-    LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_DES_RST, 0, LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST);
+        LAN80XX_CSR_WRM(port_no, LAN80XX_HOST_PMA_SD_DES_RST, 0, LAN80XX_M_HOST_PMA_SD_DES_RST_PCS_KR_RX_RST);
+    }
 
     return MEPA_RC_OK;
 }
