@@ -282,6 +282,7 @@ static void cli_cmd_phy_warmstart_perform(cli_req_t *req)
             case PHY_FAMILY_TESLA:
             case PHY_FAMILY_KSZ:
             case PHY_FAMILY_LAN8814:
+            case PHY_FAMILY_LAN8842:
                 // Indy - Not supported
                 break;
 

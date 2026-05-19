@@ -36,6 +36,9 @@
 /* LAN8814 PHY Part Number */
 #define PHY_TYPE_8814 8814
 
+/* LAN8842 PHY Part Number */
+#define PHY_TYPE_8842 8841
+
 /* KSZ PHY Part number */
 #define PHY_TYPE_9031 9031
 #define PHY_TYPE_9131 9131
@@ -52,6 +55,7 @@ typedef enum {
     PHY_FAMILY_LAN8814,
     PHY_FAMILY_MALIBU_25G,
     PHY_FAMILY_KSZ,
+    PHY_FAMILY_LAN8842,
 } phy_family_t;
 
 typedef struct {
