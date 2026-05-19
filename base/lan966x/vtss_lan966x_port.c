@@ -308,10 +308,10 @@ static vtss_rc lan966x_port_type_calc(vtss_state_t       *vtss_state,
         break;
     case VTSS_PORT_MUX_MODE_2:
         // 2xCu/1G + 1x2,5G + 2xRGMII
-        *port_type = PORT_TYPE_SD;
         *idx = 2;
         if (port < 2) {
             // Port 0/1: Cu/1G
+            *port_type = PORT_TYPE_CUPHY;
             *idx = port;
         } else if (port < 4) {
             // Port 2/3: RGMII
@@ -321,10 +321,10 @@ static vtss_rc lan966x_port_type_calc(vtss_state_t       *vtss_state,
         break;
     case VTSS_PORT_MUX_MODE_3:
         // 2xCu/1G + 2xRGMII + 1xQSGMII (LAN9668)
-        *port_type = PORT_TYPE_SD;
         *idx = 2;
         if (port < 2) {
             // Port 0/1: Cu/1G
+            *port_type = PORT_TYPE_CUPHY;
             *idx = port;
         } else if (port < 4) {
             // Port 2/3: RGMII
@@ -332,6 +332,7 @@ static vtss_rc lan966x_port_type_calc(vtss_state_t       *vtss_state,
             *idx = (port - 2);
         } else if (lan9668) {
             // Port 4-7: QSGMII
+            *port_type = PORT_TYPE_SD;
             *mode_req = VTSS_SERDES_MODE_QSGMII;
         }
         break;
