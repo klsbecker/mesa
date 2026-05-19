@@ -205,6 +205,11 @@ static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
                 }
             }
 
+            rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN | BMCR_ANENABLE, BMCR_ANENABLE);
+            if (rc != MEPA_RC_OK) {
+                goto out;
+            }
+
             if (restart_aneg) {
                 rc = phy_reg_modify(dev, MII_BMCR, BMCR_ANRESTART, BMCR_ANRESTART);
             }
