@@ -22,7 +22,7 @@ def fail_send_traffic(idx)
     frame_smac = "00:00:00:00:0#{idx}:01"
 
     # traffic send on this port should not go anywhere
-    cmd = "sudo ef -t 1000 name f#{idx} eth smac #{frame_smac} "
+    cmd = "ef -t 1000 name f#{idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[idx]} name f#{idx} "
     cmd += "rx #{$ts.pc.p[(idx + 1) % 4]} "
@@ -36,7 +36,7 @@ def fail_send_traffic(idx)
 
     # traffic send on other ports should go to all the ports except to the idx
     # port
-    cmd = "sudo ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
+    cmd = "ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[other_idx]} name f#{other_idx} "
     cmd += "rx #{$ts.pc.p[(other_idx + 1) % 4]} name f#{other_idx} "
@@ -49,7 +49,7 @@ def send_traffic(idx)
     frame_smac = "00:00:00:00:0#{idx}:01"
 
     # traffic send on this port should not go anywhere
-    cmd = "sudo ef -t 1000 name f#{idx} eth smac #{frame_smac} "
+    cmd = "ef -t 1000 name f#{idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[idx]} name f#{idx} "
     cmd += "rx #{$ts.pc.p[(idx + 1) % 4]} name f#{idx} "
@@ -63,7 +63,7 @@ def send_traffic(idx)
 
     # traffic send on other ports should go to all the ports except to the idx
     # port
-    cmd = "sudo ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
+    cmd = "ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[other_idx]} name f#{other_idx} "
     cmd += "rx #{$ts.pc.p[(other_idx + 1) % 4]} name f#{other_idx} "
