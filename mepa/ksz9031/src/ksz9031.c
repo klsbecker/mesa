@@ -153,7 +153,7 @@ static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
     mepa_rc rc = MEPA_RC_OK;
 
     if (!config->admin.enable) {
-        rc = phy_reg_wr(dev, MII_BMCR, BMCR_PDOWN);
+        rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN, BMCR_PDOWN);
     } else {
         if (config->speed == MEPA_SPEED_AUTO || config->speed == MEPA_SPEED_1G) {
             if (config->admin.enable != data->conf.admin.enable) {
