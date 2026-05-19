@@ -220,7 +220,8 @@ static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
 
             val = (config->speed == MEPA_SPEED_100M ? BMCR_SPEED100 : 0U) |
                   (config->fdx ? BMCR_FULLDPLX : 0U);
-            rc = phy_reg_wr(dev, MII_BMCR, val);
+            rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN | BMCR_ANENABLE | BMCR_SPEED1000 |
+                                BMCR_SPEED100 | BMCR_FULLDPLX, val);
         }
     }
 
