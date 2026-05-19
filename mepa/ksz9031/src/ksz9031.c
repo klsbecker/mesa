@@ -118,6 +118,10 @@ static mepa_rc ksz_read_status(mepa_device_t  *dev)
         phydev->speed = MEPA_SPEED_10M;
     }
 
+    if (phydev->link == false) {
+        phydev->speed = MEPA_SPEED_UNDEFINED;
+    }
+
     return MEPA_RC_OK;
 }
 
