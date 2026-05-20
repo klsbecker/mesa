@@ -25,12 +25,13 @@ def fail_send_traffic(idx)
     cmd = "ef -t 1000 name f#{idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[idx]} name f#{idx} "
-    cmd += "rx #{$ts.pc.p[(idx + 1) % 4]} "
-    cmd += "rx #{$ts.pc.p[(idx + 2) % 4]} "
-    cmd += "rx #{$ts.pc.p[(idx + 3) % 4]}"
+    $ts.dut.p.each_index do |i|
+        next if i == idx
+        cmd += "rx #{$ts.pc.p[i]} "
+    end
     $ts.pc.try cmd
 
-    other_idx = (idx + 1) % 4
+    other_idx = (idx + 1) % $ts.pc.p.length()
 
     frame_smac = "00:00:00:00:0#{other_idx}:01"
 
@@ -39,9 +40,15 @@ def fail_send_traffic(idx)
     cmd = "ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[other_idx]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 1) % 4]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 2) % 4]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 3) % 4]}"
+    $ts.dut.p.each_index do |i|
+        next if i == other_idx
+        if i == idx
+            cmd += "rx #{$ts.pc.p[i]} "
+        else
+            cmd += "rx #{$ts.pc.p[i]} name f#{other_idx} "
+        end
+
+    end
     $ts.pc.try cmd
 end
 
@@ -52,12 +59,13 @@ def send_traffic(idx)
     cmd = "ef -t 1000 name f#{idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[idx]} name f#{idx} "
-    cmd += "rx #{$ts.pc.p[(idx + 1) % 4]} name f#{idx} "
-    cmd += "rx #{$ts.pc.p[(idx + 2) % 4]} name f#{idx} "
-    cmd += "rx #{$ts.pc.p[(idx + 3) % 4]} name f#{idx} "
+    $ts.dut.p.each_index do |i|
+        next if i == idx
+        cmd += "rx #{$ts.pc.p[i]} name f#{idx} "
+    end
     $ts.pc.try cmd
 
-    other_idx = (idx + 1) % 4
+    other_idx = (idx + 1) % $ts.pc.p.length()
 
     frame_smac = "00:00:00:00:0#{other_idx}:01"
 
@@ -66,9 +74,10 @@ def send_traffic(idx)
     cmd = "ef -t 1000 name f#{other_idx} eth smac #{frame_smac} "
     cmd += "et 0x0800 data pattern cnt 64 "
     cmd += "tx #{$ts.pc.p[other_idx]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 1) % 4]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 2) % 4]} name f#{other_idx} "
-    cmd += "rx #{$ts.pc.p[(other_idx + 3) % 4]} name f#{other_idx}"
+    $ts.dut.p.each_index do |i|
+        next if i == other_idx
+        cmd += "rx #{$ts.pc.p[i]} name f#{other_idx} "
+    end
     $ts.pc.try cmd
 end
 
