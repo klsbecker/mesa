@@ -355,7 +355,7 @@ static mepa_rc pfe_reset(mepa_device_t *dev, const mepa_reset_param_t *rst_conf)
         // The reset of the PHY will reset also RMII delays which are based on
         // the MAC interface. Therfore after a reset of the PHY it is required
         // to set again the interface to set the correct delays.
-        pfe_if_set(dev, data->mac_if);
+        (void)pfe_if_set(dev, data->mac_if);
     }
     MEPA_MSLEEP(1);
 
