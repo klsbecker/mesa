@@ -6,16 +6,6 @@
 
 / {
 	fragment@0 {
-		target-path = "/";
-		__overlay__ {
-			meba {
-				// Everthing is empty here on purpose as this is
-				// just a place holder for u-boot.
-			};
-		};
-	};
-
-	fragment@1 {
 		target-path = "/axi@600000000/spi@600104000";
 		__overlay__ {
 			rx-sample-delay-ns = <35>;  /* Tune for speed */
