@@ -1044,28 +1044,76 @@ typedef mesa_rc (*conf_func_t)(meba_sfp_device_t *dev, const meba_sfp_driver_con
 #define SFP_MSA_25GBASE_CR_FC 0xC
 #define SFP_MSA_25GBASE_CR    0xD
 
-static tr_func_t tr_func_get(uint8_t *rom)
+// Nominal bit-rate codes (byte 12, units of 100 MBd) used as decision thresholds
+#define SFP_BR_100M    1   // 100 MBd
+#define SFP_BR_FE      2   // 200 MBd  (Fast Ethernet variant)
+#define SFP_BR_1G      10  // 1.0 GBd
+#define SFP_BR_1200MBD 12  // 1.2 GBd  (ZX-88km low-rate variant)
+#define SFP_BR_1300MBD 13  // 1.3 GBd  (1G ZX-80km, 1000BASE-T CuSFP)
+#define SFP_BR_2G5     25  // 2.5 GBd
+#define SFP_BR_5G      50  // 5 GBd
+#define SFP_BR_10G     100 // 10 GBd
+#define SFP_BR_25G     250 // 25 GBd
+
+// Length-byte sentinels
+#define SFP_LEN_UNSPECIFIED  0x00 // Length field unspecified / not applicable
+#define SFP_LEN_SMF_KM_ZX_80 0x50 // 80 km in byte 14 (SMF, units of km)
+#define SFP_LEN_SMF_KM_ZX_88 0x58 // 88 km in byte 14
+#define SFP_LEN_SMF_100M_MAX 0xFF // Saturated marker in byte 15 (>= 25.5 km)
+#define SFP_LEN_OM_2KM       0xC8 // 2000 m in OM length byte (units of 10 m)
+
+typedef struct {
+    // Vendor strings
+    char vendor_name[20]; // [20..35]
+    char vendor_pn[20];   // [40..55]
+    char vendor_rev[6];   // [56..59]
+    char vendor_sn[20];   // [68..83]
+    char date_code[9];    // [84..91]
+
+    // SFF-8472 A0h byte fields used by the classifier.
+    uint8_t identifier;     // [0]   0x03 = SFP/SFP+
+    uint8_t connector;      // [2]
+    uint8_t eth_10g_compl;  // [3]   masked to 10G/IB/ESCON bits
+    uint8_t eth_compl;      // [6]   Ethernet compliance codes
+    uint8_t cable_tech;     // [8]
+    uint8_t nominal_br;     // [12]  units of 100 MBd
+    uint8_t len_smf_km;     // [14]
+    uint8_t len_smf_100m;   // [15]
+    uint8_t len_om2;        // [16]
+    uint8_t len_om1;        // [17]
+    uint8_t len_om4_or_dac; // [18]
+    uint8_t ext_compl;      // [36]  SFF-8024 extended compliance
+    uint8_t dmi_type;       // [65]
+
+    // Derived flags
+    mesa_bool_t los_implemented; // (dmi_type & 0x02) != 0
+} sfp_rom_t;
+
+static tr_func_t tr_func_get(const sfp_rom_t *const rom)
 {
-    // Values are are based on SFF-8472 - Table 5-3.
-    uint8_t eth_10g = rom[3] & SFM_MSA_10G_ETHER; // SFP+ Ethernet Compliance Codes (only some
-                                                  // codes are relevant)
-    uint8_t eth = rom[6];                         // Ethernet Compliance Codes
-    uint8_t tech = rom[8];                        // SFP+ Cable Technology
-    uint8_t speed = rom[12];                      // Nominal speed [in units of 100MBd]
-    uint8_t eth_25g = rom[36];                    // Extended Compliance Codes
+    const uint8_t eth_10g = rom->eth_10g_compl;
+    const uint8_t eth = rom->eth_compl;
+    const uint8_t tech = rom->cable_tech;
+    const uint8_t speed = rom->nominal_br;
+    const uint8_t eth_25g = rom->ext_compl;
+    const uint8_t len_smf_km = rom->len_smf_km;
+    const uint8_t len_smf_100m = rom->len_smf_100m;
+    const uint8_t len_om2 = rom->len_om2;
+    const uint8_t len_om1 = rom->len_om1;
+    const uint8_t len_om4_or_dac = rom->len_om4_or_dac;
 
     if (tech & SFP_MSA_SFP_PLUS_CABLE) {
-        if (speed >= 100 && speed < 250) {
+        if (speed >= SFP_BR_10G && speed < SFP_BR_25G) {
             return tr_10g_dac_get;
         }
 
-        if (speed >= 250) {
+        if (speed >= SFP_BR_25G) {
             // DAC
             return tr_25g_cr_get;
         }
     }
 
-    if (speed >= 100 && speed < 250 && eth_10g) {
+    if (speed >= SFP_BR_10G && speed < SFP_BR_25G && eth_10g) {
         if (eth_10g & SFP_MSA_10GBASE_ER)
             return tr_10g_er_get;
         if (eth_10g & SFP_MSA_10GBASE_LRM)
@@ -1076,7 +1124,7 @@ static tr_func_t tr_func_get(uint8_t *rom)
     }
 
     // SFF-8024 Extended spec compliance reference (ROM address 36)
-    if (speed >= 250 && eth_25g) {
+    if (speed >= SFP_BR_25G && eth_25g) {
         if (eth_25g == SFP_MSA_25GBASE_SR)
             return tr_25g_sr_get;
         if (eth_25g == SFP_MSA_25GBASE_LR)
@@ -1089,7 +1137,7 @@ static tr_func_t tr_func_get(uint8_t *rom)
     }
 
     // Legacy support (for those 25G SFPs without rom[36] set).
-    if (speed >= 250 && eth_10g) {
+    if (speed >= SFP_BR_25G && eth_10g) {
         if (eth_10g & SFP_MSA_10GBASE_ER)
             return tr_25g_er_get;
         if (eth_10g & SFP_MSA_10GBASE_LRM)
@@ -1100,17 +1148,19 @@ static tr_func_t tr_func_get(uint8_t *rom)
     }
 
     if (eth & SFP_MSA_1000BASE_SX)
-        return (speed >= 0x19) ? tr_2g5_get : tr_1000_sx_get;
+        return (speed >= SFP_BR_2G5) ? tr_2g5_get : tr_1000_sx_get;
     if (eth & SFP_MSA_1000BASE_CX)
-        return (speed >= 0x19) ? tr_2g5_get : tr_1000_cx_get;
+        return (speed >= SFP_BR_2G5) ? tr_2g5_get : tr_1000_cx_get;
     if (eth & SFP_MSA_1000BASE_T)
         return tr_1000_t_get;
     if (eth & SFP_MSA_1000BASE_LX) {
-        if ((speed == 0xd && rom[14] == 0x50 && rom[15] == 0xFF) ||
-            (speed == 0xc && rom[14] == 0x58 && rom[15] == 0xFF)) {
+        if ((speed == SFP_BR_1300MBD && len_smf_km == SFP_LEN_SMF_KM_ZX_80 &&
+             len_smf_100m == SFP_LEN_SMF_100M_MAX) ||
+            (speed == SFP_BR_1200MBD && len_smf_km == SFP_LEN_SMF_KM_ZX_88 &&
+             len_smf_100m == SFP_LEN_SMF_100M_MAX)) {
             return tr_1000_zx_get;
         } else {
-            return (speed >= 0x19) ? tr_2g5_get : tr_1000_lx_get;
+            return (speed >= SFP_BR_2G5) ? tr_2g5_get : tr_1000_lx_get;
         }
     }
 
@@ -1120,30 +1170,32 @@ static tr_func_t tr_func_get(uint8_t *rom)
         return tr_100_lx_get;
 
     if (eth == 0 || (eth & (SFP_MSA_BASE_BX10 | SFP_MSA_BASE_PX))) {
-        if (speed == 1 && rom[14] == 0x50 && rom[15] == 0xFF) {
+        if (speed == SFP_BR_100M && len_smf_km == SFP_LEN_SMF_KM_ZX_80 &&
+            len_smf_100m == SFP_LEN_SMF_100M_MAX) {
             // This is a special SFP which is not defined in SFF-8472, but is
             // requested by a customer. See bugzilla#E2020
             return tr_100_zx_get;
-        } else if (rom[14] == 0x0 && rom[15] == 0x0 && rom[16] == 0xC8 && rom[17] == 0xC8 &&
-                   rom[18] == 0x0) {
+        } else if (len_smf_km == SFP_LEN_UNSPECIFIED && len_smf_100m == SFP_LEN_UNSPECIFIED &&
+                   len_om2 == SFP_LEN_OM_2KM && len_om1 == SFP_LEN_OM_2KM &&
+                   len_om4_or_dac == SFP_LEN_UNSPECIFIED) {
             // This is a special SFP which is not defined in SFF-8472, but is
             // requested by a customer. See bugzilla#E2146
-            if (speed == 0x1) {
+            if (speed == SFP_BR_100M) {
                 return tr_100_sx_get;
-            } else if (speed == 0x2) {
+            } else if (speed == SFP_BR_FE) {
                 return tr_100_fx_get;
             } else {
                 return tr_100_lx_get;
             }
-        } else if (speed < 10) {
+        } else if (speed < SFP_BR_1G) {
             return tr_100_lx_get;
-        } else if (speed < 25) {
+        } else if (speed < SFP_BR_2G5) {
             return tr_1000_x_get;
-        } else if (speed < 50) {
+        } else if (speed < SFP_BR_5G) {
             return tr_2g5_get;
-        } else if (speed < 100) {
+        } else if (speed < SFP_BR_10G) {
             return tr_5g_get;
-        } else if (speed < 250) {
+        } else if (speed < SFP_BR_25G) {
             return tr_10g_get;
         } else {
             return tr_25g_get;
@@ -1252,10 +1304,10 @@ static void sfp_strncpy(char *dest, uint8_t *rom, uint32_t len)
     dest[len] = '\0';
 }
 
-static mesa_bool_t get_sfp_rom(meba_inst_t    meba_inst,
-                               mesa_port_no_t port_no,
-                               uint8_t       *rom,
-                               size_t         rom_size)
+static mesa_bool_t read_raw_sfp_rom(meba_inst_t    meba_inst,
+                                    mesa_port_no_t port_no,
+                                    uint8_t *const rom,
+                                    const size_t   rom_size)
 {
     for (int i = 0; i < 10; ++i) {
         if ((meba_inst->api.meba_sfp_i2c_xfer(meba_inst, port_no, false, 0x50, 0, rom, rom_size,
@@ -1272,28 +1324,60 @@ static mesa_bool_t get_sfp_rom(meba_inst_t    meba_inst,
     return false;
 }
 
+static mesa_bool_t get_sfp_rom(meba_inst_t meba_inst, mesa_port_no_t port_no, sfp_rom_t *const out)
+{
+    uint8_t rom[92];
+
+    if (!read_raw_sfp_rom(meba_inst, port_no, rom, sizeof(rom))) {
+        return false;
+    }
+
+    sfp_strncpy(out->vendor_name, &rom[20], 16);
+    sfp_strncpy(out->vendor_pn, &rom[40], 16);
+    sfp_strncpy(out->vendor_rev, &rom[56], 4);
+    sfp_strncpy(out->vendor_sn, &rom[68], 16);
+    sfp_strncpy(out->date_code, &rom[84], 8);
+
+    out->identifier = rom[0];
+    out->connector = rom[2];
+    out->eth_10g_compl = rom[3] & SFM_MSA_10G_ETHER;
+    out->eth_compl = rom[6];
+    out->cable_tech = rom[8];
+    out->nominal_br = rom[12];
+    out->len_smf_km = rom[14];
+    out->len_smf_100m = rom[15];
+    out->len_om2 = rom[16];
+    out->len_om1 = rom[17];
+    out->len_om4_or_dac = rom[18];
+    out->ext_compl = rom[36];
+    out->dmi_type = rom[65];
+    out->los_implemented = (rom[65] & 0x02) != 0;
+
+    return true;
+}
+
 static mesa_bool_t device_info_get(struct meba_inst       *meba_inst,
                                    mesa_port_no_t          port_no,
                                    meba_sfp_device_info_t *device_info,
                                    tr_func_t              *tr_func)
 {
-    uint8_t   rom[92];
+    sfp_rom_t sfp_rom = {0};
     tr_func_t transceiver_func;
 
-    if (!get_sfp_rom(meba_inst, port_no, rom, sizeof(rom))) {
+    if (!get_sfp_rom(meba_inst, port_no, &sfp_rom)) {
         return false;
     }
 
-    // Fill out vendor details
-    sfp_strncpy(device_info->vendor_name, &rom[20], 16);
-    sfp_strncpy(device_info->vendor_pn, &rom[40], 16);
-    sfp_strncpy(device_info->vendor_rev, &rom[56], 4);
-    sfp_strncpy(device_info->vendor_sn, &rom[68], 16);
-    sfp_strncpy(device_info->date_code, &rom[84], 8);
+    // Copy vendor strings into the public device_info struct.
+    memcpy(device_info->vendor_name, sfp_rom.vendor_name, sizeof(sfp_rom.vendor_name));
+    memcpy(device_info->vendor_pn, sfp_rom.vendor_pn, sizeof(sfp_rom.vendor_pn));
+    memcpy(device_info->vendor_rev, sfp_rom.vendor_rev, sizeof(sfp_rom.vendor_rev));
+    memcpy(device_info->vendor_sn, sfp_rom.vendor_sn, sizeof(sfp_rom.vendor_sn));
+    memcpy(device_info->date_code, sfp_rom.date_code, sizeof(sfp_rom.date_code));
 
-    transceiver_func = tr_func_get(rom);
+    transceiver_func = tr_func_get(&sfp_rom);
     transceiver_func(NULL, &device_info->transceiver);
-    device_info->connector = rom[2];
+    device_info->connector = sfp_rom.connector;
 
     if (tr_func) {
         *tr_func = transceiver_func;
