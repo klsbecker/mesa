@@ -394,6 +394,15 @@ static mesa_rc tr_1000_sx_get(meba_sfp_device_t *dev, meba_sfp_transreceiver_t *
     return MESA_RC_OK;
 }
 
+/* Generic tr_get: returns whatever transceiver type was assigned to the
+ * device at probe time (taken from the SFP ROM by tr_func_get and stored in
+ * device_info->transceiver). */
+static mesa_rc tr_generic_get(meba_sfp_device_t *dev, meba_sfp_transreceiver_t *tr)
+{
+    *tr = dev->info.transceiver;
+    return MESA_RC_OK;
+}
+
 static mesa_rc tr_1000_lx_get(meba_sfp_device_t *dev, meba_sfp_transreceiver_t *tr)
 {
     *tr = MEBA_SFP_TRANSRECEIVER_1000BASE_LX;
@@ -1378,8 +1387,7 @@ static mesa_bool_t get_sfp_rom(meba_inst_t meba_inst, mesa_port_no_t port_no, sf
 
 static mesa_bool_t device_info_get(struct meba_inst       *meba_inst,
                                    mesa_port_no_t          port_no,
-                                   meba_sfp_device_info_t *device_info,
-                                   tr_func_t              *tr_func)
+                                   meba_sfp_device_info_t *device_info)
 {
     sfp_rom_t sfp_rom = {0};
     tr_func_t transceiver_func;
@@ -1399,10 +1407,6 @@ static mesa_bool_t device_info_get(struct meba_inst       *meba_inst,
     transceiver_func(NULL, &device_info->transceiver);
     device_info->connector = sfp_rom.connector;
 
-    if (tr_func) {
-        *tr_func = transceiver_func;
-    }
-
     return true;
 }
 
@@ -1411,13 +1415,7 @@ mesa_bool_t meba_fill_driver(meba_inst_t             meba_inst,
                              meba_sfp_driver_t      *driver,
                              meba_sfp_device_info_t *device_info)
 {
-    tr_func_t tr_func;
-
     if (meba_inst == NULL || driver == NULL || device_info == NULL) {
-        return false;
-    }
-
-    if (!device_info_get(meba_inst, port_no, device_info, &tr_func)) {
         return false;
     }
 
@@ -1431,8 +1429,9 @@ mesa_bool_t meba_fill_driver(meba_inst_t             meba_inst,
     driver->meba_sfp_driver_reset = dev_reset;
     driver->meba_sfp_driver_poll = dev_poll;
 
-    // Set functions based on transceiver type (which we got from the ROM).
-    driver->meba_sfp_driver_tr_get = tr_func;
+    /* Generic tr_get reads device->info.transceiver (set during probe). Avoids
+     * needing a separate per-transceiver-type tr_func decoded from the ROM. */
+    driver->meba_sfp_driver_tr_get = tr_generic_get;
     driver->meba_sfp_driver_if_get =
         if_func_get(device_info->transceiver); // SFP type -> API interface type
     driver->meba_sfp_driver_mt_get =
@@ -1452,5 +1451,5 @@ mesa_bool_t meba_sfp_device_info_get(struct meba_inst       *meba_inst,
     if (meba_inst == NULL || device_info == NULL) {
         return false;
     }
-    return device_info_get(meba_inst, port_no, device_info, NULL);
+    return device_info_get(meba_inst, port_no, device_info);
 }
