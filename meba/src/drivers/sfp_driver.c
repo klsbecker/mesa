@@ -88,66 +88,86 @@ static mesa_rc cisco_sgmii_phy_write(meba_inst_t    meba_inst,
 }
 
 #define VTSS_MSLEEP(m) usleep((m) * 1000)
+
+/* MDIO register addresses (IEEE 802.3 Clause 22 + Marvell vendor extensions). */
+#define MII_REG_BMCR             0  /* Basic Mode Control Register (IEEE) */
+#define MII_REG_PHY_ID1          2  /* PHY identifier 1 (high 16 bits of OUI) */
+#define MII_REG_PHY_ID2          3  /* PHY identifier 2 (low OUI + model + rev) */
+#define MII_REG_ANAR             4  /* Auto-Negotiation Advertisement Register */
+#define MII_REG_GBCR             9  /* 1000BASE-T Control Register */
+#define MARVELL_REG_EXT_PHY_CTRL 27 /* Marvell Extended PHY Specific Control */
+
+/* Marvell PHY ID signature for the 88E1xxx family used in CuSFPs. */
+#define MARVELL_PHY_ID1         0x0141
+#define MARVELL_PHY_ID2_MASK    0xFFF0
+#define MARVELL_PHY_ID2_88E1xxx 0x0CC0
+
+/* SGMII reconfigure values applied to a Marvell 88E1xxx CuSFP to switch its
+ * host-side interface from whatever was strapped to SGMII-with-clock. */
+#define MARVELL_EXT_CTRL_SGMII     0x9084 /* HWCFG_MODE bits[2:0]=100 + soft reset */
+#define MARVELL_GBCR_ADV_1000T_ALL 0x0F00 /* advertise 1000BASE-T FDX+HDX, manual master */
+#define MARVELL_BMCR_RESET_1G_FDX  0x8140 /* soft reset + 1G + FDX, aneg off */
+#define MARVELL_ANAR_ADV_10_100    0x0DE1 /* advertise 10/100 FDX+HDX, IEEE 802.3 selector */
+#define MARVELL_BMCR_RESET_1G_ANEG 0x9140 /* soft reset + 1G + FDX + aneg enabled */
+
 static mesa_bool_t cisco_sgmii_set(meba_inst_t meba_inst, mesa_port_no_t port_no)
 {
-    uint16_t    i, reg2 = 0, reg3 = 0;
+    uint16_t    reg2 = 0, reg3 = 0;
     mesa_bool_t configure_phy;
 
     // Read PHY ID registers
     mesa_bool_t phy_present = false;
-    for (i = 0; i < 10; i++) {
-        if (cisco_sgmii_phy_read(meba_inst, port_no, 2, &reg2) == MESA_RC_OK &&
-            cisco_sgmii_phy_read(meba_inst, port_no, 3, &reg3) == MESA_RC_OK) {
+    for (int i = 0; i < 10; i++) {
+        if (cisco_sgmii_phy_read(meba_inst, port_no, MII_REG_PHY_ID1, &reg2) == MESA_RC_OK &&
+            cisco_sgmii_phy_read(meba_inst, port_no, MII_REG_PHY_ID2, &reg3) == MESA_RC_OK &&
+            !(reg2 == 0xFFFF && reg3 == 0xFFFF)) {
             phy_present = true;
             break;
         }
-
         VTSS_MSLEEP(50); // Wait while the SFP module wakes up
     }
 
-    //  printf("%s#%d. CuSFP: phy_present = %d, reg2 = 0x%x, reg3 = 0x%x)\n",
-    //  __FUNCTION__, __LINE__, phy_present, reg2, reg3);
-
-    //  BZ#22772:
-    //  If Cu-SFP is default using SGMII mode, we don't need to setup PHY
-    //  Else this Cu-SFP must be set to SGMII mode via I2C. However,
-    //  this kind of configuration is not standard and may be implemented
-    //  differently by different CuSFP manufacturers.
-
-    // The following code has been seen to work fine (and is required for it to
-    // work) with the following CuSFPs:
-    //   Marvell 88EE1111: Returns reg2 == 0x0141 and reg3 == 0x0ccX
-    //   Adtran/Methode Elec. SP7041-ADT: Returns reg2 == reg3 == 0x0.
     if (!phy_present) {
-        // Nothing more to do.
-        return true;
+        return true; // Not a CuSFP, or I2C bridge unreachable.
     }
 
-    configure_phy = (reg2 == 0x0141 && (reg3 & 0xFFF0) == 0x0CC0) || // Marvell 88EE1111
-                    (reg2 == 0x0000 && reg3 == 0x0000); // Adtran/Methode Elec. SP7041-ADT
-
+    /* Only reconfigure PHYs whose ID we recognize. Marvell 88E1xxx is
+     * the typical CuSFP silicon; the all-zero ID is reported by the
+     * Adtran/Methode Elec. SP7041-ADT. Any other ID is left alone. */
+    configure_phy =
+        (reg2 == MARVELL_PHY_ID1 && (reg3 & MARVELL_PHY_ID2_MASK) == MARVELL_PHY_ID2_88E1xxx) ||
+        (reg2 == 0x0000 && reg3 == 0x0000);
     if (!configure_phy) {
-        // Nothing more to do.
         return true;
     }
 
-    // The following configures the SFP's PHY to SGMII mode
-    for (i = 0; i < 10; i++) {
-        if (cisco_sgmii_phy_write(meba_inst, port_no, 27, 0x9084) == MESA_RC_OK && // SGMII mode
-            cisco_sgmii_phy_write(meba_inst, port_no, 9, 0x0f00) ==
-                MESA_RC_OK && // Advertise 1000BASE-T Full/Half-Duplex
-            cisco_sgmii_phy_write(meba_inst, port_no, 0, 0x8140) ==
-                MESA_RC_OK && // Apply Software reset
-            cisco_sgmii_phy_write(meba_inst, port_no, 4, 0x0de1) ==
-                MESA_RC_OK && // Advertise 10/100BASE-T Full/Half-Duplex
-            cisco_sgmii_phy_write(meba_inst, port_no, 0, 0x9140) ==
-                MESA_RC_OK) { // Apply Software reset
+    /* Write the SGMII-mode init sequence. Each step is documented in
+     * the table; iteration retries the whole sequence if any write fails. */
+    static const struct {
+        uint8_t  reg;
+        uint16_t value;
+    } init_seq[] = {
+        {MARVELL_REG_EXT_PHY_CTRL, MARVELL_EXT_CTRL_SGMII    },
+        {MII_REG_GBCR,             MARVELL_GBCR_ADV_1000T_ALL},
+        {MII_REG_BMCR,             MARVELL_BMCR_RESET_1G_FDX },
+        {MII_REG_ANAR,             MARVELL_ANAR_ADV_10_100   },
+        {MII_REG_BMCR,             MARVELL_BMCR_RESET_1G_ANEG},
+    };
+
+    for (int attempt = 0; attempt < 10; attempt++) {
+        mesa_bool_t ok = true;
+        for (size_t j = 0; j < VTSS_ARRSZ(init_seq); j++) {
+            if (cisco_sgmii_phy_write(meba_inst, port_no, init_seq[j].reg, init_seq[j].value) !=
+                MESA_RC_OK) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok) {
             return true;
         }
-
         VTSS_MSLEEP(50); // Wait while the SFP module wakes up
     }
-
     return false;
 }
 
