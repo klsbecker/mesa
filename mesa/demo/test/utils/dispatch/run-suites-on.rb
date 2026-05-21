@@ -18,6 +18,9 @@ require_relative 'test_session'
 
 ## Timeout
 DEFAULT_TIMEOUT = 3600
+EXTRACT_TAR_TIMEOUT_SECS = 600  # 10 minutes — generous; nightlies have seen
+                                # rare extract_tar hangs that block forever
+                                # without one. Bound the loss to one suite.
 
 ## POST request config
 POST_REQ_REPO_URL   = "https://bitbucket.microchip.com/scm/unge/sw-mesa.git"
@@ -122,10 +125,17 @@ end
 def extract_tar(body, out)
     log_local("Received #{body.bytesize} bytes, extracting into #{out}")
     in_r, in_w = IO.pipe
-    t = Process.detach(Process.spawn("tar -xzf -", :in => in_r, [:out, :err] => "/dev/null"))
+    pid = Process.spawn("tar -xzf -", :in => in_r, [:out, :err] => "/dev/null")
+    t   = Process.detach(pid)
     in_w.write(body)
     in_w.close
-    t.join
+    begin
+        Timeout.timeout(EXTRACT_TAR_TIMEOUT_SECS) { t.join }
+    rescue Timeout::Error
+        Process.kill("KILL", pid) rescue nil
+        in_r.close rescue nil
+        raise "extract_tar timed out after #{EXTRACT_TAR_TIMEOUT_SECS}s on #{body.bytesize}-byte tar"
+    end
     in_r.close
     log_local("Extraction complete, output at: #{out}")
 end
