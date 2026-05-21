@@ -1923,9 +1923,28 @@ static mepa_rc malibu_10g_i2c_read(struct mepa_device *dev,
         return VTSS_RC_ERROR;
     }
 
+    /* Slave 0x56 = de-facto-standard CuSFP I2C-MDIO bridge address. 
+     * Observed behavior: the bridge serves a 16-bit MDIO register across two
+     * single-byte I2C transactions targeting the SAME sub-addr - 1st read
+     * returns the hi byte, 2nd read returns the lo byte.
+     *
+     * The default byte-stream loop (sub-addr N then N+1) does not work for
+     * this slave: the second transaction is NACKed on the wire, and because
+     * Malibu's I2C master has no NACK detection on reads, it ignores the
+     * NACK, clocks 8 bits over an idle (pulled-up) SDA line, and reports
+     * 0xFF as the data byte. Result: hi byte of reg N alternating with 0xFF
+     * across consecutive transactions.
+     *
+     * For bridge access we read the SAME sub-addr `cnt` times to land hi+lo
+     * of one MDIO register. EEPROM slaves (0x50/0x51) keep the normal
+     * incrementing-sub-addr loop. */
+    const uint8_t i2c_mdio_slave_addr = 0x56;
+    mepa_bool_t   is_i2c_mdio_bridge = (i2c_dev_addr == i2c_mdio_slave_addr);
+
     for (i = 0; i < cnt; i++) {
-        if (vtss_phy_10g_i2c_read(data->vtss_instance, data->port_no,
-                                  (uint8_t)(i2c_reg_addr + i), &value[i]) != VTSS_RC_OK) {
+        uint8_t sub_addr = is_i2c_mdio_bridge ? i2c_reg_addr : (uint8_t)(i2c_reg_addr + i);
+        if (vtss_phy_10g_i2c_read(data->vtss_instance, data->port_no, sub_addr, &value[i]) !=
+            VTSS_RC_OK) {
             return VTSS_RC_ERROR;
         }
     }
@@ -1950,9 +1969,17 @@ static mepa_rc malibu_10g_i2c_write(struct mepa_device  *dev,
         return VTSS_RC_ERROR;
     }
 
+    /* See malibu_10g_i2c_read for the rationale: bridge slave 0x56 needs both
+     * I2C transactions at the same sub-addr to land a single 16-bit MDIO
+     * write (1st = hi byte, 2nd = lo byte). EEPROM slaves use the normal
+     * incrementing loop. */
+    const uint8_t i2c_mdio_slave_addr = 0x56;
+    mepa_bool_t   is_i2c_mdio_bridge = (i2c_dev_addr == i2c_mdio_slave_addr);
+
     for (i = 0; i < cnt; i++) {
-        if (vtss_phy_10g_i2c_write(data->vtss_instance, data->port_no,
-                                   (uint8_t)(i2c_reg_addr + i), &value[i]) != VTSS_RC_OK) {
+        uint8_t sub_addr = is_i2c_mdio_bridge ? i2c_reg_addr : (uint8_t)(i2c_reg_addr + i);
+        if (vtss_phy_10g_i2c_write(data->vtss_instance, data->port_no, sub_addr, &value[i]) !=
+            VTSS_RC_OK) {
             return VTSS_RC_ERROR;
         }
     }
