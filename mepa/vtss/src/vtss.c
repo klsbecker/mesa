@@ -2489,6 +2489,7 @@ mepa_drivers_t mepa_mscc_driver_init(void)
             .mepa_driver_gpio_out_set = phy_1g_gpio_set,
             .mepa_driver_gpio_in_get = phy_1g_gpio_get,
             .mepa_driver_synce_clock_conf_set = phy_1g_synce_clk_conf_set,
+            .mepa_driver_link_base_port = phy_1g_link_base_port,
             .mepa_driver_capability = phy_1g_capability,
             .mepa_driver_phy_info_get = phy_1g_info_get,
             .mepa_driver_isolate_mode_conf = phy_isolate_mode_conf,
