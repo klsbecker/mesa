@@ -126,17 +126,65 @@ def extract_tar(body, out)
     log_local("Received #{body.bytesize} bytes, extracting into #{out}")
     in_r, in_w = IO.pipe
     pid = Process.spawn("tar -xzf -", :in => in_r, [:out, :err] => "/dev/null")
-    t   = Process.detach(pid)
-    in_w.write(body)
-    in_w.close
-    begin
-        Timeout.timeout(EXTRACT_TAR_TIMEOUT_SECS) { t.join }
-    rescue Timeout::Error
-        Process.kill("KILL", pid) rescue nil
-        in_r.close rescue nil
+
+    # Write the body in a separate thread so the main thread never blocks
+    # in pipe write — keeps the timeout poll responsive even when the body
+    # is larger than the pipe buffer (~64KB) and tar is slow or stuck.
+    writer = Thread.new {
+        begin
+            in_w.write(body)
+        rescue Errno::EPIPE
+            # tar died early; ignore
+        ensure
+            in_w.close rescue nil
+        end
+    }
+
+    # Polling-based timeout: Timeout.timeout cannot interrupt threads blocked
+    # in Process.wait/waitpid (Ruby delivers the exception only when the
+    # syscall returns, which is never if the child is hung). WNOHANG + sleep
+    # keeps the main thread fully under our control.
+    deadline = Time.now + EXTRACT_TAR_TIMEOUT_SECS
+    timed_out = false
+    loop do
+        done_pid, _status = Process.waitpid2(pid, Process::WNOHANG)
+        break if done_pid
+        if Time.now >= deadline
+            timed_out = true
+            # Capture forensic state before killing tar.  We don't yet know
+            # the root cause of these hangs — disk latency, memory pressure,
+            # pipe deadlock, etc.  Dumping kernel wait-state, disk usage,
+            # and load average gives the next investigation actual data
+            # instead of speculation.
+            stack    = (File.read("/proc/#{pid}/stack") rescue "    (unreadable)")
+            wchan    = (File.read("/proc/#{pid}/wchan").strip rescue "?")
+            loadavg  = (File.read("/proc/loadavg").strip rescue "?")
+            log_local("=== extract_tar HANG diagnostic (pid #{pid}) ===")
+            log_local("  /proc/#{pid}/stack:")
+            log_local(stack)
+            log_local("  /proc/#{pid}/status (head):")
+            log_local(%x{head -20 /proc/#{pid}/status 2>&1})
+            log_local("  /proc/#{pid}/wchan: #{wchan}")
+            log_local("  loadavg: #{loadavg}")
+            log_local("  meminfo (head):")
+            log_local(%x{head -5 /proc/meminfo 2>&1})
+            log_local("  df -h /:")
+            log_local(%x{df -h / 2>&1})
+            log_local("=== end diagnostic ===")
+            Process.kill("KILL", pid) rescue nil
+            Process.waitpid(pid) rescue nil
+            break
+        end
+        sleep 1
+    end
+
+    writer.kill rescue nil
+    writer.join rescue nil
+    in_r.close rescue nil
+
+    if timed_out
         raise "extract_tar timed out after #{EXTRACT_TAR_TIMEOUT_SECS}s on #{body.bytesize}-byte tar"
     end
-    in_r.close
     log_local("Extraction complete, output at: #{out}")
 end
 
