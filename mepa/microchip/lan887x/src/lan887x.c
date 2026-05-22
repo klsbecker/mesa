@@ -1500,9 +1500,9 @@ static mepa_rc lan887x_aneg_read_status(mepa_device_t *dev, mepa_status_t *statu
         MEPA_RC_GOTO(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_LP_L, &lp_l));
         MEPA_RC_GOTO(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_LP_M, &lp_m));
 
-        if (((lp_m & LPA_1000FULL) == LPA_1000FULL) && (data->conf.aneg.speed_1g_fdx == PHY_TRUE)) {
+        if (((lp_m & T1_LPA_1000FULL) == T1_LPA_1000FULL) && (data->conf.aneg.speed_1g_fdx == PHY_TRUE)) {
             status->speed = MEPA_SPEED_1G;
-        } else if (((lp_m & LPA_100FULL) == LPA_100FULL) && (data->conf.aneg.speed_100m_fdx == PHY_TRUE)) {
+        } else if (((lp_m & T1_LPA_100FULL) == T1_LPA_100FULL) && (data->conf.aneg.speed_100m_fdx == PHY_TRUE)) {
             status->speed = MEPA_SPEED_100M;
         } else {
             status->speed = MESA_SPEED_UNDEFINED;

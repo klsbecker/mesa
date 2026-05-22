@@ -158,8 +158,8 @@
 #define MDIO_AN_STAT1_COMPLETE          (0x0020U)   /* Auto-negotiation complete   */
 #define MDIO_AN_T1_ADV_L_PAUSE_CAP      (0x0400U)   /* Try for pause               */
 #define MDIO_AN_T1_ADV_L_PAUSE_ASYM     (0x0800U)
-#define LPA_100FULL                     (0x0020U)   /* Can do 100mbps full-duplex  */
-#define LPA_1000FULL                    (0x0080U)   /* Can do 1000BASE-X full-duplex */
+#define T1_LPA_100FULL                  (0x0020U)   /* Can do 100mbps full-duplex  */
+#define T1_LPA_1000FULL                 (0x0080U)   /* Can do 1000BASE-X full-duplex */
 #define MDIO_AN_T1_ADV_M_B1000          (0x0080U)   /* device is compatible with 1000BASE-T1 */
 #define MDIO_AN_T1_ADV_M_B100           (0x0020U)   /* device is compatible with 100BASE-T1 */
 

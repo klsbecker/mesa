@@ -1015,10 +1015,10 @@ static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
                                    MDIO_AN_T1_LP_M, &lp_m));
 
         T_I("aneg lp_l=0x%x, lp_m=0x%x\r\n", lp_l, lp_m);
-        if (((lp_m & LPA_1000FULL) == LPA_1000FULL) &&
+        if (((lp_m & T1_LPA_1000FULL) == T1_LPA_1000FULL) &&
             (data->conf.aneg.speed_1g_fdx == PHY_TRUE)) {
             status->speed = MEPA_SPEED_1G;
-        } else if (((lp_m & LPA_100FULL) == LPA_100FULL) &&
+        } else if (((lp_m & T1_LPA_100FULL) == T1_LPA_100FULL) &&
                    (data->conf.aneg.speed_100m_fdx == PHY_TRUE)) {
             status->speed = MEPA_SPEED_100M;
         } else {
