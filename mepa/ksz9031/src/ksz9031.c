@@ -147,42 +147,21 @@ static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
 {
     ksz_data_t *data = (ksz_data_t *)dev->data;
-    uint16_t old_adv, new_adv;
+    uint16_t new_adv;
     uint16_t val;
-    mepa_bool_t restart_aneg = false;
     mepa_rc rc = MEPA_RC_OK;
 
     if (!config->admin.enable) {
         rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN, BMCR_PDOWN);
     } else {
         if (config->speed == MEPA_SPEED_AUTO || config->speed == MEPA_SPEED_1G) {
-            if (config->admin.enable != data->conf.admin.enable) {
-                restart_aneg = true;
-            }
-
-            /* Check the 1000 advertise */
-            rc = phy_reg_rd(dev, MII_CTRL1000, &old_adv);
-            if (rc != MEPA_RC_OK) {
-                goto out;
-            }
-
             new_adv = config->aneg.speed_1g_fdx ? CTRL1000_1000FULL : 0U;
             if (config->man_neg != MEPA_MANUAL_NEG_DISABLED) {
                 new_adv |= (config->man_neg == MEPA_MANUAL_NEG_REF) ? CTRL1000_AS_MASTER : 0U;
                 new_adv |= CTRL1000_ENABLE_MASTER;
             }
 
-            if (old_adv != new_adv) {
-                restart_aneg = true;
-
-                rc = phy_reg_wr(dev, MII_CTRL1000, new_adv);
-                if (rc != MEPA_RC_OK) {
-                    goto out;
-                }
-            }
-
-            /* Check the 10/100 advertise */
-            rc = phy_reg_rd(dev, MII_ADVERTISE, &old_adv);
+            rc = phy_reg_wr(dev, MII_CTRL1000, new_adv);
             if (rc != MEPA_RC_OK) {
                 goto out;
             }
@@ -196,23 +175,12 @@ static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
                       (config->aneg.speed_10m_hdx ? ADVERTISE_10HALF : 0U) |
                       ADVERTISE_CSMA;
 
-            if (old_adv != new_adv) {
-                restart_aneg = true;
-
-                rc = phy_reg_wr(dev, MII_ADVERTISE, new_adv);
-                if (rc != MEPA_RC_OK) {
-                    goto out;
-                }
-            }
-
             rc = phy_reg_modify(dev, MII_BMCR, BMCR_PDOWN | BMCR_ANENABLE, BMCR_ANENABLE);
             if (rc != MEPA_RC_OK) {
                 goto out;
             }
 
-            if (restart_aneg) {
-                rc = phy_reg_modify(dev, MII_BMCR, BMCR_ANRESTART, BMCR_ANRESTART);
-            }
+            rc = phy_reg_modify(dev, MII_BMCR, BMCR_ANRESTART, BMCR_ANRESTART);
         } else {
             if (config->speed == MEPA_SPEED_UNDEFINED) {
                 goto out;
