@@ -26,6 +26,9 @@ SUITE_IDLE_TIMEOUT_SECS  = 1800 # 30 minutes — abort a suite if its remote
                                 # Healthy suites stream regularly; persistent
                                 # silence indicates a stuck remote that will
                                 # otherwise hold the DUT until Jenkins kills.
+UPLOAD_TIMEOUT_SECS      = 1800 # 30 minutes — `et upload` of a multi-MB
+                                # firmware image. Bounds upload-image hangs
+                                # so the reservation can release cleanly.
 
 ## POST request config
 POST_REQ_REPO_URL   = "https://bitbucket.microchip.com/scm/unge/sw-mesa.git"
@@ -274,7 +277,7 @@ end
 
 def upload_image(system, image)
     raise "Image not found: #{image}" unless File.file?(image)
-    run_cmd("et -l -n #{system} upload #{image}", system)
+    run_cmd("et -l -n #{system} upload #{image}", system, timeout: UPLOAD_TIMEOUT_SECS)
 end
 
 # ---------------------------------------------------------------------------------------------------------------------

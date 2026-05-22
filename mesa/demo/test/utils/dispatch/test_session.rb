@@ -36,13 +36,28 @@ end
 # Command execution
 # ---------------------------------------------------------------------------------------------------------------------
 
-def run_cmd(cmd, label = nil)
+def run_cmd(cmd, label = nil, timeout: nil)
     log_local("running cmd: '#{cmd}'")
     prefix = label ? "#{label}: " : ""
     begin
         Open3.popen2e(cmd) do |stdin, output, wait_thr|
             stdin.close
-            output.each_line { |line| log_local(line.chomp) }
+            # IO.select-based read instead of `output.each_line` so the deadline
+            # check runs even when the child produces no output for long
+            # stretches.  `each_line` blocks indefinitely on an idle child;
+            # IO.select with 1s timeout keeps the loop responsive.
+            deadline = timeout ? Time.now + timeout : nil
+            loop do
+                ready = IO.select([output], nil, nil, 1)
+                if ready
+                    line = output.gets
+                    break if line.nil?  # EOF — child closed stdout/stderr
+                    log_local(line.chomp)
+                elsif deadline && Time.now >= deadline
+                    Process.kill("KILL", wait_thr.pid) rescue nil
+                    raise "#{prefix}'#{cmd}' timed out after #{timeout}s"
+                end
+            end
             raise "#{prefix}'#{cmd}' failed" unless wait_thr.value.success?
         end
     rescue Errno::ENOENT => e
