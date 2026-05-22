@@ -2842,7 +2842,7 @@ typedef enum {
     VTSS_PHY_10G_EX2_EVENT_MAX_ENTRY,        /**< MAX ENTRY reached*/
 } vtss_phy_10g_xtended_event_part2_t;
 
-typedef u32 vtss_phy_10g_extnd2_event_t;   /**< The type definition to contain the above defined extended event mask */
+typedef u64 vtss_phy_10g_extnd2_event_t;   /**< The type definition to contain the above defined extended event mask */
                                            /**< Note: The values in vtss_phy_10g_xtended_event_part2_t are bit offsets, not bit masks */
                                            /**<       The proper usage would be: x = 1 << VTSS_PHY_LINE_1G_XGMII_MASK_LINK_DOWN_MASK */
 

@@ -629,20 +629,20 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
                     break;
                 case 4:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
-                    ex2_ev = (1 << VTSS_PHY_HOST_10G_HIGHBER_EV) |
-                             (1 << VTSS_PHY_HOST_10G_RX_LINK_STAT_EV);
+                    ex2_ev = ((u64)1 << VTSS_PHY_HOST_10G_HIGHBER_EV) |
+                             ((u64)1 << VTSS_PHY_HOST_10G_RX_LINK_STAT_EV);
                     event_type = MALIBU10G_EXTENDED2_EVENT;
                     break;
                 case 5:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
-                    ex2_ev = (1 << VTSS_PHY_LINE_1G_XGMII_MASK_LINK_DOWN_MASK) |
-                             (1 << VTSS_PHY_LINE_1G_XGMII_MASK_OUT_OF_SYNC_MASK);
+                    ex2_ev = ((u64)1 << VTSS_PHY_LINE_1G_XGMII_MASK_LINK_DOWN_MASK) |
+                             ((u64)1 << VTSS_PHY_LINE_1G_XGMII_MASK_OUT_OF_SYNC_MASK);
                     event_type = MALIBU10G_EXTENDED2_EVENT;
                     break;
                 case 6:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
-                    ex2_ev = (1 << VTSS_PHY_HOST_1G_XGMII_MASK_LINK_DOWN_MASK) |
-                             (1 << VTSS_PHY_HOST_1G_XGMII_MASK_OUT_OF_SYNC_MASK);
+                    ex2_ev = ((u64)1 << VTSS_PHY_HOST_1G_XGMII_MASK_LINK_DOWN_MASK) |
+                             ((u64)1 << VTSS_PHY_HOST_1G_XGMII_MASK_OUT_OF_SYNC_MASK);
                     event_type = MALIBU10G_EXTENDED2_EVENT;
                     break;
                 case 7:
@@ -667,14 +667,16 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
                     event_type = MALIBU10G_EXTENDED2_EVENT;
                     ex2_ev =
-                        (1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_UNDERFLOW_DROP_STICKY_MASK) |
-                        (1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_OVERFLOW_DROP_STICKY_MASK) |
-                        (1
+                        ((u64)1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_UNDERFLOW_DROP_STICKY_MASK) |
+                        ((u64)1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_OVERFLOW_DROP_STICKY_MASK) |
+                        ((u64)1
                          << VTSS_MAC_FC_BUFFER_STATUS_MASK_TX_DATA_QUEUE_UNDERFLOW_DROP_STICKY_MASK) |
-                        (1
+                        ((u64)1
                          << VTSS_MAC_FC_BUFFER_STATUS_MASK_TX_DATA_QUEUE_OVERFLOW_DROP_STICKY_MASK) |
-                        (1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_TX_UNCORRECTED_FRM_DROP_STICKY_MASK) |
-                        (1 << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_UNCORRECTED_FRM_DROP_STICKY_MASK);
+                        ((u64)1
+                         << VTSS_MAC_FC_BUFFER_STATUS_MASK_TX_UNCORRECTED_FRM_DROP_STICKY_MASK) |
+                        ((u64)1
+                         << VTSS_MAC_FC_BUFFER_STATUS_MASK_RX_UNCORRECTED_FRM_DROP_STICKY_MASK);
                     break;
                 case 12:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
@@ -694,9 +696,9 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
                 case 15:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
                     event_type = MALIBU10G_EXTENDED2_EVENT;
-                    ex2_ev = (1 << VTSS_PHY_LINE_10G_RX_LOS_EV) |
-                             (1 << VTSS_PHY_LINE_10G_RX_LOL_EV) |
-                             (1 << VTSS_PHY_LINE_10G_TX_LOL_EV);
+                    ex2_ev = ((u64)1 << VTSS_PHY_LINE_10G_RX_LOS_EV) |
+                             ((u64)1 << VTSS_PHY_LINE_10G_RX_LOL_EV) |
+                             ((u64)1 << VTSS_PHY_LINE_10G_TX_LOL_EV);
                     break;
                 case 16:
                     gpio_mode.aggr_intrpt = 1 << ((channel_id * 2) + 1);
