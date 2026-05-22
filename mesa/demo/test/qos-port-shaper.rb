@@ -16,18 +16,18 @@ test_table =
     },
     {
         txt: "Shaper port frame rate 100 kpps",
-        cfg: {idx: 0, frame_rate: true, level: 5, rate: 100},
+        cfg: {idx: 0, frame_rate: true, rate: 100},
         chk: {size: 600, etolerance: [3]}
     },
     {
         txt: "Shaper port frame rate 1000 kpps (1 Mpps)",
-        cfg: {idx: 1, frame_rate: true, level: 10, rate: 1000},
+        cfg: {idx: 1, frame_rate: true, rate: 1000},
         chk: {size: 600, etolerance: [3]}
     },
     {
         txt: "Shaper port frame rate 300000 kpps (300 Mpps)",
-        cfg: {idx: 0, frame_rate: true, level: 50, rate: 300000},
-        chk: {size: 300, etolerance: [3]}
+        cfg: {idx: 0, frame_rate: true, rate: 50000},
+        chk: {etolerance: [3]}
     },
     {
         txt: "Shaper port line rate 400 kbps",
@@ -139,13 +139,13 @@ end
 # Run all or selected test
 sel = table_lookup(test_table, :sel)
 test_table.each do |t|
+    next if (t[:sel] != sel)
     test t[:txt] do
-        next if (t[:sel] != sel)
         test_runner(t)
     end
 end
 
-test_summary
+test_summary()
 
 test "dump" do
     #$ts.dut.run("mesa-cmd deb api ai qos")

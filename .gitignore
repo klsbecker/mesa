@@ -14,3 +14,4 @@ logcmd.rb.lock
 mesa/docs/html/
 mesa-doc.html
 mesa/demo/docs/html
+.mscc-libeasy-topology.yaml

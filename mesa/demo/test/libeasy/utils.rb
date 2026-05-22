@@ -563,9 +563,10 @@ def check_rate(cfg)
     cycle_time = fld_get(cfg, :cycle_time, [])
     size_array = fld_get(cfg, :size_array, [])
     dmac = fld_get(cfg, :dmac, "00:00:00:00:01:01")
+    streams = fld_get(cfg, :streams, 1)   # Parallel/Multiple Easyframe transmitter per ingress port
 
     pre_tx = with_pre_tx ? 1 : 0    # Calculate the possible pre tx time in seconds
-    time = (pre_tx+sec+100)     # Calculate the required seconds that the transmitter must at least (+100) be transmitting
+    time = (pre_tx+sec+5)     # Calculate the required seconds that the transmitter must at least (+100) be transmitting
     pid_ef = []
     max_cnt = 50
     ig.each_with_index do |ig_value, ig_idx|
@@ -577,12 +578,14 @@ def check_rate(cfg)
         rep = time*sec_count_in     # Convert the required transmission seconds to number of frames, as this is the parameter to ef tx function
 
 #        t_i("Calculated frames per sec at line speed: #{sec_count_in}")
-        t_i("Start Easy Frame transmitting #{sec*sec_count_in} frames of size #{size} with #{pre_tx} sec of pre TX and 2 sec of post TX. Speed is 1 Gbps.")
-        smac = "00:00:00:00:01:1#{ig_idx}"
-        if (pcp != [])
-            pid_ef << $ts.pc.bg("ef tx #{pcp[ig_idx]}", "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} ctag vid 0 pcp #{pcp[ig_idx]} data pattern cnt #{size - (6+6+4+2+4)}") # 'size' is requested frame size inclusive checksum
-        else
-            pid_ef << $ts.pc.bg("ef tx",                "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} data pattern cnt #{size - (6+6+2+4)}") # 'size' is requested frame size inclusive checksum
+        t_i("Start #{streams} Easy Frame transmitter(s) of #{sec*sec_count_in} frames of size #{size} with #{pre_tx} sec of pre TX and 2 sec of post TX. Speed is 1 Gbps.")
+        streams.times do |s_idx|
+            smac = "00:00:00:00:0#{s_idx + 1}:1#{ig_idx}"
+            if (pcp != [])
+                pid_ef << $ts.pc.bg("ef tx #{pcp[ig_idx]} s#{s_idx}", "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} ctag vid 0 pcp #{pcp[ig_idx]} data pattern cnt #{size - (6+6+4+2+4)}") # 'size' is requested frame size inclusive checksum
+            else
+                pid_ef << $ts.pc.bg("ef tx s#{s_idx}",                "sudo ef tx #{$ts.pc.p[ig_value]} rep #{rep} eth dmac #{dmac} smac #{smac} data pattern cnt #{size - (6+6+2+4)}") # 'size' is requested frame size inclusive checksum
+            end
         end
         max = 0
         begin   # Check that transmitter is started
@@ -631,7 +634,8 @@ def check_rate(cfg)
 
     t_i("Kill Easy Frame transmitters")
     pid_ef.each do |pid|
-        $ts.pc.run("kill -s SIGHUP #{pid}")
+        $ts.pc.try_ignore("sudo pkill -KILL -P #{pid}")
+        $ts.pc.try_ignore("sudo kill  -KILL    #{pid}")
     end
 
     t_i("Wait for Easy Frame transmitters to stop")
