@@ -21,6 +21,11 @@ DEFAULT_TIMEOUT = 3600
 EXTRACT_TAR_TIMEOUT_SECS = 600  # 10 minutes — generous; nightlies have seen
                                 # rare extract_tar hangs that block forever
                                 # without one. Bound the loss to one suite.
+SUITE_IDLE_TIMEOUT_SECS  = 1800 # 30 minutes — abort a suite if its remote
+                                # stream produces zero output for this long.
+                                # Healthy suites stream regularly; persistent
+                                # silence indicates a stuck remote that will
+                                # otherwise hold the DUT until Jenkins kills.
 
 ## POST request config
 POST_REQ_REPO_URL   = "https://bitbucket.microchip.com/scm/unge/sw-mesa.git"
@@ -201,15 +206,29 @@ def run_suites(system, image, out, tests_to_run, timeout)
         post_suite(uri, image, out, system, suite, index, timeout, sha)
         log_subsection_header("Streaming log from remote server")
 
-        t_end = Time.now + timeout
+        t_end       = Time.now + timeout
+        last_output = Time.now
         loop do
             raise "Timed out waiting for suite '#{suite}'" if Time.now >= t_end
+
+            # Idle timeout: if the remote stream produces no output for
+            # SUITE_IDLE_TIMEOUT_SECS, treat the suite as stuck.  Healthy
+            # suites stream regularly; persistent silence is a remote-side
+            # hang that would otherwise hold the DUT for the full t_end
+            # budget (5h) before Jenkins SIGKILLs the stage.
+            if Time.now - last_output > SUITE_IDLE_TIMEOUT_SECS
+                raise "Suite '#{suite}' idle for >#{SUITE_IDLE_TIMEOUT_SECS}s — aborting"
+            end
 
             res = http_get(uri)
             case res.code.to_i
             when HTTP_RUNNING
                 # Suite is still executing on the remote server
-                log_remote(res.body.to_s)
+                body = res.body.to_s
+                unless body.empty?
+                    log_remote(body)
+                    last_output = Time.now
+                end
                 sleep(1) # Avoid hammering the server with back-to-back requests
             when HTTP_OK
                 # Suite finished successfully — response body is the result tar
