@@ -93,12 +93,38 @@
 #define ADVERTISE_LPACK         (0x4000U)   /* Ack link partners response  */
 #define ADVERTISE_NPAGE         (0x8000U)   /* Next page bit               */
 
+#define MII_LPA                 (0x05U)     /* Link partner ability reg */
+#define LPA_SLCT                (0x001fU)   /* Same as advertise selector  */
+#define LPA_10HALF              (0x0020U)   /* Can do 10mbps half-duplex   */
+#define LPA_1000XFULL           (0x0020U)   /* Can do 1000BASE-X full-duplex */
+#define LPA_10FULL              (0x0040U)   /* Can do 10mbps full-duplex   */
+#define LPA_1000XHALF           (0x0040U)   /* Can do 1000BASE-X half-duplex */
+#define LPA_100HALF             (0x0080U)   /* Can do 100mbps half-duplex  */
+#define LPA_1000XPAUSE          (0x0080U)   /* Can do 1000BASE-X pause     */
+#define LPA_100FULL             (0x0100U)   /* Can do 100mbps full-duplex  */
+#define LPA_1000XPAUSE_ASYM     (0x0100U)   /* Can do 1000BASE-X pause asym*/
+#define LPA_100BASE4            (0x0200U)   /* Can do 100mbps 4k packets   */
+#define LPA_PAUSE_CAP           (0x0400U)   /* Can pause                   */
+#define LPA_PAUSE_ASYM          (0x0800U)   /* Can pause asymetrically     */
+#define LPA_RESV                (0x1000U)   /* Unused...                   */
+#define LPA_RFAULT              (0x2000U)   /* Link partner faulted        */
+#define LPA_LPACK               (0x4000U)   /* Link partner acked us       */
+#define LPA_NPAGE               (0x8000U)   /* Next page bit               */
+
 #define MII_CTRL1000            (0x09U)     /* 1000BASE-T control          */
 #define CTRL1000_1000FULL       (0x0200U)   /* Advertise 1000BASE-T full duplex */
 #define CTRL1000_1000HALF       (0x0100U)   /* Advertise 1000BASE-T half duplex */
 #define CTRL1000_PREFER_MASTER  (0x0400U)   /* Prefar operate as master */
 #define CTRL1000_AS_MASTER      (0x0800U)   /* Configure PHY as master */
 #define CTRL1000_ENABLE_MASTER  (0x1000U)   /* Enable configuration of master/slave */
+
+#define MII_STAT1000            (0x0aU)     /* 1000BASE-T status           */
+#define STAT1000_1000MSFAIL     (0x8000U)   /* Master/Slave resolution failure */
+#define STAT1000_1000MSRES      (0x4000U)   /* Master/Slave resolution status */
+#define STAT1000_1000LOCALRXOK  (0x2000U)   /* Link partner local receiver status */
+#define STAT1000_1000REMRXOK    (0x1000U)   /* Link partner remote receiver status */
+#define STAT1000_1000FULL       (0x0800U)   /* Link partner 1000BASE-T full duplex */
+#define STAT1000_1000HALF       (0x0400U)   /* Link partner 1000BASE-T half duplex */
 
 #define MII_MMD_CTRL            (0x0dU)     /* MMD Access Control Register */
 #define MII_MMD_DATA            (0x0eU)     /* MMD Access Data Register */

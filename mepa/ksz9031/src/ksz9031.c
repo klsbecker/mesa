@@ -55,93 +55,93 @@ static mepa_rc ksz_center_flp_timing(mepa_device_t  *dev)
     return ksz_restart_aneg(dev);
 }
 
-static mepa_rc ksz_update_link(mepa_device_t  *dev)
-{
-    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
-    uint16_t status = 0, bmcr;
-    mepa_rc rc;
-
-    rc = phy_reg_rd(dev, MII_BMCR, &bmcr);
-    if (rc != MEPA_RC_OK) {
-        return rc;
-    }
-
-    /* Autoneg is being started, therefore disregard BMSR value and
-     * report link as down.
-     */
-    if ((bmcr & BMCR_ANRESTART) != 0U) {
-        goto done;
-    }
-
-    /* Read link and autonegotiation status */
-    rc = phy_reg_rd(dev, MII_BMSR, &status);
-    if (rc != MEPA_RC_OK) {
-        return rc;
-    }
-done:
-    phydev->link = ((status & BMSR_LSTATUS) != 0U);
-
-    return MEPA_RC_OK;
-}
-
-static mepa_rc ksz_read_status(mepa_device_t  *dev)
-{
-    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
-    uint16_t bmcr;
-    mepa_rc rc;
-
-    /* Update the link, but return if there was an error */
-    rc = ksz_update_link(dev);
-    if (rc != MEPA_RC_OK) {
-        return rc;
-    }
-
-    phydev->speed = MEPA_SPEED_UNDEFINED;
-    phydev->duplex = true;
-
-    rc = phy_reg_rd(dev, MII_BMCR, &bmcr);
-    if (rc != MEPA_RC_OK) {
-        return rc;
-    }
-
-    if ((bmcr & BMCR_FULLDPLX) != 0U) {
-        phydev->duplex = true;
-    } else {
-        phydev->duplex = false;
-    }
-
-    if ((bmcr & BMCR_SPEED1000) != 0U) {
-        phydev->speed = MEPA_SPEED_1G;
-    } else if ((bmcr & BMCR_SPEED100) != 0U) {
-        phydev->speed = MEPA_SPEED_100M;
-    } else {
-        phydev->speed = MEPA_SPEED_10M;
-    }
-
-    if (phydev->link == false) {
-        phydev->speed = MEPA_SPEED_UNDEFINED;
-    }
-
-    return MEPA_RC_OK;
-}
-
 static mepa_rc ksz_poll(mepa_device_t *dev, mepa_status_t *status)
 {
-    ksz_device_t *phydev = &((ksz_data_t *)dev->data)->phydev;
+    uint16_t val, val2 = 0;
+    ksz_data_t *data = (ksz_data_t *) dev->data;
     mepa_rc rc;
 
-    T_D("Enter  port_no %u", dev->numeric_handle);
-
-    rc = ksz_read_status(dev);
+    rc = phy_reg_rd(dev, MII_BMSR, &val);
     if (rc != MEPA_RC_OK) {
-        return rc;
+        goto end;
+    }
+    status->link = ((val & BMSR_LSTATUS) != 0U);
+
+    if (data->conf.speed == MEPA_SPEED_AUTO || data->conf.speed == MEPA_SPEED_1G) {
+        uint16_t lp_sym_pause = 0, lp_asym_pause = 0;
+        // Default values
+        status->speed = MEPA_SPEED_UNDEFINED;
+        status->fdx = true;
+        // check if auto-negotiation is completed or not.
+        if (status->link && ((val & BMSR_ANEGCOMPLETE) == 0U)) {
+            status->link = false;
+        }
+
+        if (!status->link) {
+            // No need to read aneg values when link is down.
+            goto end;
+        }
+
+        // Obtain speed and duplex from link partner's advertised capability.
+        rc = phy_reg_rd(dev, MII_LPA, &val);
+        if (rc != MEPA_RC_OK) {
+            goto end;
+        }
+
+        rc = phy_reg_rd(dev, MII_STAT1000, &val2);
+        if (rc != MEPA_RC_OK) {
+            goto end;
+        }
+
+        // 1G half duplex is not supported. Refer direct register - 9
+        if (((val2 & STAT1000_1000FULL) != 0U) &&
+            data->conf.aneg.speed_1g_fdx) {
+            status->speed = MEPA_SPEED_1G;
+            status->fdx = true;
+        } else if (((val & LPA_100FULL) != 0U) &&
+                   data->conf.aneg.speed_100m_fdx) {
+            status->speed = MEPA_SPEED_100M;
+            status->fdx = true;
+        } else if (((val & LPA_100HALF) != 0U) &&
+                   data->conf.aneg.speed_100m_hdx) {
+            status->speed = MEPA_SPEED_100M;
+            status->fdx = false;
+        } else if (((val & LPA_10FULL) != 0U) &&
+                   data->conf.aneg.speed_10m_fdx) {
+            status->speed = MEPA_SPEED_10M;
+            status->fdx = true;
+        } else if (((val & LPA_10HALF) != 0U) &&
+                   data->conf.aneg.speed_10m_hdx) {
+            status->speed = MEPA_SPEED_10M;
+            status->fdx = false;
+        } else {
+            // no matching link partner capability
+        }
+        // Get flow control status
+        lp_sym_pause = ((val & LPA_PAUSE_CAP) != 0U) ? 1U : 0U;
+        lp_asym_pause = ((val & LPA_PAUSE_ASYM) != 0U) ? 1U : 0U;
+        status->aneg.obey_pause = data->conf.flow_control && ((lp_sym_pause != 0U) || (lp_asym_pause != 0U));
+        status->aneg.generate_pause = data->conf.flow_control && (lp_sym_pause != 0U);
+    } else {
+        uint8_t speed;
+        uint8_t bit0;
+        uint8_t bit1;
+        // Forced speed
+        rc = phy_reg_rd(dev, MII_BMCR, &val2);
+        if (rc != MEPA_RC_OK) {
+            goto end;
+        }
+        bit0 = ((val2 & BMCR_SPEED100) != 0U) ? 1U : 0U;
+        bit1 = ((val2 & BMCR_SPEED1000) != 0U) ? 1U : 0U;
+        speed = (uint8_t)(bit0 | (uint8_t)(bit1 << 1U));
+        status->speed = (speed == 0U) ? MEPA_SPEED_10M :
+                        (speed == 1U) ? MEPA_SPEED_100M :
+                        (speed == 2U) ? MEPA_SPEED_1G : MEPA_SPEED_UNDEFINED;
+        status->fdx = ((val2 & BMCR_FULLDPLX) != 0U);
     }
 
-    status->link = phydev->link;
-    status->speed = phydev->speed;
-    status->fdx = phydev->duplex;
-
-    return MEPA_RC_OK;
+end:
+    return rc;
 }
 
 static mepa_rc ksz_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
