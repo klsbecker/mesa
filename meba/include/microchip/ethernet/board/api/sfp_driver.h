@@ -271,5 +271,12 @@ mesa_bool_t meba_sfp_device_info_get(struct meba_inst       *meba_inst,
                                      mesa_port_no_t          port_no,
                                      meba_sfp_device_info_t *device_info);
 
+// Read cage-level SFP status (presence, tx_fault, los) via SGPIO. Always
+// callable - does not require a bound SFP device. Used by the polling
+// loop for presence detection before an SFP driver has been attached.
+mesa_rc meba_sfp_cage_status_get(struct meba_inst  *meba_inst,
+                                 mesa_port_no_t     port_no,
+                                 meba_sfp_status_t *status);
+
 #include <microchip/ethernet/board/api/hdr_end.h>
 #endif

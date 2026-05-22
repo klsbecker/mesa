@@ -2158,9 +2158,9 @@ void port_poll(meba_inst_t inst)
         if (entry->media_type == MSCC_PORT_TYPE_SFP &&
             (entry->meba.cap & MEBA_PORT_CAP_SFP_DETECT)) {
             meba_sfp_status_t old_sfp_status = entry->sfp_status;
-            /* Fetch SFP port status (presence, Tx fault and LoS) using MEBA */
-            if (MEBA_WRAP(meba_sfp_status_get, inst, port_no, &entry->sfp_status) != MESA_RC_OK) {
-                T_D("Failed to read SFP port %u status through MEBA.", port_no);
+            /* Fetch SFP port status (presence, Tx fault and LoS) using MEBA via sfp_driver */
+            if (meba_sfp_cage_status_get(inst, port_no, &entry->sfp_status) != MESA_RC_OK) {
+                T_D("Failed to read SFP port %u cage status.", port_no);
             } else if (old_sfp_status.present != entry->sfp_status.present) {
                 T_I("SFP was %s port %d",
                     entry->sfp_status.present ? "inserted in" : "removed from", port_no);

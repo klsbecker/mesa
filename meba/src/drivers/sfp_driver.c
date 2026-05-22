@@ -1453,3 +1453,13 @@ mesa_bool_t meba_sfp_device_info_get(struct meba_inst       *meba_inst,
     }
     return device_info_get(meba_inst, port_no, device_info);
 }
+
+mesa_rc meba_sfp_cage_status_get(struct meba_inst  *meba_inst,
+                                 mesa_port_no_t     port_no,
+                                 meba_sfp_status_t *status)
+{
+    if (meba_inst == NULL || status == NULL || meba_inst->api.meba_sfp_status_get == NULL) {
+        return MESA_RC_ERROR;
+    }
+    return meba_inst->api.meba_sfp_status_get(meba_inst, port_no, status);
+}
