@@ -100,7 +100,7 @@ static void get_default_ts_classifier_cfg(mepa_ts_classifier_t *const conf)
 static mepa_rc lan8814_tsu_block_init(mepa_device_t *dev, const mepa_ts_init_conf_t *ts_init_conf)
 {
     uint16_t val = 0, clock_cfg = 0, pll_div = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     if (ts_init_conf->tx_fifo_mode != MEPA_TS_FIFO_MODE_NORMAL) {
         T_E(MEPA_TRACE_GRP_TS, "TX TS FIFO mode not supported::  Port : %d\n", data->port_no);
@@ -190,7 +190,7 @@ static mepa_rc lan8814_tsu_block_init(mepa_device_t *dev, const mepa_ts_init_con
 static mepa_rc lan8814_ts_port_init(mepa_device_t *dev, const mepa_ts_init_conf_t *ts_init_conf)
 {
     uint16_t val = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     if (!data->ts_state.ts_init_done) {
         // Reset all timestamp fifos at initialisation.
@@ -292,7 +292,7 @@ static mepa_rc lan8814_ts_init_conf_set(mepa_device_t *dev, const mepa_ts_init_c
 {
     uint16_t val = 0;
     mepa_device_t *base_dev;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
 
     MEPA_ASSERT(ts_init_conf == NULL);
@@ -319,7 +319,7 @@ static mepa_rc lan8814_ts_init_conf_set(mepa_device_t *dev, const mepa_ts_init_c
 }
 static mepa_rc lan8814_ts_init_conf_get(mepa_device_t *dev, mepa_ts_init_conf_t *const ts_init_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(ts_init_conf == NULL);
     MEPA_ENTER(dev);
@@ -343,7 +343,7 @@ static mepa_rc lan8814_ts_init_conf_get(mepa_device_t *dev, mepa_ts_init_conf_t 
 static mepa_rc lan8814_ts_mode_set(mepa_device_t *dev, const mepa_bool_t enable)
 {
     uint16_t val = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ENTER(dev);
 
@@ -367,7 +367,7 @@ static mepa_rc lan8814_ts_reset(mepa_device_t *dev, const mepa_ts_reset_conf_t *
 
 static mepa_rc lan8814_ts_mode_get(mepa_device_t *dev, mepa_bool_t *const enable)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ENTER(dev);
 
@@ -383,7 +383,7 @@ static mepa_rc lan8814_ts_mode_get(mepa_device_t *dev, mepa_bool_t *const enable
 static mepa_rc lan8814_ts_ltc_ls_en_set2(mepa_device_t *dev, const mepa_ts_ls_type_t  ls_type)
 {
     uint16_t val = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
     mepa_bool_t     ls_pps = TRUE;
 
@@ -400,7 +400,7 @@ static mepa_rc lan8814_ts_ltc_ls_en_set2(mepa_device_t *dev, const mepa_ts_ls_ty
 static mepa_rc lan8814_ts_ltc_ls_en_set(mepa_device_t *dev, const mepa_ts_ls_type_t  ls_type)
 {
     uint16_t val = 0, gpio = 3; // Remove the hardcoded GPIO#3 and take it as input;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
     mepa_bool_t     ls_pps = TRUE;
 
@@ -445,7 +445,7 @@ static mepa_rc lan8814_ts_ltc_get(mepa_device_t *dev, mepa_timestamp_t *const ts
 {
     uint16_t val = 0, ns_h = 0, ns_l = 0;;
     mepa_bool_t     ls_pps = TRUE;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
 
     MEPA_ASSERT((ts == NULL) || (base_dev == NULL) );
@@ -501,9 +501,9 @@ static mepa_rc lan8814_ts_ltc_get(mepa_device_t *dev, mepa_timestamp_t *const ts
 static mepa_rc lan8814_ts_ltc_set(mepa_device_t *dev, const mepa_timestamp_t *const ts)
 {
     uint16_t val = 0, cmd = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t *base_data = (lan8814_data_t *)base_dev->data;
 
     MEPA_ASSERT((ts == NULL) || (base_dev == NULL) );
     MEPA_ENTER(dev);
@@ -541,7 +541,7 @@ static mepa_rc lan8814_ts_ltc_set(mepa_device_t *dev, const mepa_timestamp_t *co
 
 static mepa_rc lan8814_ts_clock_rateadj_get(mepa_device_t *dev, mepa_ts_scaled_ppb_t *const adj)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(adj == NULL);
     MEPA_ENTER(dev);
@@ -571,10 +571,10 @@ Number of units to be adjusted per clock cycle = (2 ^ 32) / ((((10 ^ 9) * (2 ^ 1
 */
 static mepa_rc lan8814_ts_clock_rateadj_set(mepa_device_t *dev, const mepa_ts_scaled_ppb_t *const adj)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     uint16_t val = 0;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t *base_data = (lan8814_data_t *)base_dev->data;
 
     MEPA_ASSERT(adj == NULL);
     MEPA_ENTER(dev);
@@ -618,13 +618,13 @@ static mepa_rc lan8814_ts_clock_rateadj_set(mepa_device_t *dev, const mepa_ts_sc
 
 static mepa_rc lan8814_ts_clock_adj1ns(mepa_device_t *dev, const mepa_bool_t incr)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data;
+    lan8814_data_t *base_data;
     uint16_t val = 0, cmd = 0, cmd_org = 0, adj = 0;
     MEPA_ENTER(dev);
     if (base_dev == dev) {
-        base_data = (phy_data_t *)base_dev->data;
+        base_data = (lan8814_data_t *)base_dev->data;
         EP_RD(dev, LAN8814_PTP_CMD_CTL, &cmd_org);
         cmd = 0xFFFB & cmd_org;
         EP_WRM(dev, LAN8814_PTP_CMD_CTL, cmd, LAN8814_DEF_MASK);
@@ -662,15 +662,15 @@ static mepa_rc lan8814_ts_clock_adj1ns(mepa_device_t *dev, const mepa_bool_t inc
 #if 0
 static mepa_rc lan8814_ts_clock_adjns(mepa_device_t *dev, const mepa_bool_t incr)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data;
+    lan8814_data_t *base_data;
     mepa_port_no_t port_no;
     uint16_t val = 0, cmd = 0, cmd_org = 0, adj = 0;
 
     MEPA_ENTER(dev);
     if (base_dev == dev) {
-        base_data = (phy_data_t *)base_dev->data;
+        base_data = (lan8814_data_t *)base_dev->data;
         EP_RD(dev, LAN8814_PTP_CMD_CTL, &cmd_org);
         cmd = 0xFFFB & cmd_org;
         cmd = cmd | LAN8814_PTP_CMD_CTL_LTC_STEP_NANOSECONDS;
@@ -706,7 +706,7 @@ static mepa_rc lan8814_ts_clock_adjns(mepa_device_t *dev, const mepa_bool_t incr
 
 static mepa_rc lan8814_ts_clock_delay_asymmetry_get(mepa_device_t *dev, mepa_timeinterval_t *const delay_asym)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ENTER(dev);
     *delay_asym = data->ts_state.ts_port_conf.delay_asym;
@@ -718,7 +718,7 @@ static mepa_rc lan8814_ts_clock_delay_asymmetry_get(mepa_device_t *dev, mepa_tim
 static mepa_rc lan8814_ts_clock_delay_asymmetry_set(mepa_device_t *dev, const mepa_timeinterval_t *const delay_asym)
 {
     uint16_t val = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ENTER(dev);
 
@@ -735,7 +735,7 @@ static mepa_rc lan8814_ts_clock_delay_asymmetry_set(mepa_device_t *dev, const me
 
 static mepa_rc lan8814_ts_clock_path_delay_get(mepa_device_t *dev, mepa_timeinterval_t *const path_delay)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     lan8814_ts_data_t *ts_data;
 
     MEPA_ASSERT(path_delay == NULL);
@@ -750,7 +750,7 @@ static mepa_rc lan8814_ts_clock_path_delay_get(mepa_device_t *dev, mepa_timeinte
 static mepa_rc lan8814_ts_clock_path_delay_set(mepa_device_t *dev, const mepa_timeinterval_t *const path_delay)
 {
     uint16_t val = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     lan8814_ts_data_t *ts_data;
 
     MEPA_ASSERT(path_delay == NULL);
@@ -769,7 +769,7 @@ static mepa_rc lan8814_ts_clock_path_delay_set(mepa_device_t *dev, const mepa_ti
 
 static mepa_rc lan8814_ts_clock_egress_latency_get(mepa_device_t *dev, mepa_timeinterval_t *const latency)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_status_t status;
     mepa_rc rc;
 
@@ -809,9 +809,9 @@ static mepa_rc lan8814_ts_clock_egress_latency_get(mepa_device_t *dev, mepa_time
 // Latencies are different for 1-step and 2-step clock. New adjustments must consider it using two_step flag input.
 static mepa_rc lan8814_ts_clock_egress_latency_set_priv(mepa_device_t *dev, const mepa_timeinterval_t *const input_latency, mepa_bool_t two_step)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t *base_data = (lan8814_data_t *)base_dev->data;
     uint16_t val = 0;
     mepa_timeinterval_t latency;
     mepa_status_t status;
@@ -889,7 +889,7 @@ static mepa_rc lan8814_ts_clock_egress_latency_set_priv(mepa_device_t *dev, cons
 static mepa_rc lan8814_ts_clock_egress_latency_set(mepa_device_t *dev, const mepa_timeinterval_t *const latency)
 {
     mepa_rc rc = MEPA_RC_OK;
-    phy_data_t *data         = (phy_data_t *)dev->data;
+    lan8814_data_t *data         = (lan8814_data_t *)dev->data;
     mepa_bool_t two_step_lat = FALSE;
     mepa_ts_ptp_clock_conf_t *ptpclock_conf;
 
@@ -911,9 +911,9 @@ static mepa_rc lan8814_ts_clock_egress_latency_set(mepa_device_t *dev, const mep
 // nanoseconds using (nanoseconds << 16). Additional details can be found in mepa/include/microchip/ethernet/phy/api/phy_ts.h.
 mepa_rc lan8814_ts_reload_egress_latency(mepa_device_t *dev, mepa_bool_t two_step)
 {
-    phy_data_t    *data      = (phy_data_t *)dev->data;
+    lan8814_data_t    *data      = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev  = data->base_dev;
-    phy_data_t    *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t    *base_data = (lan8814_data_t *)base_dev->data;
     mepa_timeinterval_t latency;
     uint16_t val;
 
@@ -949,7 +949,7 @@ mepa_rc lan8814_ts_reload_egress_latency(mepa_device_t *dev, mepa_bool_t two_ste
 
 static mepa_rc lan8814_ts_clock_ingress_latency_get(mepa_device_t *dev, mepa_timeinterval_t *const latency)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_status_t status;
     mepa_rc rc;
 
@@ -989,9 +989,9 @@ static mepa_rc lan8814_ts_clock_ingress_latency_get(mepa_device_t *dev, mepa_tim
 
 static mepa_rc lan8814_ts_clock_ingress_latency_set(mepa_device_t *dev, const mepa_timeinterval_t *const latency)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_phy;
+    lan8814_data_t *base_phy;
     uint16_t val = 0;
     mepa_status_t status;
     mepa_rc rc;
@@ -1009,7 +1009,7 @@ static mepa_rc lan8814_ts_clock_ingress_latency_set(mepa_device_t *dev, const me
 
     MEPA_ASSERT(latency == NULL);
     MEPA_ENTER(dev);
-    base_phy = (phy_data_t *)base_dev->data;
+    base_phy = (lan8814_data_t *)base_dev->data;
 
     val = (MEPA_LABS(*latency) >> 16) & 0xFFFF;
     switch (status.speed) {
@@ -1064,7 +1064,7 @@ static mepa_rc lan8814_ts_clock_ingress_latency_set(mepa_device_t *dev, const me
 
 static mepa_rc lan8814_ts_rx_classifier_conf_get (mepa_device_t *dev, uint16_t flow_index, mepa_ts_classifier_t *const pkt_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(pkt_conf == NULL);
 
@@ -1081,7 +1081,7 @@ static void lan8814_ts_deb_pr_reg (mepa_device_t *dev,
                                    const char *str, uint16_t page, uint16_t addr, uint16_t *value)
 {
     if (pr != NULL) {
-        phy_data_t *data = (phy_data_t *)dev->data;
+        lan8814_data_t *data = (lan8814_data_t *)dev->data;
         mepa_port_no_t port_no = data->port_no;
         if (MEPA_RC_OK == lan8814_ext_reg_rd(dev, page, addr, value)) {
             pr("%-45s:  0x%02x  0x%02x   0x%04x     0x%08x\n", str, to_u32(port_no), page, addr, *value);
@@ -1478,7 +1478,7 @@ static mepa_rc lan8814_ts_classifier_mac_conf_set_priv(mepa_device_t *dev,  mepa
 static mepa_rc lan8814_ts_classifier_vlan_conf_set_priv(mepa_device_t *dev, mepa_bool_t ing, const mepa_ts_vlan_conf_t *const vlan_conf)
 {
     uint16_t vlan_parse = 0, range_up = 0, range_lo = 0, vid = 0, mask = 0;
-    phy_data_t *data = (phy_data_t *) dev->data;
+    lan8814_data_t *data = (lan8814_data_t *) dev->data;
 
     if (ing) {
         switch (vlan_conf->num_tag) {
@@ -1557,7 +1557,7 @@ static mepa_rc lan8814_ts_classifier_vlan_conf_set_priv(mepa_device_t *dev, mepa
 static mepa_rc lan8814_ts_rx_classifier_conf_set_priv(mepa_device_t *dev, uint16_t flow_index, const mepa_ts_classifier_t *const pkt_conf)
 {
     uint16_t parse_config = 0, l2_en = 0, ip_en = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     T_I(MEPA_TRACE_GRP_TS, "RX Classifier :Port : %d  Encapsulation :%d MAC Mode : %d MAC Select : %d VLAN En : %d\n",
         data->port_no, pkt_conf->pkt_encap_type, pkt_conf->eth_class_conf.mac_match_mode,
@@ -1673,7 +1673,7 @@ static mepa_rc lan8814_ts_rx_classifier_conf_set_priv(mepa_device_t *dev, uint16
 static mepa_rc lan8814_ts_tx_classifier_conf_set_priv(mepa_device_t *dev, uint16_t flow_index, const mepa_ts_classifier_t *const pkt_conf)
 {
     uint16_t parse_config = 0, l2_en = 0, ip_en = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
 
     T_I(MEPA_TRACE_GRP_TS, "Tx Classifier :Port : %d  Encapsulation :%d MAC Mode : %d MAC Select : %d VLAN En : %d\n",
@@ -1791,7 +1791,7 @@ static mepa_rc lan8814_ts_tx_classifier_conf_set_priv(mepa_device_t *dev, uint16
 
 static mepa_rc lan8814_ts_rx_classifier_conf_set(mepa_device_t *dev, uint16_t flow_index, const mepa_ts_classifier_t *const pkt_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
 
     MEPA_ASSERT(pkt_conf == NULL);
@@ -1809,7 +1809,7 @@ static mepa_rc lan8814_ts_rx_classifier_conf_set(mepa_device_t *dev, uint16_t fl
 
 static mepa_rc lan8814_ts_tx_classifier_conf_get(mepa_device_t *dev, uint16_t flow_index,           mepa_ts_classifier_t *const pkt_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(pkt_conf == NULL);
     MEPA_ENTER(dev);
@@ -1821,7 +1821,7 @@ static mepa_rc lan8814_ts_tx_classifier_conf_get(mepa_device_t *dev, uint16_t fl
 
 static mepa_rc lan8814_ts_tx_classifier_conf_set(mepa_device_t *dev, uint16_t flow_index, const mepa_ts_classifier_t *const pkt_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
 
     MEPA_ASSERT(pkt_conf == NULL);
@@ -1840,7 +1840,7 @@ static mepa_rc lan8814_ts_tx_classifier_conf_set(mepa_device_t *dev, uint16_t fl
 static mepa_rc lan8814_ts_rx_ptp_clock_conf_get (mepa_device_t *dev, uint16_t clock_id,
                                                  mepa_ts_ptp_clock_conf_t *const ptpclock_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(ptpclock_conf == NULL);
     MEPA_ENTER(dev);
@@ -1857,7 +1857,7 @@ static mepa_rc lan8814_ts_rx_ptp_clock_conf_get (mepa_device_t *dev, uint16_t cl
 static mepa_rc lan8814_ts_tx_ptp_clock_conf_get(mepa_device_t *dev, uint16_t clock_id,
                                                 mepa_ts_ptp_clock_conf_t *const ptpclock_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(ptpclock_conf == NULL);
     MEPA_ENTER(dev);
@@ -1888,7 +1888,7 @@ static mepa_rc lan8814_ts_rx_ptp_clock_conf_set(mepa_device_t *dev, uint16_t clo
 {
     uint16_t ts_insert = 0, cf_update = 0, val = 0, rx_mod = 0, ts_config = 0, cf_config = 0;
     uint16_t rx_pdelay_upd = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_rc rc = MEPA_RC_OK;
     MEPA_ENTER(dev);
     rc = lan8814_ts_classifier_ptp_conf_priv(dev, TRUE, &ptpclock_conf->ptp_class_conf);
@@ -1977,7 +1977,7 @@ static mepa_rc lan8814_ts_tx_ptp_clock_conf_set(mepa_device_t *dev, uint16_t clo
 {
     uint16_t ts_insert = 0, cf_update = 0, tx_mod = 0, ts_config = 0, cf_config = 0;
     mepa_rc rc;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_bool_t two_step_lat = FALSE;
 
     MEPA_ENTER(dev);
@@ -2077,7 +2077,7 @@ static mepa_rc lan8814_ts_tx_ptp_clock_conf_set(mepa_device_t *dev, uint16_t clo
 
 static mepa_rc lan8814_ts_pps_conf_get (mepa_device_t *dev, mepa_ts_pps_conf_t *const phy_pps_conf)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ENTER(dev);
     *phy_pps_conf = data->ts_state.pps;
@@ -2089,9 +2089,9 @@ static mepa_rc lan8814_ts_pps_conf_get (mepa_device_t *dev, mepa_ts_pps_conf_t *
 static mepa_rc lan8814_ltc_target_seconds(mepa_device_t *dev, uint32_t sec)
 {
     uint16_t val = sec & 0xFFFF;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t *base_data = (lan8814_data_t *)base_dev->data;
 
     EP_WR(dev, LAN8814_PTP_LTC_TARGET_SEC_LO_A, val);
     val = (sec >> 16);
@@ -2110,9 +2110,9 @@ static mepa_rc lan8814_ts_pps_conf_set (mepa_device_t *dev, const mepa_ts_pps_co
     uint16_t pps_num = sizeof(pps) / sizeof(pps[0]);
     mepa_timestamp_t ts = {};
     uint16_t i;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_device_t *base_dev = data->base_dev;
-    phy_data_t *base_data = (phy_data_t *)base_dev->data;
+    lan8814_data_t *base_data = (lan8814_data_t *)base_dev->data;
 
     lan8814_ts_ltc_get(dev, &ts);
     MEPA_ENTER(dev);
@@ -2163,7 +2163,7 @@ static mepa_rc lan8814_ts_rx_ts_get (mepa_device_t *dev)
     mepa_ts_fifo_sig_t sig = {};
     mepa_ts_fifo_status_t status = MEPA_TS_FIFO_SUCCESS;
     mepa_bool_t valid_ts = TRUE;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_ts_fifo_read_t rd_cb = data->ts_state.fifo_cb;
     memset(&sig, 0, sizeof(mepa_ts_fifo_sig_t));
     memset(&ts, 0, sizeof(mepa_timestamp_t));
@@ -2211,7 +2211,7 @@ static mepa_rc lan8814_ts_tx_ts_get (mepa_device_t *dev)
     mepa_ts_fifo_sig_t sig = {};
     mepa_ts_fifo_status_t status = MEPA_TS_FIFO_SUCCESS;
     mepa_bool_t valid_ts = TRUE;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_ts_fifo_read_t rd_cb = data->ts_state.fifo_cb;
 
     memset(&sig, 0, sizeof(mepa_ts_fifo_sig_t));
@@ -2297,7 +2297,7 @@ mepa_rc lan8814_ts_stats_get(mepa_device_t *dev, mepa_ts_stats_t   *const statis
 static mepa_rc lan8814_ts_event_get (mepa_device_t *dev,
                                      mepa_ts_event_t *const ev_mask)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     MEPA_ASSERT(ev_mask == NULL);
     MEPA_ENTER(dev);
@@ -2310,7 +2310,7 @@ static mepa_rc lan8814_ts_event_get (mepa_device_t *dev,
 static mepa_rc lan8814_ts_event_set (mepa_device_t *dev, const mepa_bool_t enable, const mepa_ts_event_t ev_mask)
 {
     uint16_t mask = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
 
     mepa_bool_t mask_changed = FALSE;
     MEPA_ENTER(dev);
@@ -2341,7 +2341,7 @@ static mepa_rc lan8814_ts_event_set (mepa_device_t *dev, const mepa_bool_t enabl
 
 static mepa_rc lan8814_ts_event_poll(mepa_device_t *dev, mepa_ts_event_t  *const status)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     uint16_t val = 0;
     mepa_rc rc = MEPA_RC_OK;
 
@@ -2366,7 +2366,7 @@ static mepa_rc lan8814_ts_event_poll(mepa_device_t *dev, mepa_ts_event_t  *const
 
 void lan8814_ts_fifo_read_install(mepa_device_t *dev, mepa_ts_fifo_read_t rd_cb)
 {
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     MEPA_ENTER(dev);
     data->ts_state.fifo_cb = rd_cb;
     MEPA_EXIT(dev);
@@ -2424,7 +2424,7 @@ mepa_rc lan8814_ts_fifo_get(mepa_device_t *dev, mepa_fifo_ts_entry_t ts_list[], 
 mepa_rc lan8814_ts_test_config(mepa_device_t *dev, uint16_t test_id, mepa_bool_t reg_dump)
 {
     uint16_t ts_insert = 0, cf_update = 0, val = 0, tx_mod = 0, rx_mod = 0;
-    phy_data_t *data = (phy_data_t *)dev->data;
+    lan8814_data_t *data = (lan8814_data_t *)dev->data;
     mepa_ts_classifier_t pkt_conf;
     mepa_device_t *base_dev = data->base_dev;
     mepa_rc rc = MEPA_RC_OK;

@@ -190,7 +190,7 @@ typedef struct {
     mepa_bool_t              dsh_complete; //flag to denote downshift operation completed.
     mepa_bool_t              aneg_flag; //flag to denote ANEG restart is completed.
     uint8_t                  cable_diag_state[LAN8814_PAIRS]; // Contains the state of cable diagnostic when using with async. One state for each pair.
-} phy_data_t;
+} lan8814_data_t;
 
 mepa_rc lan8814_poll_priv(mepa_device_t *dev, mepa_status_t *status);
 
