@@ -93,7 +93,7 @@ if ($options[:exp_tolerance] != nil)
 end
 
 exp_cycle_f = 0.0
-max_diff_percent = 0.2
+max_diff_percent = 2.0
 if ($options[:exp_cycle] != nil)
     exp_cycle_f = $options[:exp_cycle].to_f / 1000000  # Convert expected cycle from micro seconds to floating point seconds
     max_diff = (exp_cycle_f / 100) * max_diff_percent

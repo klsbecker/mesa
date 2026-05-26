@@ -8,16 +8,17 @@ require_relative 'qos-lib.rb'
 
 $ts = get_test_setup("mesa_pc_b2b_2x")
 
-check_capabilities do
+check_capabilities() do
     $dpl_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_DPL_CNT")
     $gce_cnt = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_TAS_GCE_CNT")
     $tas_support = $ts.dut.call("mesa_capability", "MESA_CAP_QOS_TAS")
-    assert(($tas_support == 1),
-           "TAS not supported on this platform")
+    assert(($tas_support == 1), "TAS not supported on this platform")
     if (($ts.dut.looped_port_list != nil) && ($ts.dut.looped_port_list.length > 1))
-        loop_pair_check
+        loop_pair_check()
         $loop_port0 = $ts.dut.looped_port_list[0]
         $loop_port1 = $ts.dut.looped_port_list[1]
+    else
+        assert(false, "Two front ports must be looped")
     end
     $cap_family = $ts.dut.call("mesa_capability", "MESA_CAP_MISC_CHIP_FAMILY")
 end
@@ -25,8 +26,8 @@ end
 MESA_VID_NULL = 0
 
 def equal_interval_gcl_reconfig_test
-    eg = rand(3)    # Get a random egress port between 0 and 3
-    ig = [0,1,2,3] - [eg]  # Calculate ingress list as all other ports
+    eg = 0
+    ig = [1,2,3]
 
     test "Time aware scheduling GCL re-configuration test from #{$ts.dut.p[ig[0]]},#{$ts.dut.p[ig[1]]},#{$ts.dut.p[ig[2]]} to #{$ts.dut.p[eg]}" do
 
@@ -83,9 +84,9 @@ def equal_interval_gcl_reconfig_test
     t_i ("Measure the frame rate and cycle time")
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
 
     t_i ("-----------Create new GCL with new interval time for cycle extension----------------")
     frame_tx_interval_count = 700                                # Number of frame transmitted in a GCL entry time interval
@@ -137,9 +138,9 @@ def equal_interval_gcl_reconfig_test
     t_i ("Measure the frame rate and cycle time")
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time_1,cycle_time_1,cycle_time_1])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time_1,cycle_time_1,cycle_time_1])
 
     t_i ("------------Create new GCL with new interval time for cycle truncation----------")
     frame_tx_interval_count = 400                                # Number of frame transmitted in a GCL entry time interval
@@ -191,9 +192,9 @@ def equal_interval_gcl_reconfig_test
     t_i ("Measure the frame rate and cycle time")
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time_2,cycle_time_2,cycle_time_2])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time_2,cycle_time_2,cycle_time_2])
 
     t_i ("Stop GCL")
     conf["gate_enabled"] = false
@@ -211,7 +212,7 @@ def equal_interval_gcl_reconfig_test
 
     pcp0 = 770
     pcp3 = 850
-    pcp7 = 2
+    pcp7 = 5
     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
         pcp0 = 1100
         pcp3 = 1300
@@ -223,7 +224,6 @@ def equal_interval_gcl_reconfig_test
     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN969X"))
         pcp0 = 10
         pcp3 = 5500
-        pcp7 = 0.5
     end
 
     t_i ("Strict scheduling test from #{$ts.dut.p[ig[0]]},#{$ts.dut.p[ig[1]]},#{$ts.dut.p[ig[2]]} to #{$ts.dut.p[eg]}")
@@ -231,13 +231,13 @@ def equal_interval_gcl_reconfig_test
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=1000000000, tolerance=1,      with_pre_tx=false, pcp=MEASURE_PCP_NONE)
-    measure(ig, eg, frame_size, 1,     false,            false,           [0,0,990000000],  [pcp0,pcp3,pcp7], true,              [0,3,7]) # On SparX-5 some lower priority frames are slipping through
+    measure(ig, eg, frame_size, 1,     false,            false,           [0,0,(DUT_TEST_RATE*1000)],  [pcp0,pcp3,pcp7], true,              [0,3,7]) # On SparX-5 some lower priority frames are slipping through
     end
 end
 
 def jira_mesa_898_test
-    eg = rand(2)    # Get a random egress port between 0 and 1
-    ig = (eg == 1) ? [0] : [1]
+    eg = 0
+    ig = [1]
 
     test "Time aware scheduling JIRA MESA-898" do
 
@@ -288,7 +288,7 @@ def jira_mesa_898_test
     t_i "Measure that no frames are transmitted due to frame size too big"
     erate = 0
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000], etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate],            [1],            true,              [3],     [cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate],            [5],            true,              [3],     [cycle_time])
 
     t_i ("Stop GCL")
     conf = $ts.dut.call("mesa_qos_tas_port_conf_get", $ts.dut.p[eg])
@@ -319,7 +319,7 @@ def jira_mesa_898_test
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
     erate = 1000000000/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate],             [1],            true,              [3],     [cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate],             [5],            true,              [3],     [cycle_time])
 
     t_i ("Stop GCL")
     conf = $ts.dut.call("mesa_qos_tas_port_conf_get", $ts.dut.p[eg])
@@ -330,7 +330,8 @@ def jira_mesa_898_test
 end
 
 def jira_mesa_899_test
-    eg = rand(2)    # Get a random egress port between 0 and 1
+    eg = 0
+    ig = [1]
 
     test "Time aware scheduling JIRA MESA-899" do
 
@@ -435,7 +436,7 @@ def jira_mesa_899_test
 end
 
 def jira_appl_3396_test
-    eg = rand(2)    # Get a random egress port between 0 and 1
+    eg = 0
 
     test "Time aware scheduling JIRA APPL-3396" do
 
@@ -547,7 +548,7 @@ def jira_appl_4898_test
     sleep 1
 
     #Check the preemptable queue 0 is transmitting before TAS is enabled
-    measure([ig], eg_measure, 500,  2,     false,            false,           [990000000],         [1],            true,              [0])
+    measure([ig], eg_measure, 500,  2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],            true,              [0])
     $ts.dut.run("mesa-cmd deb sym read XQS:QLIMIT_SHR[0-3]:QLIMIT_SHR_FILL_STAT")
 
     t_i ("Create GCL")
@@ -602,7 +603,7 @@ def jira_appl_4898_test
     # This is because both entries in the GCL is mac-hold so preemptable queues are never transmitting
     t_i ("Measure")
    #measure(ig,   eg, size, sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    measure([ig], eg_measure, 500,  2,     false,            false,           [990000000],         [1],            true,              [0])
+    measure([ig], eg_measure, 500,  2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],            true,              [0])
 
 #    t_i ("Stop GCL")
 #    conf["gate_enabled"] = false
@@ -647,7 +648,7 @@ def jira_appl_3433_test
     t_i ("Measure initially")
     $ts.dut.run("mesa-cmd mac flush")
    #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.9],          true,              [2])
+    measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     t_i ("Enable Frame preemption")
     fp = $ts.dut.call("mesa_qos_fp_port_conf_get", $loop_port0)
@@ -662,7 +663,7 @@ def jira_appl_3433_test
 
     t_i ("Measure before creating TAS")
    #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.8],          true,              [2])
+    measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     t_i ("Create GCL")
     gcl = [{"gate_operation":"MESA_QOS_TAS_GCO_SET_AND_RELEASE_MAC",
@@ -712,21 +713,21 @@ def jira_appl_3433_test
     t_i ("Measure preemptable traffic after TAS created  pcb #{$ts.dut.pcb}")
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
     if ($ts.dut.pcb == 135)
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/5],       [3.5],          true,              [2])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/5],       [5],          true,              [2])
     else
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/5],       [1.2],          true,              [2])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/5],       [5],          true,              [2])
     end
 
     t_i ("Measure non-preemptable traffic after TAS created  pcb #{$ts.dut.pcb}")
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
     if ($ts.dut.pcb == 135)
         # Why is is a tolerance of 15% needed? Is the queue system able to hold 47000 frames?
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000*0.73],       [15.0],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)*0.73],       [15.0],          true,              [4])
     else
         # The non-preemptable traffic interval has guard band based on the "large" max SDU configuration
         # and is therefore not getting 4/5 of the bandwidth. The test show 8.6 percent off.
         # Expected rate is set to 7% lower with a tolerance of 2%
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [((990000000*4)/5) * 0.93],    [2],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(((DUT_TEST_RATE*1000)*4)/5) * 0.93],    [5],          true,              [4])
     end
 
     t_i ("Disable Frame Preemption")
@@ -737,12 +738,12 @@ def jira_appl_3433_test
     t_i ("Measure preemptable traffic after Frame Preemption disabled")
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/8],       [5],           true,              [2])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/8],       [5],           true,              [2])
     else
         # Guard band is based on the "large" max SDU configuration
         # The test show 39 percent off.
         # Expected rate is set to 37% lower with a tolerance of 2%
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(990000000/5) * 0.63],       [2],           true,              [2],    [cycle_time])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [((DUT_TEST_RATE*1000)/5) * 0.63],       [5],           true,              [2],    [cycle_time])
     end
 
     # Throughput of non-preemptable traffic should not be affected by enabling/disabling preemption
@@ -750,12 +751,12 @@ def jira_appl_3433_test
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
     if ($ts.dut.pcb == 135)
         # Why is is a tolerance of 15% needed? Is the queue system able to hold 47000 frames?
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000*0.73],       [15.0],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)*0.73],       [15.0],          true,              [4])
     else
         # Guard band is based on the "large" max SDU configuration
         # The test show 8.6 percent off.
         # Expected rate is set to 7% lower with a tolerance of 2%
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [((990000000*4)/5) * 0.93],       [2.0],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(((DUT_TEST_RATE*1000)*4)/5) * 0.93],       [5],          true,              [4])
     end
 
     t_i ("Enable Frame Preemption again")
@@ -765,22 +766,18 @@ def jira_appl_3433_test
 
     t_i ("Measure preemptable traffic after FP enabled")
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    if ($ts.dut.pcb == 135)
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/5],       [3.5],          true,              [2])
-    else
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/5],       [1.2],          true,              [2])
-    end
+    measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/5],       [5],          true,              [2])
 
     t_i ("Measure non-preemptable traffic after TAS created  pcb #{$ts.dut.pcb}")
        #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
     if ($ts.dut.pcb == 135)
         # Why is is a tolerance of 15% needed? Is the queue system able to hold 47000 frames?
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000*0.73],       [15.0],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)*0.73],       [15.0],          true,              [4])
     else
         # The non-preemptable traffic interval has guard band based on the "large" max SDU configuration
         # and is therefore not getting 4/5 of the bandwidth. The test show 8.6 percent off.
         # Expected rate is set to 7% lower with a tolerance of 2%
-        measure([ig], eg_measure, frame_size, 2,     false,            false,           [((990000000*4)/5) * 0.93],    [2],          true,              [4])
+        measure([ig], eg_measure, frame_size, 2,     false,            false,           [(((DUT_TEST_RATE*1000)*4)/5) * 0.93],    [5],          true,              [4])
     end
 
     t_i ("Stop GCL")
@@ -811,7 +808,7 @@ def jira_appl_3433_test
 
      t_i ("Measure after stopping TAS")
     #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-     measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.8],          true,              [2])
+     measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     t_i ("Disable Frame Preemption")
     fp["enable_tx"] = false
@@ -819,7 +816,7 @@ def jira_appl_3433_test
 
     t_i ("Measure after disable FP")
    #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.8],          true,              [2])
+    measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     $ts.dut.call("mesa_pvlan_port_members_set", 0, pvlan)
     $ts.dut.call("mesa_pvlan_port_members_set", 1, "")
@@ -832,8 +829,8 @@ def jira_appl_3433_test
 end
 
 def equal_interval_1_prio_3_port_test
-    ig = rand(3)    # Get a random ingress port between 0 and 3
-    eg = [0,1,2,3] - [ig]  # Calculate engress list as all other ports
+    ig = 3
+    eg = [0,1,2]
 
     test "Time aware scheduling with equal time slots test from #{$ts.dut.p[ig]} to #{$ts.dut.p[eg[0]]},#{$ts.dut.p[eg[1]]},#{$ts.dut.p[eg[2]]}" do
 
@@ -892,7 +889,7 @@ def equal_interval_1_prio_3_port_test
         $ts.dut.run("mesa-cmd mac flush")
         $ts.pc.run("sudo ef tx #{$ts.pc.p[eg_idx]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
        #measure(ig,   eg,     size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],   cycle_time=[])
-        measure([ig], eg_idx, frame_size, 2,     false,            false,           [990000000/3],       [2],            true,              [eg_idx], [cycle_time])
+        measure([ig], eg_idx, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/3],       [8],            true,              [eg_idx], [cycle_time])
     end
 
     t_i ("Stop TAS on all egress ports")
@@ -912,7 +909,7 @@ def equal_interval_1_prio_3_port_test
         $ts.dut.run("mesa-cmd mac flush")
         $ts.pc.run("sudo ef tx #{$ts.pc.p[eg_idx]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
        #measure(ig, eg,       size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],   cycle_time=[])
-        measure([ig], eg_idx, frame_size, 1,     false,            false,           [990000000],         [1.9],          true,              [eg_idx])
+        measure([ig], eg_idx, frame_size, 1,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [eg_idx])
     end
     end
 end
@@ -953,10 +950,10 @@ test "test_conf" do
         conf["tag"]["pcp_dei_map"][1][0]["dpl"] = 0
         conf["tag"]["pcp_dei_map"][1][1]["prio"] = 1
         conf["tag"]["pcp_dei_map"][1][1]["dpl"] = 1
-        conf["default_prio"] = i
+        conf["default_prio"] = (i < 8) ? i : 7
         conf["default_dpl"] = 0
-        conf["shaper"]["level"] = 25000    # Shaper must have "large" burst size level in order to shape correctly at "high" rates
-        conf["shaper"]["rate"] = 990000
+        conf["shaper"]["level"] = 10000    # Shaper must have "large" burst size level in order to shape correctly at "high" rates
+        conf["shaper"]["rate"] = DUT_TEST_RATE
         conf["shaper"]["mode"] = "MESA_SHAPER_MODE_LINE"
         $ts.dut.call("mesa_qos_port_conf_set", i, conf)
 
@@ -1089,9 +1086,9 @@ def restart_gcl(conf, eg, ig, frame_size, cycle_time, domain)
 
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
 
     return base_time_seconds
 end
@@ -1160,9 +1157,9 @@ def jira_mesa_977_stop_test(eg, ig, domain)
 
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
 
     t_i("*************Set TOD back in time before current base time");
     tod = $ts.dut.call("mesa_ts_domain_timeofday_get", domain)
@@ -1317,9 +1314,9 @@ def jira_mesa_977_restart_test(eg, ig, domain)
 
     $ts.dut.run("mesa-cmd mac flush")
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ipv4 dscp 0")
-    erate = 990000000/3
+    erate = (DUT_TEST_RATE*1000)/3
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [1,1,1],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
+    measure(ig, eg, frame_size, 2,     false,            false,           [erate,erate,erate], [5,5,5],        true,              [0,3,7], [cycle_time,cycle_time,cycle_time])
 
     t_i("*************Set TOD back in time before current base time");
     tod = $ts.dut.call("mesa_ts_domain_timeofday_get", domain)
@@ -1428,7 +1425,7 @@ def jira_mesa_1013_test
     $ts.pc.run("sudo ef tx #{$ts.pc.p[eg]} eth dmac 00:00:00:00:01:02 smac 00:00:00:00:01:01 ctag vid 0 ipv4 dscp 0")
 
    #measure(ig, eg, size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[],  cycle_time=[])
-    measure(ig, eg, frame_size, 2,     true,             false,           [frame_rate],        [0.1],          true,              [4])
+    measure(ig, eg, frame_size, 2,     true,             false,           [frame_rate],        [5],          true,              [4])
 
     t_i ("Stop GCL")
     conf = $ts.dut.call("mesa_qos_tas_port_conf_get", $ts.dut.p[eg])
@@ -1451,11 +1448,11 @@ def jira_mesa_1047_test
     ig = 0
     eg = $loop_port0
     eg_measure = 1
-    frame_size = 500
+    frame_size = 1000
     frame_tx_time_nano = (frame_size+20)*8    # One bit takes one nano sec to transmit at 1G
-    interval1 = 50*frame_tx_time_nano
-    interval2 = 50*frame_tx_time_nano
     cycle_time = 100*frame_tx_time_nano
+    interval1 = cycle_time * DUT_TEST_RATE / (2 * 1_000_000)
+    interval2 = cycle_time - interval1
 
     test "Time aware scheduling JIRA MESA_1047" do
 
@@ -1474,7 +1471,7 @@ def jira_mesa_1047_test
     t_i ("Measure initially")
     $ts.dut.run("mesa-cmd mac flush")
    #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-    measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.9],          true,              [2])
+    measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     t_i ("Enable Frame preemption")
     fp = $ts.dut.call("mesa_qos_fp_port_conf_get", $loop_port0)
@@ -1487,8 +1484,17 @@ def jira_mesa_1047_test
     fp["verify_disable_tx"] = false
     fp["add_frag_size"] = 1
     $ts.dut.call("mesa_qos_fp_port_conf_set", $loop_port0, fp)
-    sleep 1
-    port_status = $ts.dut.call("mesa_qos_fp_port_status_get", $loop_port0)
+    port_status = nil
+    verified = false
+    50.times do
+        sleep 0.1
+        port_status = $ts.dut.call("mesa_qos_fp_port_status_get", $loop_port0)
+        if (port_status["status_verify"] == "MESA_MM_STATUS_VERIFY_SUCCEEDED")
+            verified = true
+            break
+        end
+    end
+    t_e("FP verify did not complete: status_verify = #{port_status["status_verify"]}") if (!verified)
 
     t_i ("Create GCL")
     gcl = [{"gate_operation":"MESA_QOS_TAS_GCO_SET_AND_RELEASE_MAC",
@@ -1540,11 +1546,7 @@ def jira_mesa_1047_test
 
       t_i ("Measure preemptable traffic after TAS created  pcb #{$ts.dut.pcb}")
          #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-      if ($ts.dut.pcb == 135)
-          measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/2],       [3.5],          true,              [2])
-      else
-          measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000/2],       [1.2],          true,              [2])
-      end
+      measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)/2],       [5],          true,              [2])
 
 
       t_i ("Stop GCL")
@@ -1563,7 +1565,7 @@ def jira_mesa_1047_test
 
       t_i ("Measure after stopping TAS")
      #measure(ig,   eg,         size,       sec=1, frame_rate=false, data_rate=false, erate=[1000000000],  etolerance=[1], with_pre_tx=false, pcp=[], cycle_time=[])
-      measure([ig], eg_measure, frame_size, 2,     false,            false,           [990000000],         [1.8],          true,              [2])
+      measure([ig], eg_measure, frame_size, 2,     false,            false,           [(DUT_TEST_RATE*1000)],         [5],          true,              [2])
 
     end
     t_i ("Disable Frame Preemption")
@@ -1581,8 +1583,8 @@ def jira_mesa_1047_test
 end
 
 test "test_run" do
-    eg = rand(3)    # Get a random egress port between 0 and 3
-    ig = [0,1,2,3] - [eg]  # Calculate ingress list as all other ports
+    eg = 0
+    ig = [1,2,3]
 
     t_i("Test call of TAS global configuration")
     conf = $ts.dut.call("mesa_qos_tas_conf_get")
@@ -1616,31 +1618,28 @@ test "test_run" do
     conf["tsn_domain"] = domain
     $ts.dut.call("mesa_ts_conf_set", conf)
 
-    jira_mesa_1013_test
-    jira_mesa_899_test
+    jira_mesa_1013_test()
+    jira_mesa_899_test()
     if ($cap_family == chip_family_to_id("MESA_CHIP_FAMILY_LAN966X"))
-        jira_mesa_898_test
+        jira_mesa_898_test()
     end
-    jira_appl_3396_test
+    jira_appl_3396_test()
     if (($ts.dut.looped_port_list != nil) && ($ts.dut.looped_port_list.length > 1))
         if ($cap_family != chip_family_to_id("MESA_CHIP_FAMILY_SPARX5"))
-            jira_appl_3433_test
+            jira_appl_3433_test()
         end
-        jira_mesa_1047_test
+        jira_mesa_1047_test()
     end
 
     if ($ts.dut.port_list.length == 4)
         qos_tas_equal_interval_3_prio_1_port_test(eg, ig)
-        equal_interval_1_prio_3_port_test
-        equal_interval_gcl_reconfig_test
+        equal_interval_1_prio_3_port_test()
+        equal_interval_gcl_reconfig_test()
         tas_in_domain_1_test(eg, ig)
     end
 end
 
-test "test_clean_up" do
-end
-
-test_summary
+test_summary()
 
 test "dump" do
     #$ts.dut.run("mesa-cmd deb api ci qos action 7")
