@@ -312,6 +312,12 @@ if $options[:system]
     Dir.chdir(top)
     $options[:out] = Pathname.new($options[:out]).relative_path_from(Dir.pwd).to_s
     log_local("Output folder: #{$options[:out]}")
+    # Version stamp — disambiguates which copy of run-suites-on.rb is running
+    # when investigating nightly hangs (e.g. when stale branches and fresh
+    # checkouts are in play, or when timeouts unexpectedly don't fire).
+    log_local("Script: #{__FILE__}")
+    log_local("Script SHA: #{%x{git log -1 --format=%H -- #{__FILE__} 2>/dev/null}.strip}")
+    log_local("extract_tar at: #{method(:extract_tar).source_location.join(':')}")
 
     reserved = false
     begin
