@@ -54,6 +54,10 @@ systems:
     dut: lan969x
     branch: master
     image: arm64/mesa/demo/arm64_lan9698RED.itb
+  - system: dk-t36-4
+    dut: lan966x
+    branch: master
+    image: arm/mesa/demo/armv7_lan966x.itb
   - system: dk-t36-5
     dut: lan966x
     branch: master
