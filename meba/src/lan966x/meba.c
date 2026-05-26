@@ -1018,9 +1018,7 @@ repeat_handler:
         }
         if (board->type == BOARD_TYPE_EDS2 && gpio_events[GPIO_IRQ]) {
             for (port_no = 0; port_no < board->port_cnt; port_no++) {
-                if ((board->entry[port_no].cap & MEBA_PORT_CAP_INT_PHY) == MEBA_PORT_CAP_INT_PHY) {
-                    (void)meba_generic_phy_event_check(inst, port_no, signal_notifier);
-                }
+                (void)meba_generic_phy_event_check(inst, port_no, signal_notifier);
             }
             handled = 1;
         }
