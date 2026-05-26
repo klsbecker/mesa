@@ -563,10 +563,8 @@ Here is an example on how to say that both of the plugin boards are EV57U68A.
 ----
 => setenv plugin_module 'EV57U68A'
 => setenv plugin_module2 'EV57U68A'
-=> setenv add_plugin_module 'if test -n "${plugin_module}"; then fdt set /meba
-plugin_module ${plugin_module}; fi'
-=> setenv add_plugin_module2 'if test -n "${plugin_module2}"; then fdt set /meba
-plugin-module2 ${plugin_module2}; fi'
+=> setenv add_plugin_module 'if test -n "${plugin_module}"; then fdt mknode / meba; fdt set /meba plugin_module ${plugin_module}; fi'
+=> setenv add_plugin_module2 'if test -n "${plugin_module2}"; then fdt mknode / meba; fdt set /meba plugin_module2 ${plugin_module2}; fi'
 ----
 
 Then you need to update your ramboot to include 'run add_plugin_module; run
@@ -575,10 +573,7 @@ add_plugin_module2'
 Here is an example on EDX:
 
 ----
-=> setenv ramboot=run setup; bootm start ${loadaddr}#${pcb}; bootm loados
-${loadaddr}#${pcb}; bootm ramdisk ${loadaddr}#${pcb}; bootm fdt
-${loadaddr}#${pcb}; run add_plugin_module; run add_plugin_module2; bootm prep
-${loadaddr}#${pcb}; bootm go ${loadaddr}#${pcb}
+=> setenv ramboot 'run setup; bootm start ${loadaddr}#${pcb}; bootm loados ${loadaddr}#${pcb}; bootm ramdisk ${loadaddr}#${pcb}; bootm fdt ${loadaddr}#${pcb}; bootm prep ${loadaddr}#${pcb}; run add_plugin_module; run add_plugin_module2; bootm go ${loadaddr}#${pcb}'
 ----
 
 NOTE: Currently on EDS2 it suppots only 1 plugin module meaning that whatever is
