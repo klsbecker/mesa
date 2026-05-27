@@ -1175,8 +1175,8 @@ static mepa_device_t *lan8x8x_probe(mepa_driver_t *drv,
             data = dev->data;
             data->port_no = conf->numeric_handle;
 
-            T_I(MEPA_TRACE_GRP_GEN, "\n lan8x8x created (%d) at %p, data: %p\n",
-                conf->numeric_handle, dev, dev->data);
+            T_I(MEPA_TRACE_GRP_GEN, "\n lan8x8x created (%d) at %p data %p\n",
+                conf->numeric_handle, (uintptr_t)dev, (uintptr_t)dev->data);
             lan8x8x_fill_probe_data(drv, dev, data, callout, callout_ctx, conf);
         }
 #endif

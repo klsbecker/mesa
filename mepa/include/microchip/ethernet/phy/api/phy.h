@@ -5,6 +5,20 @@
 #ifndef MICROCHIP_ETHERNET_PHY_API_PHY_H
 #define MICROCHIP_ETHERNET_PHY_API_PHY_H
 
+#if !defined(MEPA_OPSYS_VELOCITYSP)
+/**
+ * We can't include directly <stdarg.h> here because if that is the case then
+ * we will start to have MISRA violation Rule 17.1 even if the
+ * MEPA_OPSYS_VELOCITYSP is no defined. The reason why it works including a
+ * different header which includes <stdarg.h> and not directly <stdarg.h> is
+ * because Coverity will scan all open files and will not evaluate the
+ * #if/#else. Meaning that this file is always open as it is included by
+ * different users but the file "phy_trace_legacy.h" is not included. So the
+ * phy_trace_legacy will not be scaned by Coverity.
+ */
+#include <microchip/ethernet/phy/api/phy_trace_legacy.h>
+#endif
+
 #include <microchip/ethernet/phy/api.h>
 #include <microchip/ethernet/hdr_start.h>  /**< ALL INCLUDE ABOVE THIS LINE */
 
@@ -213,7 +227,12 @@ typedef mepa_rc (*mepa_spi_write_64bit_t)(struct mepa_callout_ctx        ctx,
                                           uint64_t                       *const value);
 
 
+#if defined(MEPA_OPSYS_VELOCITYSP)
+typedef void (*mepa_trace_func_t)(const mepa_trace_data_t *data, const char *msg);
+#else
 typedef void (*mepa_trace_func_t)(const mepa_trace_data_t *data, va_list args);
+#endif
+
 typedef void *(*mepa_mem_alloc_t)(struct mepa_callout_ctx *ctx, size_t size);
 typedef void (*mepa_mem_free_t)(struct mepa_callout_ctx *ctx, void *ptr);
 

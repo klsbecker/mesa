@@ -19,6 +19,28 @@ static mepa_drivers_t MEPA_phy_lib[PHY_FAMILIES] = {};
 static int MEPA_init_done = 0;
 mepa_trace_func_t MEPA_TRACE_FUNCTION = NULL;
 
+#if defined(MEPA_OPSYS_VELOCITYSP)
+void MEPA_trace(mepa_trace_group_t  group,
+                mepa_trace_level_t  level,
+                const char         *location,
+                uint32_t            line,
+                const char         *file,
+                const char         *msg)
+{
+    mepa_trace_data_t data = {
+        .group    = group,
+        .level    = level,
+        .location = location,
+        .line     = line,
+        .file     = file,
+        .format   = msg,
+    };
+
+    if (MEPA_TRACE_FUNCTION != NULL) {
+        MEPA_TRACE_FUNCTION(&data, msg);
+    }
+}
+#else
 void MEPA_trace(mepa_trace_group_t  group,
                 mepa_trace_level_t  level,
                 const char         *location,
@@ -43,6 +65,7 @@ void MEPA_trace(mepa_trace_group_t  group,
         va_end(args);
     }
 }
+#endif
 
 uint32_t mepa_phy_id_get(const mepa_callout_t    MEPA_SHARED_PTR *callout,
                          struct mepa_callout_ctx MEPA_SHARED_PTR *callout_ctx,
@@ -210,7 +233,8 @@ struct mepa_device *mepa_create_int(
     dev->callout_ctx = callout_ctx;
     dev->numeric_handle = conf->numeric_handle;
 
-    T_I(MEPA_TRACE_GRP_GEN, "mepa_device created (%d) at %p/%z, private data: %p/%z", conf->numeric_handle, dev, dev_aligned, dev->data, priv_aligned);
+    T_I(MEPA_TRACE_GRP_GEN, "mepa_device created (%d) at %p/%z, private data: %p/%z", conf->numeric_handle, (uintptr_t)dev, dev_aligned, (uintptr_t)(const uint8_t *)dev->data, priv_aligned);
+
     return dev;
 }
 
@@ -3340,3 +3364,40 @@ mepa_rc mepa_t1s_get_plca_config(struct mepa_device *dev,
 
     return dev->drv->mepa_t1s->mepa_driver_t1s_get_plca_config(dev, cfg);
 }
+
+#if defined(MEPA_OPSYS_VELOCITYSP)
+static void mepa_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
+{
+    lmu_fmt_state_buf128_init(buf, fmt);
+    buf->ss.buf.end--;
+    *buf->ss.buf.end = '\0';
+}
+
+#define MEPA_TRACE_TYPE_X(TYPE, BASE, SINGLE, FIRST, LAST)                                         \
+    void SINGLE(const mepa_trace_group_t group,                    \
+                const mepa_trace_level_t level, const char *func, uint32_t line,                   \
+                const char *file, const char *fmt, const TYPE val)                                 \
+    {                                                                                              \
+        lmu_fmt_state_buf128_t lmu_fmt_state__;                                                    \
+        mepa_trace_buf_init(&lmu_fmt_state__, fmt);                                                \
+        BASE(&lmu_fmt_state__.state, val);                                                         \
+        MEPA_trace(group, level, func, line, file, lmu_fmt_state__.ss.buf.begin);                  \
+    }                                                                                              \
+    bool FIRST(const mepa_trace_group_t group,                                                     \
+               const mepa_trace_level_t level, const char *fmt, lmu_fmt_state_buf128_t *state,     \
+               const TYPE val)                                                                     \
+    {                                                                                              \
+        mepa_trace_buf_init(state, fmt);                                                           \
+        BASE(&state->state, val);                                                                  \
+        return true;                                                                               \
+    }                                                                                              \
+    void LAST(const mepa_trace_group_t group,                                                      \
+              const mepa_trace_level_t level, const char *func, uint32_t line, const char *file,   \
+              lmu_fmt_state_t *state, const TYPE val)                                              \
+    {                                                                                              \
+        BASE(state, val);                                                                          \
+        MEPA_trace(group, level, func, line, file, state->ss->buf.begin);                          \
+    }
+MEPA_TRACE_TYPES
+#undef MEPA_TRACE_TYPE_X
+#endif

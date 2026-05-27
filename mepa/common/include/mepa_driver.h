@@ -26,6 +26,14 @@
  *  mepa_driver_conf_set_t
  */
 
+#if defined(MEPA_OPSYS_VELOCITYSP)
+void MEPA_trace(mepa_trace_group_t  group,
+                mepa_trace_level_t  level,
+                const char         *location,
+                uint32_t            line,
+                const char         *file,
+                const char         *msg);
+#else
 void MEPA_trace(mepa_trace_group_t  group,
                 mepa_trace_level_t  level,
                 const char         *location,
@@ -33,6 +41,7 @@ void MEPA_trace(mepa_trace_group_t  group,
                 const char         *file,
                 const char         *format,
                 ...);
+#endif
 
 /**
  * \brief Clears up the data allocated in the probe function.

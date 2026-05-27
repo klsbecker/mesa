@@ -4,7 +4,6 @@
 #ifndef MICROCHIP_ETHERNET_PHY_API_H
 #define MICROCHIP_ETHERNET_PHY_API_H
 
-#include <stdarg.h>
 #include <microchip/ethernet/common.h>
 #include <microchip/ethernet/phy/api/types.h>
 #include <microchip/ethernet/phy/api/phy.h>
