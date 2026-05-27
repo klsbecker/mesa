@@ -28,17 +28,13 @@
 
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
+#include <mepa_trace.h>
 #include <mepa_ts_driver.h>
 
 #include "AQ_API.h"
 #include "AQ_PhyInterface.h"
 #include "AQ_Firmware.h"
 #include "AQ_User.h"
-
-#define T_D(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_I(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__,format, ##__VA_ARGS__);
-#define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 
 #define TRUE 1
 #define FALSE 0
@@ -48,7 +44,7 @@
 
 #define AQR_2_MESA_RC(aq_rc)                    ((aq_rc == AQ_RET_OK) ? MESA_RC_OK : MESA_RC_ERROR)
 #define AQR_TEST_RC(func)                       if ((aq_rc = func) != AQ_RET_OK) { \
-                                                    T_I("Operation failed, aq_rc: %u", aq_rc);\
+                                                    T_I(MEPA_TRACE_GRP_GEN, "Operation failed, aq_rc: %u", aq_rc);\
                                                     return AQR_2_MESA_RC(aq_rc); \
                                                 }
 
@@ -75,7 +71,7 @@ static void aqr_port_id_init(AQ_Port              *data,
         aq_port->device = AQ_DEVICE_EUR;
         aq_port->PHY_ID = *data;
     } else {
-        T_E("null aqr port, port_no: %u", data->dev->numeric_handle);
+        T_E(MEPA_TRACE_GRP_GEN, "null aqr port, port_no: %u", data->dev->numeric_handle);
     }
 }
 
@@ -85,7 +81,7 @@ static AQ_Retcode aqr_phy_conf_get(AQ_Port *data,
     AQ_API_Port                aq_port;
     AQ_Retcode                 aq_rc = AQ_RET_OK;
 
-    T_D("Enter, port_no: %u", data->dev->numeric_handle);
+    T_D(MEPA_TRACE_GRP_GEN, "Enter, port_no: %u", data->dev->numeric_handle);
 
     aqr_port_id_init(data, &aq_port);
 
@@ -93,7 +89,7 @@ static AQ_Retcode aqr_phy_conf_get(AQ_Port *data,
 
     AQR_TEST_RC(AQ_API_GetStaticConfiguration(&aq_port, aq_conf));
 
-    T_D("port_no: %u, OUI: %u, IEEE_ModelNumber: %u, IEEE_RevisionNumber: %u, aq_rc: %d", data->dev->numeric_handle,
+    T_D(MEPA_TRACE_GRP_GEN, "port_no: %u, OUI: %u, IEEE_ModelNumber: %u, IEEE_RevisionNumber: %u, aq_rc: %d", data->dev->numeric_handle,
         aq_conf->OUI, aq_conf->IEEE_ModelNumber,
         aq_conf->IEEE_RevisionNumber, aq_rc);
 
@@ -112,7 +108,7 @@ static mesa_rc aqr_conf_set_private(mepa_device_t *dev,
     AQ_API_AutonegotiationControl       aq_autoneg_config;
     AQ_API_Configuration                aq_config;
 
-    T_D("aqr_conf_set_private Enter, port_no: %u", data->dev->numeric_handle);
+    T_D(MEPA_TRACE_GRP_GEN, "aqr_conf_set_private Enter, port_no: %u", data->dev->numeric_handle);
 
     memset(&aq_port, 0, sizeof(AQ_API_Port));
     memset(&aq_autoneg_config, 0, sizeof(AQ_API_AutonegotiationControl));
@@ -126,7 +122,7 @@ static mesa_rc aqr_conf_set_private(mepa_device_t *dev,
         uint8_t retry_cnt = 0;
         while (retry_cnt < 5) {
             MSLEEP(50);
-            T_D("aqr_conf_set_private mmd_read");
+            T_D(MEPA_TRACE_GRP_GEN, "aqr_conf_set_private mmd_read");
             uint16_t reg_value;
             data->dev->callout->mmd_read(dev->callout_ctx, 0x1e, 0xc831, &reg_value);
             if (!(reg_value & 0x8000)) {
@@ -141,14 +137,14 @@ static mesa_rc aqr_conf_set_private(mepa_device_t *dev,
     }
 
     if ((aq_rc = AQ_API_GetAutonegotiationControl(&aq_port, &aq_autoneg_config)) != AQ_RET_OK) {
-        T_E("failed to get AQR PHY autoneg conf, portno:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
+        T_E(MEPA_TRACE_GRP_GEN, "failed to get AQR PHY autoneg conf, portno:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
     }
 
     if ((aq_rc = AQ_API_GetConfiguration(&aq_port, &aq_config)) != AQ_RET_OK) {
-        T_E("failed to get AQR PHY conf, portno:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
+        T_E(MEPA_TRACE_GRP_GEN, "failed to get AQR PHY conf, portno:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
     }
 
-    T_D("set config");
+    T_D(MEPA_TRACE_GRP_GEN, "set config");
     aq_config.LED_Control[0].LED_On_When5G_LinkEstablished       = (AQ_boolean) TRUE;
     aq_config.LED_Control[0].LED_On_When2_5G_LinkEstablished     = (AQ_boolean) TRUE;
     aq_config.LED_Control[1].LED_On_When1G_LinkEstablished       = (AQ_boolean) TRUE;
@@ -174,7 +170,7 @@ static mesa_rc aqr_conf_set_private(mepa_device_t *dev,
         aq_autoneg_config.advertise1000BASE_T_FullDuplex = (AQ_boolean) config->aneg.speed_1g_fdx;
         aq_autoneg_config.advertise1000BASE_T_HalfDuplex = (AQ_boolean) FALSE;
 
-        T_I("port_no: %u, 10g_fdx:%d, 5g_fdx:%d, 2g5_fdx:%d, 10m_hdx:%d, \n\t10m_fdx:%d, 100m_hdx:%d, 100m_fdx:%d, 1g_fdx:%d, 1g_hdx:%d", data->dev->numeric_handle,
+        T_I(MEPA_TRACE_GRP_GEN, "port_no: %u, 10g_fdx:%d, 5g_fdx:%d, 2g5_fdx:%d, 10m_hdx:%d, \n\t10m_fdx:%d, 100m_hdx:%d, 100m_fdx:%d, 1g_fdx:%d, 1g_hdx:%d", data->dev->numeric_handle,
             aq_autoneg_config.advertise10GBASE_T, aq_autoneg_config.advertise5G, aq_autoneg_config.advertise2_5G, aq_autoneg_config.advertise10BASE_T_HalfDuplex,
             aq_autoneg_config.advertise10BASE_T_FullDuplex, aq_autoneg_config.advertise100BASE_TX_HalfDuplex, aq_autoneg_config.advertise100BASE_TX_FullDuplex, aq_autoneg_config.advertise1000BASE_T_FullDuplex, aq_autoneg_config.advertise1000BASE_T_HalfDuplex);
     } else {
@@ -188,12 +184,12 @@ static mesa_rc aqr_conf_set_private(mepa_device_t *dev,
     }
 
     if ((aq_rc = AQ_API_SetAutonegotiationControl(&aq_port, &aq_autoneg_config)) != AQ_RET_OK) {
-        T_E("Failed to set AQ Autonegotiation information, port_no: %u, rc: %d\n", data->dev->numeric_handle, aq_rc);
+        T_E(MEPA_TRACE_GRP_GEN, "Failed to set AQ Autonegotiation information, port_no: %u, rc: %d\n", data->dev->numeric_handle, aq_rc);
         return AQR_2_MESA_RC(aq_rc);
     }
 
     if ((aq_rc = AQ_API_RestartAutonegotiation(&aq_port)) != AQ_RET_OK) {
-        T_E("Failed to restart autoneg, port_no:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
+        T_E(MEPA_TRACE_GRP_GEN, "Failed to restart autoneg, port_no:%d, rc:%d\n", data->dev->numeric_handle, aq_rc);
     }
 
     return AQR_2_MESA_RC(aq_rc);
@@ -222,7 +218,7 @@ static mesa_rc aqr_poll(mepa_device_t *dev, mepa_status_t *status)
     AQ_API_LinkPartnerStatus             linkPartnerStatus;
     AQ_API_AutonegotiationControl        aq_autoneg_config;
 
-    T_D("aqr_poll Enter, port_no: %u", data->dev->numeric_handle);
+    T_D(MEPA_TRACE_GRP_GEN, "aqr_poll Enter, port_no: %u", data->dev->numeric_handle);
 
     memset(&connectionStatus, 0, sizeof(AQ_API_ConnectionStatus));
     memset(&linkPartnerStatus, 0, sizeof(AQ_API_LinkPartnerStatus));
@@ -316,17 +312,17 @@ static mesa_rc aqr_veriphy_start(mepa_device_t *dev, int mode)
     AQ_Retcode                          aq_rc = AQ_RET_OK;
     AQ_API_Port                         aq_port;
 
-    T_D("Enter, aqr_veriphy_start, port_no: %u", data->dev->numeric_handle);
+    T_D(MEPA_TRACE_GRP_GEN, "Enter, aqr_veriphy_start, port_no: %u", data->dev->numeric_handle);
 
     aqr_port_id_init(data, &aq_port);
     if (!priv->phy_diag_done) {
         aq_rc = AQ_API_RunBasicCableDiags(&aq_port);
         if (aq_rc == AQ_RET_OK) {
-            T_I("Successfully started cable diagonistic, port_no:%d\n", data->dev->numeric_handle);
+            T_I(MEPA_TRACE_GRP_GEN, "Successfully started cable diagonistic, port_no:%d\n", data->dev->numeric_handle);
             priv->phy_diag_done = TRUE;
             MSLEEP(10);
         } else {
-            T_E("Run veriphy failed: %d", aq_rc);
+            T_E(MEPA_TRACE_GRP_GEN, "Run veriphy failed: %d", aq_rc);
         }
     }
     return AQR_2_MESA_RC(aq_rc);
@@ -364,7 +360,7 @@ static void aqr_fill_status(mepa_cable_diag_result_t  *res,
         res->status[index] = MESA_VERIPHY_STATUS_SHORT_D;
         break;
     default:
-        T_E("Unknown status");
+        T_E(MEPA_TRACE_GRP_GEN, "Unknown status");
     }
 }
 
@@ -378,7 +374,7 @@ static mesa_rc aqr_veriphy_get(mepa_device_t         *dev,
     AQ_API_Port                     aq_port;
     AQ_API_BasicCableDiagResults    result;
 
-    T_D("Enter, aqr_veriphy_get, port_no: %u", data->dev->numeric_handle);
+    T_D(MEPA_TRACE_GRP_GEN, "Enter, aqr_veriphy_get, port_no: %u", data->dev->numeric_handle);
 
     aqr_port_id_init(data, &aq_port);
     if (priv->phy_diag_done) {
@@ -396,25 +392,25 @@ static mesa_rc aqr_veriphy_get(mepa_device_t         *dev,
         aqr_fill_status(res, 3, result.pairDResult.status, data);
 
         res->length[0]  = result.pairAResult.reflection_1_Distance;
-        T_D("A: dis_1to2: %d", result.pairAResult.reflection_1_Distance);
+        T_D(MEPA_TRACE_GRP_GEN, "A: dis_1to2: %d", result.pairAResult.reflection_1_Distance);
 
         res->length[1]  = result.pairBResult.reflection_1_Distance;
-        T_D("B: dis_1to2: %d", result.pairBResult.reflection_1_Distance);
+        T_D(MEPA_TRACE_GRP_GEN, "B: dis_1to2: %d", result.pairBResult.reflection_1_Distance);
 
 
         res->length[2]  = result.pairCResult.reflection_1_Distance;
-        T_D("C: dis_1to2: %d", result.pairCResult.reflection_1_Distance);
+        T_D(MEPA_TRACE_GRP_GEN, "C: dis_1to2: %d", result.pairCResult.reflection_1_Distance);
 
 
         res->length[3]  = result.pairDResult.reflection_1_Distance;
-        T_D("D: dis_1to2: %d", result.pairDResult.reflection_1_Distance);
+        T_D(MEPA_TRACE_GRP_GEN, "D: dis_1to2: %d", result.pairDResult.reflection_1_Distance);
 
         priv->phy_diag_done = FALSE;
 
-        T_I("Got result(rc:%d). port_no:%d, L0:%d, L1:%d, L2:%d, L3:%d\n", aq_rc, data->dev->numeric_handle, res->length[0], res->length[1], res->length[2], res->length[3]);
+        T_I(MEPA_TRACE_GRP_GEN, "Got result(rc:%d). port_no:%d, L0:%d, L1:%d, L2:%d, L3:%d\n", aq_rc, data->dev->numeric_handle, res->length[0], res->length[1], res->length[2], res->length[3]);
     }
 
-    T_I("Leaving> port_no:%d, ready:%d, rc:%d", data->dev->numeric_handle, priv->phy_diag_done, aq_rc);
+    T_I(MEPA_TRACE_GRP_GEN, "Leaving> port_no:%d, ready:%d, rc:%d", data->dev->numeric_handle, priv->phy_diag_done, aq_rc);
 
     return AQR_2_MESA_RC(aq_rc);
 }
@@ -430,7 +426,7 @@ static mesa_rc aqr_fw_check(AQ_Port  *data,
 
     aq_ret = aqr_phy_conf_get(data, &aq_config);
     if (aq_ret) {
-        T_E("aqr_fw_check/aqr_phy_conf_get failed. Port: %d, RC: %d", data->dev->numeric_handle, aq_ret);
+        T_E(MEPA_TRACE_GRP_GEN, "aqr_fw_check/aqr_phy_conf_get failed. Port: %d, RC: %d", data->dev->numeric_handle, aq_ret);
         return MEPA_RC_ERROR;
     }
 
@@ -442,7 +438,7 @@ static mesa_rc aqr_fw_check(AQ_Port  *data,
     rom = (aq_config.firmwareROM_ID_Number & 0xf0) >> 4;
     if (aq_config.firmwareMajorRevisionNumber != major_id &&
         (aq_config.firmwareMinorRevisionNumber != minor_id || rom != build_id)) {
-        T_E("Unexpected firmware version. Port: %d, Major: %d/%d && (Minor %d/%d || ROM: %d/%d) (actual/expect)",
+        T_E(MEPA_TRACE_GRP_GEN, "Unexpected firmware version. Port: %d, Major: %d/%d && (Minor %d/%d || ROM: %d/%d) (actual/expect)",
             data->dev->numeric_handle,
             aq_config.firmwareMajorRevisionNumber, major_id,
             aq_config.firmwareMinorRevisionNumber, minor_id,

@@ -5,6 +5,7 @@
 #include <mepa_driver.h>
 #include <mepa_macsec_driver.h>
 #include <mepa_ts_driver.h>
+#include <mepa_trace.h>
 #include <vtss_phy_api.h>
 #include "vtss_private.h"
 #include "phy_1g/vtss_phy.h"
@@ -471,7 +472,7 @@ static mepa_rc mscc_1g_reset(mepa_device_t *dev,
             }
         }
         else {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Base Dev is not linked for the port %d",data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Base Dev is not linked for the port %d",data->port_no);
             return MEPA_RC_ERROR;
         }
         break;
@@ -494,7 +495,7 @@ static mepa_rc mscc_1g_reset(mepa_device_t *dev,
             }
         }
         else {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Base Dev is not linked for the port %d",data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Base Dev is not linked for the port %d",data->port_no);
             return MEPA_RC_ERROR;
         }
         break;
@@ -534,18 +535,18 @@ static mepa_rc phy_1g_warmrestart_conf_end(struct mepa_device *dev)
 
         /* Apply sync configurations */
         if((rc = vtss_phy_sync(data->vtss_instance, base_data->port_no) != MEPA_RC_OK)) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
             return rc;
         }
 #if defined (VTSS_FEATURE_PHY_TIMESTAMP)
         if((rc = vtss_phy_ts_sync(data->vtss_instance, base_data->port_no)) != MEPA_RC_OK) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_phy_ts_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_phy_ts_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
             return rc;
         }
 #endif /* VTSS_FEATURE_PHY_TIMESTAMP */
 #if defined (VTSS_FEATURE_MACSEC)
         if((rc = vtss_macsec_sync(data->vtss_instance, base_data->port_no)) != MEPA_RC_OK) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_macsec_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_macsec_sync port(%d) return rc(0x%04X)", base_data->port_no, rc);
             return rc;
         }
 #endif /* VTSS_FEATURE_MACSEC */
@@ -649,7 +650,7 @@ static mepa_rc mscc_1g_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
 
         rc = vtss_phy_conf_1g_set(data->vtss_instance, data->port_no, &cfg_neg);
         if (rc != MEPA_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Failed to confiured speed\n");
+            T_E(MEPA_TRACE_GRP_GEN, "Failed to confiured speed\n");
             return MEPA_RC_ERROR;
         }
         phy_config.forced.speed = config->speed;
@@ -801,7 +802,7 @@ static mepa_device_t *mscc_1g_probe(mepa_driver_t *drv,
     for (i = 0; i < MAX_PORTS_PER_PHY; i++) {
         data->other_dev[i] = NULL;
     }
-    T_I(data, MEPA_TRACE_GRP_GEN, "probed port %d, instance: %p",
+    T_I(MEPA_TRACE_GRP_GEN, "probed port %d, instance: %p",
         data->port_no, data->vtss_instance);
 
     return dev;
@@ -974,7 +975,7 @@ static mepa_rc phy_1g_link_base_port(mepa_device_t *dev, mepa_device_t *base_dev
     mesa_rc rc;
     int i;
 
-    T_D(data, MEPA_TRACE_GRP_GEN, "for port %d base port linked as %d\n", data->port_no, base_data->port_no);
+    T_D(MEPA_TRACE_GRP_GEN, "for port %d base port linked as %d\n", data->port_no, base_data->port_no);
     data->base_dev = base_dev;
     base_data->base_dev = base_dev;
     base_data->other_dev[0] = base_dev; // needed later for comparison.
@@ -986,12 +987,12 @@ static mepa_rc phy_1g_link_base_port(mepa_device_t *dev, mepa_device_t *base_dev
                 base_data->all_phy_ports[i] = data->port_no;
                 break;
             }
-            T_D(data, MEPA_TRACE_GRP_GEN, "base linked i %d port %d\n", i, base_data->all_phy_ports[i]);
+            T_D(MEPA_TRACE_GRP_GEN, "base linked i %d port %d\n", i, base_data->all_phy_ports[i]);
         }
     }
     rc = vtss_phy_id_get(data->vtss_instance, base_data->port_no, &base_id);
     if (rc == MESA_RC_OK && base_id.channel_id) {
-        T_W(data, MEPA_TRACE_GRP_GEN, "base port channel id is not 0");
+        T_W(MEPA_TRACE_GRP_GEN, "base port channel id is not 0");
         return MEPA_RC_ERROR;
     }
     return MEPA_RC_OK;
@@ -1116,7 +1117,7 @@ static mepa_rc phy_10g_malibu_1g_sgmii_status(mepa_device_t *dev, mepa_status_t 
             const char *spd_str = (sgmii.speed == VTSS_SPEED_10M)    ? "10M"
                                   : (sgmii.speed == VTSS_SPEED_100M) ? "100M"
                                                                      : "sub-1G";
-            T_E(data, MEPA_TRACE_GRP_GEN,
+            T_E(MEPA_TRACE_GRP_GEN,
                 "port %u: CuSFP negotiated %s - not supported in 1G_MODE "
                 "non-repeater on Malibu-10. Use REPEATER mode for sub-1G "
                 "(loses MACsec/1588).",
@@ -1131,7 +1132,7 @@ static mepa_rc phy_10g_malibu_1g_sgmii_status(mepa_device_t *dev, mepa_status_t 
 
     if (data->sgmii_passthru_spd != sgmii.speed) {
         if (vtss_phy_10g_sgmii_mode_set(vtss_inst, data->port_no, TRUE) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN,
+            T_E(MEPA_TRACE_GRP_GEN,
                 "port %u: failed to re-apply SGMII mode after speed change", data->port_no);
             return MEPA_RC_ERROR;
         }
@@ -1257,7 +1258,7 @@ static mepa_rc phy_10g_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
         return MEPA_RC_ERROR;
     }
     if (config->conf_10g.h_media > MEPA_MEDIA_TYPE_KR_SC || config->conf_10g.l_media > MEPA_MEDIA_TYPE_KR_SC) {
-        T_E(data, MEPA_TRACE_GRP_GEN, "\n PHY doesn't support the given host/line media");
+        T_E(MEPA_TRACE_GRP_GEN, "\n PHY doesn't support the given host/line media");
         return MEPA_RC_ERROR;
     }
     mode.oper_mode = config->conf_10g.oper_mode;
@@ -1283,7 +1284,7 @@ static mepa_rc phy_10g_conf_set(mepa_device_t *dev, const mepa_conf_t *config)
             return MEPA_RC_ERROR;
         }
     } else {
-        T_E(data, MEPA_TRACE_GRP_GEN, "Speed not specified for 10g conf set");
+        T_E(MEPA_TRACE_GRP_GEN, "Speed not specified for 10g conf set");
         return MEPA_RC_ERROR;
     }
 
@@ -1765,7 +1766,7 @@ static mepa_rc malibu_10g_event_enable_get(struct mepa_device *dev,
 {
     mepa_rc rc = MEPA_RC_OK;
     phy_data_t *data = (phy_data_t *)dev->data;
-    T_D(data, MEPA_TRACE_GRP_GEN, "Inside malibu_10g_event_enable_get");
+    T_D(MEPA_TRACE_GRP_GEN, "Inside malibu_10g_event_enable_get");
     // No need to use VTSS_ENTER since vtss_phy_10g_event_enable_get() it self has the
     // lock
     rc = vtss_phy_10g_event_enable_get(data->vtss_instance, data->port_no, event);
@@ -1997,7 +1998,7 @@ static mepa_rc phy_10g_warmrestart_conf_end(struct mepa_device *dev) {
 
         /* Apply sync configurations */
         if((rc = vtss_phy_10g_sync(data->vtss_instance, data->port_no) != MEPA_RC_OK)) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sync port(%d) return rc(0x%04X)", data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sync port(%d) return rc(0x%04X)", data->port_no, rc);
             return rc;
         }
 #if defined(VTSS_FEATURE_WIS)
@@ -2007,13 +2008,13 @@ static mepa_rc phy_10g_warmrestart_conf_end(struct mepa_device *dev) {
 #endif /* VTSS_FEATURE_WIS */
 #if defined (VTSS_FEATURE_PHY_TIMESTAMP)
         if((rc = vtss_phy_ts_sync(data->vtss_instance, data->port_no)) != MEPA_RC_OK) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_phy_ts_sync port(%d) return rc(0x%04X)", data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_phy_ts_sync port(%d) return rc(0x%04X)", data->port_no, rc);
             return rc;
         }
 #endif /* VTSS_FEATURE_PHY_TIMESTAMP */
 #if defined (VTSS_FEATURE_MACSEC)
         if((rc = vtss_macsec_sync(data->vtss_instance, data->port_no)) != MEPA_RC_OK) {
-            T_D(data, MEPA_TRACE_GRP_GEN, "vtss_macsec_sync port(%d) return rc(0x%04X)", data->port_no, rc);
+            T_D(MEPA_TRACE_GRP_GEN, "vtss_macsec_sync port(%d) return rc(0x%04X)", data->port_no, rc);
             return rc;
         }
 #endif /* VTSS_FEATURE_MACSEC */
@@ -2124,7 +2125,7 @@ static mepa_rc mepa_to_vtss_ckout_conf(const mepa_synce_clock_conf_t *conf, vtss
         case MEPA_SYNCE_CLOCK_SRC_HOST3: ckout->mode = VTSS_CKOUT_HOST3_RECVRD_CLOCK; break;
         case MEPA_SYNCE_CLOCK_SRC_DISABLED: break;
         default:
-            T_E(data, MEPA_TRACE_GRP_GEN, "Invalid CKOUT Source selected\n");
+            T_E(MEPA_TRACE_GRP_GEN, "Invalid CKOUT Source selected\n");
             return MEPA_RC_ERROR;
     }
 
@@ -2184,12 +2185,12 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
 {
     phy_data_t *data =(phy_data_t*)dev->data;
 
-    T_D(data, MEPA_TRACE_GRP_GEN, "phy_10g_synce_clk_conf_set : conf->src : %d, conf->freq : %d, conf->dst : %d\n", conf->src, conf->freq, conf->dst);
+    T_D(MEPA_TRACE_GRP_GEN, "phy_10g_synce_clk_conf_set : conf->src : %d, conf->freq : %d, conf->dst : %d\n", conf->src, conf->freq, conf->dst);
     vtss_phy_10g_lane_sync_conf_t lane_sync = {0};
     lane_sync.enable = TRUE;
 
     if (mepa_to_vtss_synce_conf(*conf, &lane_sync) != VTSS_RC_OK) {
-        T_E(data, MEPA_TRACE_GRP_GEN, "Invalid SyncE clock source on port : %d\n", data->port_no);
+        T_E(MEPA_TRACE_GRP_GEN, "Invalid SyncE clock source on port : %d\n", data->port_no);
         return MEPA_RC_ERROR;
     }
 
@@ -2202,22 +2203,22 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
         } else if (conf->freq == MEPA_FREQ_125M) {
             sref_clk.freq = VTSS_PHY_10G_SREFCLK_125_00;
         } else {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Invalid SREFCLK frequency selected on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Invalid SREFCLK frequency selected on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
 
         if(vtss_phy_10g_srefclk_conf_set(data->vtss_instance, data->port_no, &sref_clk) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Error in configuring SREFCLK on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Error in configuring SREFCLK on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
     }
 
-    T_D(data, MEPA_TRACE_GRP_GEN, "lane_sync.tx_macro : %d, lane_sync.rx_macro : %d, lane_sync.rx_ch : %d, lane_sync.tx_ch : %d\n",
+    T_D(MEPA_TRACE_GRP_GEN, "lane_sync.tx_macro : %d, lane_sync.rx_macro : %d, lane_sync.rx_ch : %d, lane_sync.tx_ch : %d\n",
         lane_sync.tx_macro, lane_sync.rx_macro, lane_sync.rx_ch, lane_sync.tx_ch);
 
     if (conf->src != MEPA_SYNCE_CLOCK_SRC_DISABLED) {
         if (vtss_phy_10g_lane_sync_set(data->vtss_instance, data->port_no, &lane_sync) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "vtss_phy_10g_lane_sync_set failed on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "vtss_phy_10g_lane_sync_set failed on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
     }
@@ -2225,7 +2226,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
     // SCKOUT configuration
     if (conf->dst == MEPA_SYNCE_CLOCK_DST_SCKOUT) {
 
-        T_D(data, MEPA_TRACE_GRP_GEN, "SCKOUT Configuration on port : %d\n", data->port_no);
+        T_D(MEPA_TRACE_GRP_GEN, "SCKOUT Configuration on port : %d\n", data->port_no);
         vtss_phy_10g_sckout_conf_t sckout = {0};
 
         sckout.enable = TRUE;
@@ -2242,7 +2243,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
             sckout.enable = FALSE;
         } else {
             /* Unsupported source for SCKOUT output */
-            T_E(data, MEPA_TRACE_GRP_GEN, "Invalid SyncE clock source for SCKOUT on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Invalid SyncE clock source for SCKOUT on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
 
@@ -2253,7 +2254,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
             } else if (conf->freq == MEPA_FREQ_125M) {
                 sckout.freq = VTSS_PHY_10G_SCKOUT_125_00;
             } else {
-                T_E(data, MEPA_TRACE_GRP_GEN, "Invalid SyncE frequency for SCKOUT on port : %d\n", data->port_no);
+                T_E(MEPA_TRACE_GRP_GEN, "Invalid SyncE frequency for SCKOUT on port : %d\n", data->port_no);
                 return MEPA_RC_ERROR;
             }
         } else {
@@ -2263,18 +2264,18 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
 
         // Squelch
         if (mepa_to_vtss_sckout_conf(*conf, &sckout) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Invalid SyncE squelch source on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Invalid SyncE squelch source on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
 
         sckout.squelch_inv = conf->squelch.squelch_inv;
 
-        T_D(data, MEPA_TRACE_GRP_GEN, "SCKOUT Config : sckout.mode : %d, sckout.src : %d, sckout.freq : %d, sckout.squelch_inv : %d, sckout.enable : %d\n",
+        T_D(MEPA_TRACE_GRP_GEN, "SCKOUT Config : sckout.mode : %d, sckout.src : %d, sckout.freq : %d, sckout.squelch_inv : %d, sckout.enable : %d\n",
             sckout.mode, sckout.src, sckout.freq, sckout.squelch_inv, sckout.enable);
 
         // Configure SCKOUT
         if (vtss_phy_10g_sckout_conf_set(data->vtss_instance, data->port_no, &sckout) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sckout_set failed  on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "vtss_phy_10g_sckout_set failed  on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
 
         }
@@ -2293,7 +2294,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
 
         lane_sync.tx_macro = VTSS_PHY_10G_TX_MACRO_SCKOUT;
         if (vtss_phy_10g_lane_sync_set(data->vtss_instance, data->port_no, &lane_sync) != VTSS_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "SCKOUT: vtss_phy_10g_lane_sync_set failed on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "SCKOUT: vtss_phy_10g_lane_sync_set failed on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
         return MEPA_RC_OK;
@@ -2303,7 +2304,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
     if (conf->dst >= MEPA_SYNCE_CLOCK_DST_1 && conf->dst <= MEPA_SYNCE_CLOCK_DST_4) {
         vtss_phy_10g_ckout_conf_t ckout = {0};
         if (mepa_to_vtss_ckout_conf(conf, &ckout) != MEPA_RC_OK) {
-            T_E(data, MEPA_TRACE_GRP_GEN, "Invalid CKOUT Parameter selected on port : %d\n", data->port_no);
+            T_E(MEPA_TRACE_GRP_GEN, "Invalid CKOUT Parameter selected on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
         if (conf->src == MEPA_SYNCE_CLOCK_SRC_DISABLED) {
@@ -2313,7 +2314,7 @@ static mepa_rc phy_10g_synce_clk_conf_set(mepa_device_t *dev, const mepa_synce_c
         }
 
         if (vtss_phy_10g_ckout_conf_set(data->vtss_instance, data->port_no, &ckout) != VTSS_RC_OK) {
-           T_E(data, MEPA_TRACE_GRP_GEN, "vtss_phy_10g_ckout_conf_set failed  on port : %d\n", data->port_no);
+           T_E(MEPA_TRACE_GRP_GEN, "vtss_phy_10g_ckout_conf_set failed  on port : %d\n", data->port_no);
             return MEPA_RC_ERROR;
         }
     }

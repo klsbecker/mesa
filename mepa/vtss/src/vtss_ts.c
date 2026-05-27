@@ -3,6 +3,7 @@
 
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
+#include <mepa_trace.h>
 #include <mepa_ts_driver.h>
 #include <vtss_phy_api.h>
 #include "vtss_private.h"
@@ -104,7 +105,7 @@ static void get_clk_from_action(mepa_device_t *dev, const vtss_phy_ts_ptp_engine
 {
     mepa_ts_match_uint8_t sdoid = {};
     clk_conf->enable = action->channel_map & get_vs_channel_mask(dev) ? true : false;
-    T_I(data, MEPA_TRACE_GRP_TS, "clk_mode %d", action->clk_mode);
+    T_I(MEPA_TRACE_GRP_TS, "clk_mode %d", action->clk_mode);
     clk_conf->clk_mode = get_mepa_clk_mode(action->clk_mode);
     clk_conf->delaym_type = (action->delaym_type == VTSS_PHY_TS_PTP_DELAYM_E2E) ? MEPA_TS_PTP_DELAYM_E2E : MEPA_TS_PTP_DELAYM_P2P;
     clk_conf->ptp_class_conf.version.lower = 2; // unused
@@ -325,13 +326,13 @@ static uint8_t get_vs_channel_mask(mepa_device_t *dev)
         if (vtss_phy_id_get(data->vtss_instance, data->port_no, &phy_id_1g) == MESA_RC_OK) {
             ch_mask = phy_id_1g.phy_api_base_no == data->port_no ? VTSS_PHY_TS_ENG_FLOW_VALID_FOR_CH0 : VTSS_PHY_TS_ENG_FLOW_VALID_FOR_CH1;
         } else {
-            T_W(data, MEPA_TRACE_GRP_TS, "error getting 1G phy id info");
+            T_W(MEPA_TRACE_GRP_TS, "error getting 1G phy id info");
         }
     } else {
         if (vtss_phy_10g_id_get(data->vtss_instance, data->port_no, &phy_id_10g) == MESA_RC_OK) {
             ch_mask = phy_id_10g.channel_id % 2 == 0 ? VTSS_PHY_TS_ENG_FLOW_VALID_FOR_CH0 : VTSS_PHY_TS_ENG_FLOW_VALID_FOR_CH1;
         } else {
-            T_W(data, MEPA_TRACE_GRP_TS, "error getting 10G phy id info");
+            T_W(MEPA_TRACE_GRP_TS, "error getting 10G phy id info");
         }
     }
 
@@ -460,7 +461,7 @@ static mepa_rc get_ts_alt_base_dev(mepa_device_t *dev, mepa_device_t **ts_base_d
     mepa_port_no_t base_port;
 
     vtss_phy_id_get(data->vtss_instance, data->port_no, &id);
-    T_I(data, MEPA_TRACE_GRP_TS, "base port %d port %d base_no %d\n", base_data->port_no, data->port_no, id.phy_api_base_no);
+    T_I(MEPA_TRACE_GRP_TS, "base port %d port %d base_no %d\n", base_data->port_no, data->port_no, id.phy_api_base_no);
     if (id.phy_api_base_no == data->port_no) {
         *ts_base_dev = dev;
         for (int i = 0; i < MAX_PORTS_PER_PHY; i++) {
@@ -469,11 +470,11 @@ static mepa_rc get_ts_alt_base_dev(mepa_device_t *dev, mepa_device_t **ts_base_d
             }
             alt_data = (phy_data_t *)(base_data->other_dev[i]->data);
             vtss_phy_id_get(data->vtss_instance, alt_data->port_no, &id);
-            T_D(data, MEPA_TRACE_GRP_TS, "alt port %d base_no %d\n", alt_data->port_no, id.phy_api_base_no);
+            T_D(MEPA_TRACE_GRP_TS, "alt port %d base_no %d\n", alt_data->port_no, id.phy_api_base_no);
             if (id.phy_api_base_no == data->port_no) {
                 *ts_alt_dev = base_data->other_dev[i];
                 phy_data_t *alt_data = (phy_data_t *)((*ts_alt_dev)->data);
-                T_D(data, MEPA_TRACE_GRP_TS, "alt_dev port %d\n", alt_data->port_no );
+                T_D(MEPA_TRACE_GRP_TS, "alt_dev port %d\n", alt_data->port_no );
                 return MEPA_RC_OK;
             }
         }
@@ -485,18 +486,18 @@ static mepa_rc get_ts_alt_base_dev(mepa_device_t *dev, mepa_device_t **ts_base_d
             }
             alt_data = (phy_data_t *)(base_data->other_dev[i]->data);
             vtss_phy_id_get(data->vtss_instance, alt_data->port_no, &id);
-            T_D(data, MEPA_TRACE_GRP_TS, "alt port %d base_no %d\n", alt_data->port_no, id.phy_api_base_no);
+            T_D(MEPA_TRACE_GRP_TS, "alt port %d base_no %d\n", alt_data->port_no, id.phy_api_base_no);
             if (id.phy_api_base_no == base_port) {
                 *ts_base_dev = base_data->other_dev[i];
                 *ts_alt_dev = base_data->other_dev[i];
                 phy_data_t *alt_data = (phy_data_t *)((*ts_alt_dev)->data);
-                T_D(data, MEPA_TRACE_GRP_TS, "alt_dev port %d\n", alt_data->port_no );
+                T_D(MEPA_TRACE_GRP_TS, "alt_dev port %d\n", alt_data->port_no );
                 return MEPA_RC_OK;
                 break;
             }
         }
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "reached end of alt dev base search");
+    T_I(MEPA_TRACE_GRP_TS, "reached end of alt dev base search");
     return MEPA_RC_ERROR;
 }
 #endif
@@ -637,7 +638,7 @@ static mepa_rc vtss_ts_init_conf_set(struct mepa_device *dev, const mepa_ts_init
     data->ts.dly_req_recv_10byte_ts = ts_init_conf->dly_req_recv_10byte_ts;
     data->ts.tx_fifo_spi_conf = ts_init_conf->tx_fifo_spi_conf;
     init_conf.clk_freq = ts_init_conf->clk_freq;
-    T_I(data, MEPA_TRACE_GRP_GEN, "clock frequency %d\n", ts_init_conf->clk_freq);
+    T_I(MEPA_TRACE_GRP_GEN, "clock frequency %d\n", ts_init_conf->clk_freq);
     if (ts_init_conf->clk_src == MEPA_TS_CLOCK_SRC_INTERNAL) {
         init_conf.clk_src = VTSS_PHY_TS_CLOCK_SRC_INTERNAL;
     } else if (ts_init_conf->clk_src > MEPA_TS_CLOCK_SRC_INTERNAL) {
@@ -816,7 +817,7 @@ static mepa_rc phy_rx_clock_conf_get(mepa_device_t *dev, uint16_t clock_id, mepa
     mesa_rc rc;
     mepa_rc ret = MEPA_RC_OK;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "start");
+    T_I(MEPA_TRACE_GRP_TS, "start");
     get_eng_clock_info(clock_id, &eng_id, &act_id);
     // Check whether engine is used.
     rc = vtss_phy_ts_ingress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
@@ -834,7 +835,7 @@ static mepa_rc phy_rx_clock_conf_get(mepa_device_t *dev, uint16_t clock_id, mepa
             ret = MEPA_RC_ERR_TS_ACTION_GET_FAIL;
         }
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "end ");
+    T_I(MEPA_TRACE_GRP_TS, "end ");
     //dump_ptp_action(&action_conf);
     //dump_chip_ptp_flow(dev, true);
     return ret;
@@ -850,11 +851,11 @@ static mepa_rc phy_tx_clock_conf_get(mepa_device_t *dev, uint16_t clock_id, mepa
     mepa_rc ret = MEPA_RC_OK;
 
     get_eng_clock_info(clock_id, &eng_id, &act_id);
-    T_I(data, MEPA_TRACE_GRP_TS, "eng_id %d act_id %d", eng_id, act_id);
+    T_I(MEPA_TRACE_GRP_TS, "eng_id %d act_id %d", eng_id, act_id);
     // Check whether engine is used.
     rc = vtss_phy_ts_egress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
     if (rc != MESA_RC_OK) {
-        T_I(data, MEPA_TRACE_GRP_TS, "No action configured");
+        T_I(MEPA_TRACE_GRP_TS, "No action configured");
         // engine not used. Set default configurations
         get_default_ts_ptp_class(&clk_conf->ptp_class_conf);
         clk_conf->clk_mode = MEPA_TS_PTP_CLOCK_MODE_NONE;
@@ -868,7 +869,7 @@ static mepa_rc phy_tx_clock_conf_get(mepa_device_t *dev, uint16_t clock_id, mepa
             ret = MEPA_RC_ERR_TS_ACTION_GET_FAIL;
         }
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "here ");
+    T_I(MEPA_TRACE_GRP_TS, "here ");
     //dump_ptp_action(&action_conf);
     //dump_chip_ptp_flow(dev, false);
     return ret;
@@ -883,7 +884,7 @@ static mepa_rc phy_tx_classifier_conf_get(mepa_device_t *dev, uint16_t in_flow, 
     uint8_t flow_start, flow_end;
     mesa_rc rc;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "tx class start");
+    T_I(MEPA_TRACE_GRP_TS, "tx class start");
     get_eng_flow_info(in_flow, &eng_id, &flow_id, &flow_start, &flow_end);
     // Check whether engine is used.
     rc = vtss_phy_ts_egress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
@@ -903,7 +904,7 @@ static mepa_rc phy_tx_classifier_conf_get(mepa_device_t *dev, uint16_t in_flow, 
         get_class_from_flow(&flow_conf, flow_id, out_conf);
         out_conf->clock_id = data->ts.tx_flow_clk[in_flow];
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "tx class end");
+    T_I(MEPA_TRACE_GRP_TS, "tx class end");
     return MEPA_RC_OK;
 }
 
@@ -917,7 +918,7 @@ static mepa_rc phy_rx_classifier_conf_get(mepa_device_t *dev, uint16_t in_flow, 
     uint8_t flow_start, flow_end;
     mesa_rc rc;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "here ");
+    T_I(MEPA_TRACE_GRP_TS, "here ");
     get_eng_flow_info(in_flow, &eng_id, &flow_id, &flow_start, &flow_end);
     // Check whether engine is used.
     rc = vtss_phy_ts_ingress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
@@ -937,7 +938,7 @@ static mepa_rc phy_rx_classifier_conf_get(mepa_device_t *dev, uint16_t in_flow, 
         get_class_from_flow(&flow_conf, flow_id, out_conf);
         out_conf->clock_id = data->ts.rx_flow_clk[in_flow];
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "here ");
+    T_I(MEPA_TRACE_GRP_TS, "here ");
     //dump_flow_conf(&flow_conf);
     //dump_chip_matching_flow(dev, true);
     return MEPA_RC_OK;
@@ -954,7 +955,7 @@ static mepa_rc vtss_ts_rx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
     uint8_t ch_map;
     mepa_bool_t act_chng = false;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "rx clock start");
+    T_I(MEPA_TRACE_GRP_TS, "rx clock start");
 
     get_eng_clock_info(clock_id, &eng_id, &act_id);
     rc = vtss_phy_ts_ingress_engine_action_get(data->vtss_instance, data->port_no, eng_id, &action_conf);
@@ -964,7 +965,7 @@ static mepa_rc vtss_ts_rx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
     action = &action_conf.action.ptp_conf[act_id];
     if ((ptpclock_conf->clk_mode == MEPA_TS_PTP_CLOCK_MODE_NONE) ||
         (!ptpclock_conf->enable)) {
-        T_I(data, MEPA_TRACE_GRP_TS, "disabling action channel mask ");
+        T_I(MEPA_TRACE_GRP_TS, "disabling action channel mask ");
         action->channel_map &= ~(get_vs_channel_mask(dev));
         action->clk_mode = get_mesa_clk_mode(ptpclock_conf->clk_mode);
         if ((ptpclock_conf->clk_mode == MEPA_TS_PTP_CLOCK_MODE_NONE) &&
@@ -972,7 +973,7 @@ static mepa_rc vtss_ts_rx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
             action->enable = false;
         }
     } else if (action->enable) {
-        T_I(data, MEPA_TRACE_GRP_TS, "action enabled already with clk_mode %d in mode %d\n", action->clk_mode, ptpclock_conf->clk_mode);
+        T_I(MEPA_TRACE_GRP_TS, "action enabled already with clk_mode %d in mode %d\n", action->clk_mode, ptpclock_conf->clk_mode);
         dump_ptp_action(&action_conf);
         if ((action->clk_mode != get_mesa_clk_mode(ptpclock_conf->clk_mode)) ||
             (action->delaym_type != get_mesa_delay_type(ptpclock_conf->delaym_type))) {
@@ -984,13 +985,13 @@ static mepa_rc vtss_ts_rx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
         }
         action->channel_map |= ch_map;
     } else {
-        T_I(data, MEPA_TRACE_GRP_TS, "clk_mode %d delaym_type %d act-id %d\n", ptpclock_conf->clk_mode, ptpclock_conf->delaym_type, act_id);
+        T_I(MEPA_TRACE_GRP_TS, "clk_mode %d delaym_type %d act-id %d\n", ptpclock_conf->clk_mode, ptpclock_conf->delaym_type, act_id);
         action->enable = true;
         action->channel_map |= get_vs_channel_mask(dev);
         action->clk_mode = get_mesa_clk_mode(ptpclock_conf->clk_mode);
         action->delaym_type = get_mesa_delay_type(ptpclock_conf->delaym_type);
         if(!ptpclock_conf->cf_update) {
-            T_I(data, MEPA_TRACE_GRP_TS, "Cannot update correction feild for Ingress %d",ptpclock_conf->cf_update);
+            T_I(MEPA_TRACE_GRP_TS, "Cannot update correction feild for Ingress %d",ptpclock_conf->cf_update);
         }
         action->cf_update = false;
         action->delay_req_recieve_timestamp = data->ts.dly_req_recv_10byte_ts;
@@ -1008,7 +1009,7 @@ static mepa_rc vtss_ts_rx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
     rc = vtss_phy_ts_ingress_engine_action_set(data->vtss_instance, data->port_no, eng_id, &action_conf);
     dump_ptp_action(&action_conf);
     dump_chip_ptp_flow(dev, true);
-    T_I(data, MEPA_TRACE_GRP_TS, "rx clock end");
+    T_I(MEPA_TRACE_GRP_TS, "rx clock end");
     return (rc == MESA_RC_OK) ? MEPA_RC_OK : MEPA_RC_ERROR;
 }
 
@@ -1023,8 +1024,8 @@ static mepa_rc vtss_ts_tx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
     uint8_t ch_map;
     mepa_bool_t act_chng = false;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "start ");
-    T_I(data, MEPA_TRACE_GRP_TS, "Get engine action ");
+    T_I(MEPA_TRACE_GRP_TS, "start ");
+    T_I(MEPA_TRACE_GRP_TS, "Get engine action ");
     get_eng_clock_info(clock_id, &eng_id, &act_id);
     rc = vtss_phy_ts_egress_engine_action_get(data->vtss_instance, data->port_no, eng_id, &action_conf);
     if (rc != MESA_RC_OK) {
@@ -1033,7 +1034,7 @@ static mepa_rc vtss_ts_tx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
     action = &action_conf.action.ptp_conf[act_id];
     if ((ptpclock_conf->clk_mode == MEPA_TS_PTP_CLOCK_MODE_NONE) ||
         (!ptpclock_conf->enable)) {
-        T_I(data, MEPA_TRACE_GRP_TS, "disabling action channel mask ");
+        T_I(MEPA_TRACE_GRP_TS, "disabling action channel mask ");
         action->clk_mode = get_mesa_clk_mode(ptpclock_conf->clk_mode);
         action->channel_map &= ~(get_vs_channel_mask(dev));
         if ((ptpclock_conf->clk_mode == MEPA_TS_PTP_CLOCK_MODE_NONE) &&
@@ -1041,7 +1042,7 @@ static mepa_rc vtss_ts_tx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
             action->enable = false;
         }
     } else if (action->enable) {
-        T_I(data, MEPA_TRACE_GRP_TS, "action enabled already\n");
+        T_I(MEPA_TRACE_GRP_TS, "action enabled already\n");
         if ((action->clk_mode != get_mesa_clk_mode(ptpclock_conf->clk_mode)) ||
             (action->delaym_type != get_mesa_delay_type(ptpclock_conf->delaym_type)) ||
             (action->cf_update != ptpclock_conf->cf_update)) {
@@ -1053,7 +1054,7 @@ static mepa_rc vtss_ts_tx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
         }
         action->channel_map |= ch_map;
     } else {
-        T_I(data, MEPA_TRACE_GRP_TS, "clk_mode %d delaym_type %d cf_update %d\n", ptpclock_conf->delaym_type, ptpclock_conf->cf_update);
+        T_I(MEPA_TRACE_GRP_TS, "clk_mode %d delaym_type %d cf_update %d\n", ptpclock_conf->delaym_type, ptpclock_conf->cf_update);
         action->enable = true;
         action->channel_map |= get_vs_channel_mask(dev);
         action->clk_mode = get_mesa_clk_mode(ptpclock_conf->clk_mode);
@@ -1074,12 +1075,12 @@ static mepa_rc vtss_ts_tx_clock_conf_set(mepa_device_t *dev, uint16_t clock_id, 
         action->ptp_conf.domain.value.val  = ptpclock_conf->ptp_class_conf.domain.match.value.val & 0xff;
         action->ptp_conf.domain.value.mask = ptpclock_conf->ptp_class_conf.domain.match.value.mask & 0xff;
     }
-    T_I(data, MEPA_TRACE_GRP_TS, "Set engine action");
+    T_I(MEPA_TRACE_GRP_TS, "Set engine action");
 
     rc = vtss_phy_ts_egress_engine_action_set(data->vtss_instance, data->port_no, eng_id, &action_conf);
     dump_ptp_action(&action_conf);
     dump_chip_ptp_flow(dev, false);
-    T_I(data, MEPA_TRACE_GRP_TS, "end ");
+    T_I(MEPA_TRACE_GRP_TS, "end ");
     return (rc == MESA_RC_OK) ? MEPA_RC_OK : MEPA_RC_ERROR;
 }
 
@@ -1177,17 +1178,17 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
     vtss_phy_ts_engine_action_t action_conf;
     mesa_rc v_rc;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "Rx class conf set Start");
+    T_I(MEPA_TRACE_GRP_TS, "Rx class conf set Start");
     get_eng_flow_info(in_flow, &eng_id, &flow_id, &flow_start, &flow_end);
     if (mepa_to_vtss_encap(in_conf->pkt_encap_type, &encap) != MESA_RC_OK) {
-        T_I(data, MEPA_TRACE_GRP_TS, "Could not convert encap pkt encap %d", in_conf->pkt_encap_type);
+        T_I(MEPA_TRACE_GRP_TS, "Could not convert encap pkt encap %d", in_conf->pkt_encap_type);
         return MEPA_RC_ERR_TS_INVALID_ENCAP;
     }
 
     // step - 1
     // Verify if the engine is initialised
     v_rc = vtss_phy_ts_ingress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
-    T_I(data, MEPA_TRACE_GRP_TS, "Get engine init conf \n");
+    T_I(MEPA_TRACE_GRP_TS, "Get engine init conf \n");
     if (v_rc != MESA_RC_OK) {
         // Engine not initialised.
         v_rc = vtss_phy_ts_ingress_engine_init(data->vtss_instance, data->port_no, eng_id, encap, flow_start, flow_end, VTSS_PHY_TS_ENG_FLOW_MATCH_STRICT);
@@ -1203,25 +1204,25 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         action_conf.action.ptp_conf[0].enable = action_conf.action.ptp_conf[1].enable = false;
         action_conf.action.ptp_conf[0].channel_map = action_conf.action.ptp_conf[1].channel_map = 0;
         v_rc = vtss_phy_ts_ingress_engine_action_set(data->vtss_instance, data->port_no, eng_id, &action_conf);
-        T_I(data, MEPA_TRACE_GRP_TS, "engine init configured \n");
+        T_I(MEPA_TRACE_GRP_TS, "engine init configured \n");
     } else {
         // Check the encap already configured on engine is same as input encapsulation.
         if (in_conf->pkt_encap_type != MEPA_TS_ENCAP_NONE && encap != eng_init_conf.encap_type) {
-            T_I(data, MEPA_TRACE_GRP_TS, "engine encap error");
+            T_I(MEPA_TRACE_GRP_TS, "engine encap error");
             return MEPA_RC_ERR_TS_ENG_ENCAP_OVERWRITE;
         }
         v_rc = vtss_phy_ts_ingress_engine_conf_get(data->vtss_instance, data->port_no, eng_id, &flow_conf);
         if (v_rc != MESA_RC_OK) {
-            T_I(data, MEPA_TRACE_GRP_TS, "could not get egress engine conf");
+            T_I(MEPA_TRACE_GRP_TS, "could not get egress engine conf");
             return MEPA_RC_ERR_TS_FLOW_CONF;
         }
         if (!get_compare_common_opt(&flow_conf.flow_conf.ptp, in_conf)) {
-            T_W(data, MEPA_TRACE_GRP_TS, "overwriting common configuration not valid");
+            T_W(MEPA_TRACE_GRP_TS, "overwriting common configuration not valid");
             // Allow over-writing common conf. The last config applied is the one that applies for all flows finally. Otherwise,
             // it is not possible to modify common configuration after initialisation.
             //return MEPA_RC_ERR_TS_ENG_COMM_OVERWRITE;
         }
-        T_I(data, MEPA_TRACE_GRP_TS, "engine conf obtained");
+        T_I(MEPA_TRACE_GRP_TS, "engine conf obtained");
     }
     if (in_conf->pkt_encap_type == MEPA_TS_ENCAP_NONE) {
         // clear the channel map and check whether engine needs to be disabled.
@@ -1235,14 +1236,14 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         if (!eng_used) {
             // clear the engine.
             if (vtss_phy_ts_ingress_engine_clear(data->vtss_instance, data->port_no, eng_id) != MESA_RC_OK) {
-                T_I(data, MEPA_TRACE_GRP_TS, "Not able to clear the ingress engine %d port %d", eng_id, data->port_no);
+                T_I(MEPA_TRACE_GRP_TS, "Not able to clear the ingress engine %d port %d", eng_id, data->port_no);
                 return MEPA_RC_ERR_TS_ENG_CLR;
             }
-            T_I(data, MEPA_TRACE_GRP_TS, "engine conf cleared");
+            T_I(MEPA_TRACE_GRP_TS, "engine conf cleared");
         } else {
             dump_flow_conf(&flow_conf);
             if (vtss_phy_ts_ingress_engine_conf_set(data->vtss_instance, data->port_no, eng_id, &flow_conf) != MESA_RC_OK) {
-                T_I(data, MEPA_TRACE_GRP_TS, " Not able to set ingress flow configuration for flow %d", flow_id);
+                T_I(MEPA_TRACE_GRP_TS, " Not able to set ingress flow configuration for flow %d", flow_id);
                 return MEPA_RC_ERR_TS_FLOW_CONF;
             }
         }
@@ -1309,7 +1310,7 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         eth_flow->tag_range_mode = VTSS_PHY_TS_TAG_RANGE_NONE;
         if (eth->comm_opt.pbb_en && (eth_in->vlan_conf.outer_tag.mode == MEPA_TS_MATCH_MODE_RANGE ||
                                      eth_in->vlan_conf.inner_tag.mode == MEPA_TS_MATCH_MODE_RANGE)) {
-            T_I(data, MEPA_TRACE_GRP_TS, " For pbb enabled case, tag range cannot be configured");
+            T_I(MEPA_TRACE_GRP_TS, " For pbb enabled case, tag range cannot be configured");
             return MEPA_RC_ERROR;
         }
         if (eth->comm_opt.pbb_en) {
@@ -1341,14 +1342,14 @@ static mepa_rc phy_ts_rx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         }
         dump_flow_conf(&flow_conf);
         if (vtss_phy_ts_ingress_engine_conf_set(data->vtss_instance, data->port_no, eng_id, &flow_conf) != MESA_RC_OK) {
-            T_I(data, MEPA_TRACE_GRP_TS, " Not able to set ingress flow configuration for flow %d", flow_id);
+            T_I(MEPA_TRACE_GRP_TS, " Not able to set ingress flow configuration for flow %d", flow_id);
             return MEPA_RC_ERR_TS_FLOW_CONF;
         }
-        T_I(data, MEPA_TRACE_GRP_TS, " ingress flow configuration done for flow %d", flow_id);
+        T_I(MEPA_TRACE_GRP_TS, " ingress flow configuration done for flow %d", flow_id);
     }
     dump_chip_matching_flow(dev, true);
     //data->ts.rx_eng[eng_id].clock_id = in_conf->clock_id;
-    T_I(data, MEPA_TRACE_GRP_TS, "exit");
+    T_I(MEPA_TRACE_GRP_TS, "exit");
     return MEPA_RC_OK;
 }
 
@@ -1373,10 +1374,10 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
     vtss_phy_ts_engine_action_t action_conf;
     mesa_rc v_rc;
 
-    T_I(data, MEPA_TRACE_GRP_TS, "Tx class conf set start");
+    T_I(MEPA_TRACE_GRP_TS, "Tx class conf set start");
     get_eng_flow_info(in_flow, &eng_id, &flow_id, &flow_start, &flow_end);
     if (mepa_to_vtss_encap(in_conf->pkt_encap_type, &encap) != MESA_RC_OK) {
-        T_I(data, MEPA_TRACE_GRP_TS, "Could not convert encap pkt encap %d", in_conf->pkt_encap_type);
+        T_I(MEPA_TRACE_GRP_TS, "Could not convert encap pkt encap %d", in_conf->pkt_encap_type);
         return MEPA_RC_ERR_TS_INVALID_ENCAP;
     }
     // engine 0 -> 0, 1 clock-ids
@@ -1388,12 +1389,12 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         data->ts.tx_flow_clk[in_flow] = in_conf->clock_id;
     }
 
-    T_I(data, MEPA_TRACE_GRP_TS, "Get engine init conf \n");
+    T_I(MEPA_TRACE_GRP_TS, "Get engine init conf \n");
     // step - 1
     // Verify if the engine is initialised
     v_rc = vtss_phy_ts_egress_engine_init_conf_get(data->vtss_instance, data->port_no, eng_id, &eng_init_conf);
     if (v_rc != MESA_RC_OK) {
-        T_I(data, MEPA_TRACE_GRP_TS, "flow_start %d flow_end %d eng_id %d\n", flow_start, flow_end, eng_id);
+        T_I(MEPA_TRACE_GRP_TS, "flow_start %d flow_end %d eng_id %d\n", flow_start, flow_end, eng_id);
         // Engine not initialised.
         v_rc = vtss_phy_ts_egress_engine_init(data->vtss_instance, data->port_no, eng_id, encap, flow_start, flow_end, VTSS_PHY_TS_ENG_FLOW_MATCH_STRICT);
         if (v_rc != MESA_RC_OK) {
@@ -1408,25 +1409,25 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         action_conf.action.ptp_conf[0].enable = action_conf.action.ptp_conf[1].enable = false;
         action_conf.action.ptp_conf[0].channel_map = action_conf.action.ptp_conf[1].channel_map = 0;
         vtss_phy_ts_egress_engine_action_set(data->vtss_instance, data->port_no, eng_id, &action_conf);
-        T_I(data, MEPA_TRACE_GRP_TS, "engine init configured \n");
+        T_I(MEPA_TRACE_GRP_TS, "engine init configured \n");
     } else {
         // Check the encap already configured on engine is same as input encapsulation.
         if (in_conf->pkt_encap_type != MEPA_TS_ENCAP_NONE && encap != eng_init_conf.encap_type) {
-            T_I(data, MEPA_TRACE_GRP_TS, "engine encap error");
+            T_I(MEPA_TRACE_GRP_TS, "engine encap error");
             return MEPA_RC_ERR_TS_ENG_ENCAP_OVERWRITE;
         }
         v_rc = vtss_phy_ts_egress_engine_conf_get(data->vtss_instance, data->port_no, eng_id, &flow_conf);
         if (v_rc != MESA_RC_OK) {
-            T_I(data, MEPA_TRACE_GRP_TS, "could not get egress engine conf");
+            T_I(MEPA_TRACE_GRP_TS, "could not get egress engine conf");
             return MEPA_RC_ERR_TS_FLOW_CONF;
         }
         if (!get_compare_common_opt(&flow_conf.flow_conf.ptp, in_conf)) {
-            T_W(data, MEPA_TRACE_GRP_TS, "overwriting common configuration not valid");
+            T_W(MEPA_TRACE_GRP_TS, "overwriting common configuration not valid");
             // Allow over-writing common conf. The last config applied is the one that applies for all flows finally. Otherwise,
             // it is not possible to modify common configuration after initialisation.
             //return MEPA_RC_ERR_TS_ENG_COMM_OVERWRITE;
         }
-        T_I(data, MEPA_TRACE_GRP_TS, "engine conf obtained");
+        T_I(MEPA_TRACE_GRP_TS, "engine conf obtained");
     }
     if (in_conf->pkt_encap_type == MEPA_TS_ENCAP_NONE) {
         // clear the channel map and check whether engine needs to be disabled.
@@ -1440,14 +1441,14 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         if (!eng_used) {
             // clear the engine.
             if (vtss_phy_ts_egress_engine_clear(data->vtss_instance, data->port_no, eng_id) != MESA_RC_OK) {
-                T_I(data, MEPA_TRACE_GRP_TS, "Not able to clear the egress engine %d port %d", eng_id, data->port_no);
+                T_I(MEPA_TRACE_GRP_TS, "Not able to clear the egress engine %d port %d", eng_id, data->port_no);
                 return MEPA_RC_ERR_TS_ENG_CLR;
             }
-            T_I(data, MEPA_TRACE_GRP_TS, "engine conf cleared");
+            T_I(MEPA_TRACE_GRP_TS, "engine conf cleared");
         } else {
             dump_flow_conf(&flow_conf);
             if (vtss_phy_ts_egress_engine_conf_set(data->vtss_instance, data->port_no, eng_id, &flow_conf) != MESA_RC_OK) {
-                T_I(data, MEPA_TRACE_GRP_TS, " Not able to set egress flow configuration for flow %d", flow_id);
+                T_I(MEPA_TRACE_GRP_TS, " Not able to set egress flow configuration for flow %d", flow_id);
                 return MEPA_RC_ERR_TS_FLOW_CONF;
             }
         }
@@ -1508,7 +1509,7 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         eth_flow->tag_range_mode = VTSS_PHY_TS_TAG_RANGE_NONE;
         if (eth->comm_opt.pbb_en && (eth_in->vlan_conf.outer_tag.mode == MEPA_TS_MATCH_MODE_RANGE ||
                                      eth_in->vlan_conf.inner_tag.mode == MEPA_TS_MATCH_MODE_RANGE)) {
-            T_I(data, MEPA_TRACE_GRP_TS, " For pbb enabled case, tag range cannot be configured");
+            T_I(MEPA_TRACE_GRP_TS, " For pbb enabled case, tag range cannot be configured");
             return MEPA_RC_ERROR;
         }
         if (eth->comm_opt.pbb_en) {
@@ -1540,15 +1541,15 @@ static mepa_rc phy_ts_tx_classifier_conf_set(struct mepa_device *dev, uint16_t i
         }
         dump_flow_conf(&flow_conf);
         if (vtss_phy_ts_egress_engine_conf_set(data->vtss_instance, data->port_no, eng_id, &flow_conf) != MESA_RC_OK) {
-            T_I(data, MEPA_TRACE_GRP_TS, " Not able to set egress flow configuration for flow %d", flow_id);
+            T_I(MEPA_TRACE_GRP_TS, " Not able to set egress flow configuration for flow %d", flow_id);
             return MEPA_RC_ERR_TS_FLOW_CONF;
         }
-        T_I(data, MEPA_TRACE_GRP_TS, " egress flow configuration done for flow %d", flow_id);
+        T_I(MEPA_TRACE_GRP_TS, " egress flow configuration done for flow %d", flow_id);
     }
     vtss_phy_ts_fifo_sig_set(data->vtss_instance, data->port_no, VTSS_PHY_TS_FIFO_SIG_MSG_TYPE | VTSS_PHY_TS_FIFO_SIG_DOMAIN_NUM |
                              VTSS_PHY_TS_FIFO_SIG_SOURCE_PORT_ID | VTSS_PHY_TS_FIFO_SIG_SEQ_ID);
     dump_chip_matching_flow(dev, false);
-    T_I(data, MEPA_TRACE_GRP_TS, "exit");
+    T_I(MEPA_TRACE_GRP_TS, "exit");
     return MEPA_RC_OK;
 }
 
@@ -1600,7 +1601,7 @@ mepa_rc vtss_ts_fifo_get(struct mepa_device *dev, mepa_fifo_ts_entry_t ts_list[]
     int i;
 
     if (size < MEPA_TS_FIFO_MAX_ENTRIES) {
-        T_E(data, MEPA_TRACE_GRP_TS, "Size of Input TS list is less than 8\n");
+        T_E(MEPA_TRACE_GRP_TS, "Size of Input TS list is less than 8\n");
         return MEPA_RC_ERROR;
     }
 
@@ -1657,7 +1658,7 @@ mepa_rc vtss_phy_1588_csr_read(struct mepa_device *dev, const uint16_t mmd,
     BOOL isphy10g, isphy_1588_capable;
 
     if (vtss_phy_check_10g_and_1588(data->vtss_instance, data->port_no, &isphy10g, &isphy_1588_capable) != VTSS_RC_OK) {
-        T_E(data, MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
+        T_E(MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
         return MEPA_RC_ERROR;
     }
 
@@ -1671,9 +1672,9 @@ mepa_rc vtss_phy_1588_csr_read(struct mepa_device *dev, const uint16_t mmd,
 #endif
 
     if (rc == MEPA_RC_OK) {
-        T_D(data, MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
+        T_D(MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
     } else {
-        T_E(data, MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
+        T_E(MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
     }
     return rc;
 
@@ -1688,7 +1689,7 @@ mepa_rc vtss_phy_1588_csr_write(struct mepa_device *dev, const uint16_t mmd,
     BOOL isphy10g, isphy_1588_capable;
 
     if (vtss_phy_check_10g_and_1588(data->vtss_instance, data->port_no, &isphy10g, &isphy_1588_capable) != VTSS_RC_OK) {
-        T_E(data, MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
+        T_E(MEPA_TRACE_GRP_TS, "Invalid PHY Type at Port:%d", data->port_no);
         return MEPA_RC_ERROR;
     }
 
@@ -1702,9 +1703,9 @@ mepa_rc vtss_phy_1588_csr_write(struct mepa_device *dev, const uint16_t mmd,
 #endif
 
     if (rc == MEPA_RC_OK) {
-        T_D(data, MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
+        T_D(MEPA_TRACE_GRP_TS, "1588 CSR Write success at Port:%d csr_addr:%x reg_val:%x", data->port_no, csr_address, *value);
     } else {
-        T_E(data, MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
+        T_E(MEPA_TRACE_GRP_TS, "1588 CSR Write Failed for Port:%d csr_addr:%x", data->port_no, csr_address);
     }
     return MEPA_RC_OK;
 }

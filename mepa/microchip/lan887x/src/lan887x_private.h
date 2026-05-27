@@ -4,6 +4,8 @@
 #ifndef LAN887X_PRIVATE_H
 #define LAN887X_PRIVATE_H
 
+#include <mepa_trace.h>
+
 #include <phy_lib.h>
 #include "lan887x_registers.h"
 
@@ -11,14 +13,6 @@
 #define LAN887X_MTIMER_START(t, ms) MEPA_MTIMER_START((t), (ms))
 
 #define MEPA_RC_GOTO(rc, expr) { { (rc) = (expr); }  if ((rc) != 0) { goto error; } }
-
-// START:: LMSTAX OS PRINTS
-//Uncomment following to enable OS prints on LMSTAX
-//NOTE: It might flood the console!
-//#ifdef MEPA_OPSYS_LMSTAX
-//#define T_D(grp, format, ...) LM_OS_PR(format, ##__VA_ARGS__);
-//#endif
-// END:: LMSTAX OS PRINTS
 
 // Locking Macros
 // The variable 'dev' is passed as macro argument to obtain callback pointers and call actual lock functions. It does not indicate locks per port.

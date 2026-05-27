@@ -27,6 +27,7 @@
 
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
+#include <mepa_trace.h>
 #include <mepa_ts_driver.h>
 
 #include "os.h"
@@ -38,11 +39,6 @@
 #include "registers/phy/pcs.h"
 #include "registers/phy/aneg.h"
 #include "registers/phy/vspec2.h"
-
-#define T_D(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_I(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 
 #define MEPA_ENTER(dev) {                            \
     mepa_lock_t lock;                                \
@@ -218,7 +214,7 @@ static mesa_rc intl_poll(mepa_device_t *dev, mepa_status_t *status)
             status->speed = MESA_SPEED_2500M;
             break;
         default:
-            T_E("not expected speed");
+            T_E(MEPA_TRACE_GRP_GEN, "not expected speed");
             break;
         }
     }
@@ -227,10 +223,10 @@ static mesa_rc intl_poll(mepa_device_t *dev, mepa_status_t *status)
     status->aneg.generate_pause = intel_status->link.pause;
     status->copper = TRUE;
     status->fiber = FALSE;
-    T_D("intl_phy_status_get: link %d, speed %d  duplex %d\n", intel_status->link.link, intel_status->link.speed, intel_status->link.duplex);
+    T_D(MEPA_TRACE_GRP_GEN, "intl_phy_status_get: link %d, speed %d  duplex %d\n", intel_status->link.link, intel_status->link.speed, intel_status->link.duplex);
 
     if (link_change && status->link) {
-        T_D("link change");
+        T_D(MEPA_TRACE_GRP_GEN, "link change");
         return(intl_phy_sgmii_conf(dev, status));
     }
 
@@ -259,9 +255,9 @@ static mepa_device_t *intl_probe(mepa_driver_t *drv,
     priv->initconf.mdiobus_data = (void *)&priv->port_param;
     priv->initconf.lock = NULL;
 
-    T_D("intl_probe, enter\n");
+    T_D(MEPA_TRACE_GRP_GEN, "intl_probe, enter\n");
     if (gpy2xx_init(initconf) < 0) {
-        T_E("intl phy init error\n");
+        T_E(MEPA_TRACE_GRP_GEN, "intl phy init error\n");
     }
 
     return dev;
@@ -348,7 +344,7 @@ static mesa_rc intl_conf_set(mepa_device_t *dev,
         break;
     case MESA_SPEED_UNDEFINED:
     default:
-        T_E("Illegal speed");
+        T_E(MEPA_TRACE_GRP_GEN, "Illegal speed");
         return MESA_RC_ERROR;
     }
 
@@ -461,7 +457,7 @@ static mesa_rc intl_if_set(mepa_device_t *dev,
         mac_if = MESA_PORT_INTERFACE_SGMII_2G5;
     }
     if (mac_if != int_if) {
-        T_E("Configured phy interface mode (%d) does not match phy pin strapping (%d)", mac_if, int_if);
+        T_E(MEPA_TRACE_GRP_GEN, "Configured phy interface mode (%d) does not match phy pin strapping (%d)", mac_if, int_if);
         return MEPA_RC_ERROR;
     }
 

@@ -2,12 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 #include <mepa_driver.h>
+#include <mepa_trace.h>
 #include <microchip/ethernet/phy/api.h>
-
-#define T_D(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_I(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 
 #define PHY_FAMILIES 16U
 
@@ -158,7 +154,7 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
     size_t cnt;
 
     if (callout->mem_alloc == NULL) {
-        T_E("No mem_alloc callout");
+        T_E(MEPA_TRACE_GRP_GEN, "No mem_alloc callout");
         return NULL;
     }
 
@@ -166,7 +162,7 @@ void *mepa_mem_alloc_int(const mepa_callout_t    MEPA_SHARED_PTR *callout,
 
     mem = callout->mem_alloc(callout_ctx, size);
     if (mem == NULL) {
-        T_E("Out of memory? %z", size);
+        T_E(MEPA_TRACE_GRP_GEN, "Out of memory? %z", size);
         return NULL;
     }
 
@@ -207,7 +203,7 @@ struct mepa_device *mepa_create_int(
 
     mem = mepa_mem_alloc_int(callout, callout_ctx, dev_aligned + priv_aligned);
     if (mem == NULL) {
-        T_E("Alloc failed. Port: %d, size: %d", conf->numeric_handle, dev_aligned + priv_aligned);
+        T_E(MEPA_TRACE_GRP_GEN, "Alloc failed. Port: %d, size: %d", conf->numeric_handle, dev_aligned + priv_aligned);
         return NULL;
     }
 
@@ -220,7 +216,7 @@ struct mepa_device *mepa_create_int(
     dev->callout_ctx = callout_ctx;
     dev->numeric_handle = conf->numeric_handle;
 
-    T_I("mepa_device created (%d) at %p/%z, private data: %p/%z", conf->numeric_handle, dev, dev_aligned, dev->data, priv_aligned);
+    T_I(MEPA_TRACE_GRP_GEN, "mepa_device created (%d) at %p/%z, private data: %p/%z", conf->numeric_handle, dev, dev_aligned, dev->data, priv_aligned);
     return dev;
 }
 
@@ -314,7 +310,7 @@ static struct mepa_device *mepa_probe_phy(const mepa_callout_t    MEPA_SHARED_PT
             if (match == 1U) {
                 dev = driver->mepa_driver_probe(driver, callout, callout_ctx, conf);
                 if (dev != NULL) {
-                    T_I("probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, id, i, j);
+                    T_I(MEPA_TRACE_GRP_GEN, "probe completed for port %d with driver id %x phy_id %x phy_family %d j %d", conf->numeric_handle, driver->id, id, i, j);
                     return dev;
                 }
             }

@@ -181,12 +181,4 @@
 #define TC12_CD_STS(v)   (((v) & GENMASK(4, 8)) >> 4U)
 #define TC12_CD_LOC(v)   (((v) & GENMASK(8, 6)) >> 8U)
 
-#define T_D(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_DEBUG, __func__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-
-#define T_I(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_INFO, __func__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-
-#define T_W(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_WARNING, __func__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-
-#define T_E(format, ...) MEPA_trace(MEPA_TRACE_GRP_GEN, MEPA_TRACE_LVL_ERROR, __func__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-
 #endif //PHY_DEFINES_H

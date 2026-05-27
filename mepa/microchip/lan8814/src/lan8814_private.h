@@ -71,12 +71,6 @@ mepa_rc lan8814_ts_debug_info_dump(struct mepa_device *dev,
 #define MMD_WR(dev, mmd_addr, value) lan8814_mmd_reg_wr(dev, mmd_addr, value, 0xffff)
 #define MMD_WRM(dev, mmd_addr, val, mask) lan8814_mmd_reg_wr(dev, mmd_addr, val, mask)
 
-#define T_D(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_I(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_W(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_E(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__,format, ##__VA_ARGS__);
-
-
 // Locking Macros
 // The variable 'dev' is passed as macro argument to obtain callback pointers and call actual lock functions. It does not indicate locks per port.
 #define MEPA_ENTER(dev) {                            \

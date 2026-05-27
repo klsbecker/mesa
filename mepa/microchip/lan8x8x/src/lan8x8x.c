@@ -4,6 +4,7 @@
 #if defined(MEPA_HAS_LAN8X8X)
 #include <microchip/ethernet/phy/api.h>
 #include <mepa_driver.h>
+#include <mepa_trace.h>
 #include <string.h>
 
 #include "lan8x8x_private.h"
@@ -76,10 +77,10 @@ static void lan8x8x_read_capabilities(mepa_device_t *const dev)
     //set mac-interface
     priv->mac_if = MESA_PORT_INTERFACE_RGMII_RXID;
     (void) phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, T1_OTP_RO_PART_ID, &val);
-    T_I("PHY port=%u part_id 0x%x!\n", priv->port_no, val);
+    T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u part_id 0x%x!\n", priv->port_no, val);
     if (val == 0x888DU) {
         priv->mac_if = MESA_PORT_INTERFACE_SGMII;
-        T_I("PHY port=%u mac_mode is SGMII!\n", priv->port_no);
+        T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u mac_mode is SGMII!\n", priv->port_no);
     }
 
     //Read STRAPs
@@ -422,7 +423,7 @@ static mepa_rc lan8x8x_phy_init(mepa_device_t *const dev)
     //MAC Setup
     MEPA_RC(rc, lan8x8x_config_mac(dev));
 
-    T_I("phy_init complete!!\r\n");
+    T_I(MEPA_TRACE_GRP_GEN, "phy_init complete!!\r\n");
 
     return MEPA_RC_OK;
 }
@@ -450,7 +451,7 @@ static mepa_rc lan8x8x_check_media(const mepa_device_t *const dev,
         }
     }
 
-    T_I(  "phy_id=0x%x: media=%d, speed=%d, rc=%d\n",
+    T_I(MEPA_TRACE_GRP_GEN,   "phy_id=0x%x: media=%d, speed=%d, rc=%d\n",
           dev->drv->id, media_if, speed, rc);
     return rc;
 }
@@ -519,7 +520,7 @@ static mepa_rc lan8x8x_int_events_set(mepa_device_t *dev,
         return rc;
     }
 
-    T_D(  "set events=0x%x, int_mask=0x%x! rc=%d\r\n",
+    T_D(MEPA_TRACE_GRP_GEN,   "set events=0x%x, int_mask=0x%x! rc=%d\r\n",
           data->events, int_mask, rc);
 
     return MEPA_RC_OK;
@@ -661,7 +662,7 @@ static mepa_rc lan8x8x_phy_reset(mepa_device_t *dev)
                           BMCR_RESET, BMCR_RESET,
                           0U, 4000U, &val);
     if (rc != MEPA_RC_OK) {
-        T_D("Reset failed(0x%x! rc=%d\r\n", val, rc);
+        T_D(MEPA_TRACE_GRP_GEN, "Reset failed(0x%x! rc=%d\r\n", val, rc);
     }
 
     //clear config
@@ -690,12 +691,12 @@ static mepa_rc lan8x8x_phy_reset(mepa_device_t *dev)
                             T1_1G_TOP_CTRL_SOFT_RESET,
                             0U, 4000U, &v32);
     if (rc != MEPA_RC_OK) {
-        T_D("CHIP reset failed(0x%x! rc=%d\r\n", v32, rc);
+        T_D(MEPA_TRACE_GRP_GEN, "CHIP reset failed(0x%x! rc=%d\r\n", v32, rc);
     }
 
     data->init_done = PHY_FALSE;
 
-    T_I("reset complete!!\r\n");
+    T_I(MEPA_TRACE_GRP_GEN, "reset complete!!\r\n");
 
     return MEPA_RC_OK;
 }
@@ -898,7 +899,7 @@ static mepa_rc lan8x8x_phy_setup(mepa_device_t *const dev)
         MEPA_RC(rc, lan8x8x_phy_config(dev, data->conf.speed, PHY_FALSE));
     }
 
-    T_I(  "PHY port=%u setup complete!\n", data->port_no);
+    T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u setup complete!\n", data->port_no);
 
     return MEPA_RC_OK;
 }
@@ -963,7 +964,7 @@ static mepa_rc lan8x8x_config_set(mepa_device_t *dev, const mepa_conf_t *config)
         rc = MEPA_RC_OK;
     }
 
-    T_I(  "PHY port=%u config_set complete!\n", data->port_no);
+    T_I(MEPA_TRACE_GRP_GEN,   "PHY port=%u config_set complete!\n", data->port_no);
 
     return rc;
 }
@@ -1004,17 +1005,17 @@ static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
 
     MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN, MDIO_AN_T1_STAT, &val));
     if ((val & MDIO_AN_STAT1_COMPLETE) == ZERO) {
-        T_D("aneg is not completed \r\n");
+        T_D(MEPA_TRACE_GRP_GEN, "aneg is not completed \r\n");
     } else {
         rc = MEPA_RC_OK;
 
-        T_I("aneg is complete!\r\n");
+        T_I(MEPA_TRACE_GRP_GEN, "aneg is complete!\r\n");
         MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN,
                                    MDIO_AN_T1_LP_L, &lp_l));
         MEPA_RC(rc, phy_mmd_reg_rd(dev, MDIO_MMD_AN,
                                    MDIO_AN_T1_LP_M, &lp_m));
 
-        T_I("aneg lp_l=0x%x, lp_m=0x%x\r\n", lp_l, lp_m);
+        T_I(MEPA_TRACE_GRP_GEN, "aneg lp_l=0x%x, lp_m=0x%x\r\n", lp_l, lp_m);
         if (((lp_m & T1_LPA_1000FULL) == T1_LPA_1000FULL) &&
             (data->conf.aneg.speed_1g_fdx == PHY_TRUE)) {
             status->speed = MEPA_SPEED_1G;
@@ -1024,7 +1025,7 @@ static mepa_rc lan8x8x_aneg_read_status(mepa_device_t *dev,
         } else {
             status->speed = MESA_SPEED_UNDEFINED;
         }
-        //T_D( MEPA_TRACE_GRP_GEN, "aneg link resolved \r\n");
+        //T_D(MEPA_TRACE_GRP_GEN,  MEPA_TRACE_GRP_GEN, "aneg link resolved \r\n");
     }
 
     return rc;
@@ -1078,7 +1079,7 @@ static void lan8x8x_fill_probe_data(mepa_driver_t *drv,
 
     (void) lan8x8x_phy_setup(dev);
 
-    T_I(  "phy probe port=%u probed phy_id=0x%x\n",
+    T_I(MEPA_TRACE_GRP_GEN,   "phy probe port=%u probed phy_id=0x%x\n",
           data->port_no, dev->drv->id);
 }
 
@@ -1122,12 +1123,12 @@ static mepa_rc lan8x8x_delete(mepa_device_t *dev)
     if (dev != NULL) {
         //cleanup
 #ifdef MEPA_lan8x8x_static_mem
-        T_D(  "static driver cleanup!!\n");
+        T_D(MEPA_TRACE_GRP_GEN,   "static driver cleanup!!\n");
         (void) memset(dev->data, 0, sizeof(phy_data_t));
         (void) memset(dev, 0, sizeof(mepa_device_t));
         rc = MEPA_RC_OK;
 #else
-        T_D(  "dynamic driver cleanup!!\n");
+        T_D(MEPA_TRACE_GRP_GEN,   "dynamic driver cleanup!!\n");
         rc = mepa_delete_int(dev);
 #endif
     }
@@ -1148,10 +1149,10 @@ static mepa_device_t *lan8x8x_probe(mepa_driver_t *drv,
 #ifdef MEPA_lan8x8x_static_mem
         uint8_t pidx = 0;
 
-        T_D(  "static driver create!!\n");
+        T_D(MEPA_TRACE_GRP_GEN,   "static driver create!!\n");
         for (pidx = 0; pidx < LAN8X8X_PHY_MAX; pidx++) {
             if (lan8x8x_data[pidx].ctx_status) {
-                T_D("LAN8X8X driver already @ idx=%d[port-%d]!!\n",
+                T_D(MEPA_TRACE_GRP_GEN, "LAN8X8X driver already @ idx=%d[port-%d]!!\n",
                     pidx, lan8x8x_device[pidx].numeric_handle);
                 continue;
             }
@@ -1159,14 +1160,14 @@ static mepa_device_t *lan8x8x_probe(mepa_driver_t *drv,
             dev = &lan8x8x_device[pidx];
             data = &lan8x8x_data[pidx];
 
-            T_D("LAN8X8X driver probe @ idx=%d, port=%d!!\n",
+            T_D(MEPA_TRACE_GRP_GEN, "LAN8X8X driver probe @ idx=%d, port=%d!!\n",
                 pidx, conf->numeric_handle);
             lan8x8x_fill_probe_data(drv, dev, data, callout, callout_ctx, conf);
 
             break;
         }
 #else
-        T_D(  "dynamic driver create!!\n");
+        T_D(MEPA_TRACE_GRP_GEN,   "dynamic driver create!!\n");
         //MISRA C-2023 Rule 11.5 - use static pointer assigned during probe
         dev = mepa_create_int(drv, callout, callout_ctx, conf, (int32_t)(sizeof(phy_data_t)));
 
@@ -1174,7 +1175,7 @@ static mepa_device_t *lan8x8x_probe(mepa_driver_t *drv,
             data = dev->data;
             data->port_no = conf->numeric_handle;
 
-            T_I("\n lan8x8x created (%d) at %p, data: %p\n",
+            T_I(MEPA_TRACE_GRP_GEN, "\n lan8x8x created (%d) at %p, data: %p\n",
                 conf->numeric_handle, dev, dev->data);
             lan8x8x_fill_probe_data(drv, dev, data, callout, callout_ctx, conf);
         }
@@ -1353,7 +1354,7 @@ static mepa_rc lan8x8x_if_get(mepa_device_t *dev,
         *mac_if = data->mac_if;
         MEPA_EXIT(dev);
 
-        T_D(  "Get MAC Interface type %d\r\n", *mac_if);
+        T_D(MEPA_TRACE_GRP_GEN,   "Get MAC Interface type %d\r\n", *mac_if);
     }
 
     return rc;
@@ -1390,7 +1391,7 @@ static mepa_rc lan8x8x_media_set(mepa_device_t *dev,
                         (data->conf.speed == MESA_SPEED_AUTO)) {
                         rc = lan8x8x_phy_setup(dev);
                     }
-                    T_D(  "Set media type %d! rc=%d.\r\n", media_if, rc);
+                    T_D(MEPA_TRACE_GRP_GEN,   "Set media type %d! rc=%d.\r\n", media_if, rc);
                 }
             }
             MEPA_EXIT(dev);
@@ -1413,7 +1414,7 @@ static mepa_rc lan8x8x_media_get(mepa_device_t *dev,
         *media_if = data->media_intf;
         MEPA_EXIT(dev);
 
-        T_D(  "Get media type %d\r\n", *media_if);
+        T_D(MEPA_TRACE_GRP_GEN,   "Get media type %d\r\n", *media_if);
     }
 
     return rc;
@@ -1444,7 +1445,7 @@ static mepa_rc lan8x8x_gpio_out_set(mepa_device_t *dev, uint8_t gpio_no, mepa_bo
             val = ((uint16_t)1U << (gpio_no));
             rc = phy_mmd_reg_modify(dev, MDIO_MMD_VEND1, LAN8X8X_GPIO_DATA, value ? val : 0U, val);
         } else {
-            T_W( "Not valid gpio on LAN8x8x phy");
+            T_W(MEPA_TRACE_GRP_GEN,  "Not valid gpio on LAN8x8x phy");
         }
         MEPA_EXIT(dev);
     }
@@ -1463,7 +1464,7 @@ static mepa_rc lan8x8x_gpio_in_get(mepa_device_t *dev, uint8_t gpio_no, mepa_boo
             rc = phy_mmd_reg_rd(dev, MDIO_MMD_VEND1, LAN8X8X_GPIO_DATA, &val);
             *value = ((((val >> gpio_no) & ONE) != ZERO) ? PHY_TRUE : PHY_FALSE);
         } else {
-            T_W( "Not valid gpio on LAN8x8x phy");
+            T_W(MEPA_TRACE_GRP_GEN,  "Not valid gpio on LAN8x8x phy");
         }
         MEPA_EXIT(dev);
     }
@@ -1762,7 +1763,7 @@ static mepa_rc lan8x8x_info_get(mepa_device_t *dev,
         rc = MEPA_RC_OK;
         MEPA_EXIT(dev);
     }
-    T_D(  "phy_info_get rc=%d\r\n", rc);
+    T_D(MEPA_TRACE_GRP_GEN,   "phy_info_get rc=%d\r\n", rc);
 
     return rc;
 }
@@ -2063,7 +2064,7 @@ static mepa_rc lan8x8x_poll_int(mepa_device_t *dev, mepa_status_t *status)
     data->link_status =  status->link;
     data->dev.is_master = status->master;
 
-    T_I("PHY port=%u Link=%s, speed=%d, mode=%s!\n",
+    T_I(MEPA_TRACE_GRP_GEN, "PHY port=%u Link=%s, speed=%d, mode=%s!\n",
         data->port_no,
         (status->link ? "up" : "down"),
         (status->speed == MESA_SPEED_100M ? "100" :
@@ -2115,7 +2116,7 @@ static mepa_rc lan8x8x_poll(mepa_device_t *dev, mepa_status_t *status)
 
 static void fill_driver_info(uint32_t id, uint32_t mask, mepa_driver_t *drv_inst)
 {
-    T_D(  "Fill driver info for phy_id=0x%x\n", id);
+    T_D(MEPA_TRACE_GRP_GEN,   "Fill driver info for phy_id=0x%x\n", id);
     /* Device ID & Mask */
     drv_inst->id             = id;
     drv_inst->mask           = mask;

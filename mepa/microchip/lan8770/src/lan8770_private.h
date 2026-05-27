@@ -4,6 +4,8 @@
 #ifndef LAN8770_PRIVATE_H
 #define LAN8770_PRIVATE_H
 
+#include <mepa_trace.h>
+
 #define MEPA_RC(rc, expr) { rc = (expr); if (rc) goto error; }
 
 #define TRUE  1
@@ -12,11 +14,6 @@
 #define MMD_DEV  2 // MMD device access
 
 #define INTR_BIT_LEN    (8)
-
-#define T_D(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_DEBUG, __FUNCTION__, __LINE__, __FILE__,format, ##__VA_ARGS__);
-#define T_I(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_INFO, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_W(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_WARNING, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
-#define T_E(grp, format, ...) MEPA_trace(grp, MEPA_TRACE_LVL_ERROR, __FUNCTION__, __LINE__, __FILE__, format, ##__VA_ARGS__);
 
 // Locking Macros
 // The variable 'dev' is passed as macro argument to obtain callback pointers and call actual lock functions. It does not indicate locks per port.
