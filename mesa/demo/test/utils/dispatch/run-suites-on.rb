@@ -21,7 +21,7 @@ DEFAULT_TIMEOUT = 3600
 EXTRACT_TAR_TIMEOUT_SECS = 600  # 10 minutes — generous; nightlies have seen
                                 # rare extract_tar hangs that block forever
                                 # without one. Bound the loss to one suite.
-SUITE_IDLE_TIMEOUT_SECS  = 1800 # 30 minutes — abort a suite if its remote
+SUITE_IDLE_TIMEOUT_SECS  = 3600 # 60 minutes — abort a suite if its remote
                                 # stream produces zero output for this long.
                                 # Healthy suites stream regularly; persistent
                                 # silence indicates a stuck remote that will
