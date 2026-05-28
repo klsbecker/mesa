@@ -32,6 +32,11 @@ UPLOAD_TIMEOUT_SECS      = 1800 # 30 minutes — `et upload` of a multi-MB
 HTTP_BUSY_MAX_RETRIES    = 30   # 5 min total at 10s/retry — long enough for
                                 # transient easytest server overload, short
                                 # enough to bail on stuck queues.
+RELEASE_MAX_ATTEMPTS     = 3    # `et release` itself can hit lab HTTP
+                                # timeouts.Retry so one hiccup does not leak 
+                                # the reservation.
+RELEASE_TIMEOUT_SECS     = 120  # Per-attempt cap.  With 3 attempts +
+                                # backoff: ~6.5 min worst case.
 
 ## POST request config
 POST_REQ_REPO_URL   = "https://bitbucket.microchip.com/scm/unge/sw-mesa.git"
@@ -351,12 +356,21 @@ if $options[:system]
 
     ensure
         if reserved
-            begin
-                log_section_header("Release")
-                run_cmd("et -l -n #{$options[:system]} release", $options[:system])
-                log_local("Completed Release")
-            rescue
+            log_section_header("Release")
+            released = false
+            RELEASE_MAX_ATTEMPTS.times do |attempt|
+                begin
+                    run_cmd("et -l -n #{$options[:system]} release",
+                            $options[:system], timeout: RELEASE_TIMEOUT_SECS)
+                    log_local("Completed Release")
+                    released = true
+                    break
+                rescue => e
+                    log_local("Release attempt #{attempt + 1}/#{RELEASE_MAX_ATTEMPTS} failed: #{e.message}")
+                    sleep(10) unless attempt == RELEASE_MAX_ATTEMPTS - 1
+                end
             end
+            log_local("WARNING: failed to release #{$options[:system]} after #{RELEASE_MAX_ATTEMPTS} attempts — DUT may be stuck reserved") unless released
         end
         log_local("End time: #{Time.now}")
     end
