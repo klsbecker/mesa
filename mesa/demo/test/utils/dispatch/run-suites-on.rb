@@ -29,6 +29,9 @@ SUITE_IDLE_TIMEOUT_SECS  = 3600 # 60 minutes — abort a suite if its remote
 UPLOAD_TIMEOUT_SECS      = 1800 # 30 minutes — `et upload` of a multi-MB
                                 # firmware image. Bounds upload-image hangs
                                 # so the reservation can release cleanly.
+HTTP_BUSY_MAX_RETRIES    = 30   # 5 min total at 10s/retry — long enough for
+                                # transient easytest server overload, short
+                                # enough to bail on stuck queues.
 
 ## POST request config
 POST_REQ_REPO_URL   = "https://bitbucket.microchip.com/scm/unge/sw-mesa.git"
@@ -109,12 +112,17 @@ def post_suite(uri, img, out, system, suite, index, timeout, sha)
     }
 
     log_subsection_header("Post suite")
+    busy_retries = 0
     loop do
         res = Net::HTTP.post(uri, req_data.to_json)
         msg = "POST #{uri}\n  Request:  #{JSON.pretty_generate(req_data)}\n  Response: #{res.code} #{res.message}"
         log_local(msg)
         if res.code.to_i == HTTP_TOO_MANY_REQUESTS
-            log_local("Server busy (#{HTTP_TOO_MANY_REQUESTS}), retrying in 10s...")
+            busy_retries += 1
+            if busy_retries > HTTP_BUSY_MAX_RETRIES
+                raise "Server stayed busy (429) for #{HTTP_BUSY_MAX_RETRIES} retries — giving up on '#{suite}'"
+            end
+            log_local("Server busy (#{HTTP_TOO_MANY_REQUESTS}), retrying in 10s... (#{busy_retries}/#{HTTP_BUSY_MAX_RETRIES})")
             sleep(10)
             next
         end
