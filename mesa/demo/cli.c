@@ -27,7 +27,7 @@ static mscc_appl_trace_group_t trace_groups[TRACE_GROUP_CNT] = {
 };
 
 #define MAX_CMD_LEN  (500 + 1)
-#define MAX_WORD_LEN 64
+#define MAX_WORD_LEN 256
 
 static mesa_bool_t cli_exit;
 static mesa_bool_t cli_mgmt_port_include;
@@ -492,8 +492,18 @@ static cli_parm_t *cli_parm_lookup(char *stx, cli_cmd_t *cmd)
 {
     cli_parm_t *parm, *found = NULL;
     char        stx_buf[MAX_WORD_LEN], *stx_start, *stx_end;
+    int         n;
 
-    strcpy(stx_buf, stx);
+    n = snprintf(stx_buf, sizeof(stx_buf), "%s", stx);
+    if (n < 0) {
+        cli_printf("cli_parm_lookup: snprintf encoding error\n");
+        return NULL;
+    }
+    if ((size_t)n >= sizeof(stx_buf)) {
+        cli_printf("cli_parm_lookup: syntax token too long (>%u): %s\n", (unsigned)sizeof(stx_buf),
+                   stx);
+        return NULL;
+    }
     stx_start = stx_buf;
     /* Remove the brackets/paranthesis from the beginning and end of syntax */
     while ((*stx_start == '(') || (*stx_start == '['))
