@@ -1596,7 +1596,7 @@ vtss_rc vtss_cil_l2_bum_cnt_get(struct vtss_state_s               *vtss_state,
                                 vtss_bum_policer_counters_t *const cnt)
 {
     u32                  i = fa_bum_pol_id(id), j, lsb, msb;
-    vtss_bum_counters_t *c = &vtss_state->l2.bum.cnt[i];
+    vtss_bum_counters_t *c = &vtss_state->l2.bum.cnt[id];
     vtss_counter_t      *u;
 
     for (j = 0; j < 6; j++) {
