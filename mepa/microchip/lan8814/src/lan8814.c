@@ -2263,8 +2263,10 @@ static uint32_t lan8814_capability_priv(mepa_device_t *dev, uint32_t capability)
         c = 1U;
         break;
     case (uint32_t)MEPA_CAP_LOOPBACK:
-        c = (uint32_t)MEPA_LOOPBACK_FAR_END | (uint32_t)MEPA_LOOPBACK_NEAR_END | (uint32_t)MEPA_LOOPBACK_CONNECTOR_END |
-            (uint32_t)MEPA_LOOPBACK_QSGMII_PCS_TBI_ENA | (uint32_t)MEPA_LOOPBACK_QSGMII_PCS_GMII_ENA | (uint32_t)MEPA_LOOPBACK_QSGMII_SERDES_ENA;
+        c = (uint32_t)MEPA_LOOPBACK_FAR_END | (uint32_t)MEPA_LOOPBACK_NEAR_END | (uint32_t)MEPA_LOOPBACK_CONNECTOR_END;
+        if (lan8814_is_lan8842(dev) || lan8814_is_lan8814(dev)) {
+            c |= (uint32_t)MEPA_LOOPBACK_QSGMII_PCS_TBI_ENA | (uint32_t)MEPA_LOOPBACK_QSGMII_PCS_GMII_ENA | (uint32_t)MEPA_LOOPBACK_QSGMII_SERDES_ENA;
+        }
         break;
     default:
         c = 0U;
@@ -2422,6 +2424,14 @@ static mepa_rc lan8814_loopback_set(mepa_device_t *dev, const mepa_loopback_t *l
         (loopback->media_serdes_facility_ena == TRUE) || (loopback->media_serdes_equip_ena == TRUE)) {
         // Not supported on LAN8814
         return MEPA_RC_NOT_IMPLEMENTED;
+    }
+
+    if (lan8814_is_lan966x(dev) &&
+        (loopback->qsgmii_pcs_tbi_ena == TRUE ||
+         loopback->qsgmii_pcs_gmii_ena == TRUE ||
+         loopback->qsgmii_serdes_ena == TRUE)) {
+        // These loopbacks are not supported on the internal PHYs of lan966x
+        return MEPA_RC_ERROR;
     }
 
     MEPA_ENTER(dev);
