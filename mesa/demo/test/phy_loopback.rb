@@ -28,7 +28,7 @@ def lb_linkpartner(idx)
 end
 
 def lb_mac(idx)
-    other_idx = (idx + 1) % 4
+    other_idx = (idx + 1) % $ts.pc.p.length()
 
     frame_smac = "00:00:00:00:0#{other_idx}:01"
 
