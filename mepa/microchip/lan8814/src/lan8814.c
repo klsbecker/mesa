@@ -2530,10 +2530,14 @@ static mepa_rc lan8814_loopback_set(mepa_device_t *dev, const mepa_loopback_t *l
                LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV);
         (void)EP_WRM(dev, LAN8814_QSGMII_SERDES_MISC_CTRL, LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE,
                LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE);
+        (void)EP_WRM(dev, LAN8814_QSGMII_SOFT_RESET, LAN8814_QSGMII_SOFT_RESET_BIT,
+                     LAN8814_QSGMII_SOFT_RESET_BIT);
     } else if (data->loopback.qsgmii_serdes_ena == TRUE) {
         (void)EP_WRM(dev, LAN8814_QSGMII_SERDES_TX_GENERAL, LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV,
                LAN8814_QSGMII_SERDES_TX_GENERAL_TX_INV);
         (void)EP_WRM(dev, LAN8814_QSGMII_SERDES_MISC_CTRL, 0, LAN8814_F_QSGMII_SERDES_MISC_CTRL_LB_MODE);
+        (void)EP_WRM(dev, LAN8814_QSGMII_SOFT_RESET, LAN8814_QSGMII_SOFT_RESET_BIT,
+                     LAN8814_QSGMII_SOFT_RESET_BIT);
     } else {
         // serdes loopback unchanged
     }
