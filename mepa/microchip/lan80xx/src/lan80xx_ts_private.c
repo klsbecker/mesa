@@ -5258,7 +5258,6 @@ static mepa_rc lan80xx_ts_csr_set_priv(mepa_device_t *dev,
     phy25g_ts_event_t event = 0;
     i64 adj;
     u64 tod_inc, val, tod_delta, tod_trunk;
-    i32 svalue = 0, egress_default = 0, ingress_default = 0;
     u8 ingr_latency_sns = 0, egr_latency_sns = 0, latency_table_physpeed_index = 0, latency_table_matchindex = 0 ;
 
     rc = lan80xx_ts_base_port_get_priv(dev, &base_port, &base_data);
@@ -5294,35 +5293,64 @@ static mepa_rc lan80xx_ts_csr_set_priv(mepa_device_t *dev,
 
     switch (conf) {
 
-    case  LAN80XX_PHY_TS_ING_LATENCY_SET:
+    case  LAN80XX_PHY_TS_ING_LATENCY_SET: {
+        /*
+         * lan80xx_ts_port_init() pre-loads the design default into the
+         * latency register pair; here we compute (default + ti) and encode
+         * the result into the register's sign-magnitude representation:
+         *
+         *   LOCAL_LATENCY[22:9] = preserved from table (UI / clock-diff)
+         *   LOCAL_LATENCY[8]    = sign     (1 = positive, 0 = negative)
+         *   LOCAL_LATENCY[7:0]  = |target| ns byte
+         *   LOCAL_LATENCY_SNS   = |target| sub-ns byte
+         */
+        i32           default_8_8;
+        i32           ti_8_8;
+        i32           target_8_8;
+        u32           magnitude;
+        mepa_bool_t   target_is_negative;
+
         latency_table_matchindex = latency_table_physpeed_index  + (data->port_state.port_mode.oper_mode * 2);
         ingr_latency =  phy25g_ts_local_latency[latency_table_matchindex].pslocal_latency_ns;
         ingr_latency_sns =  phy25g_ts_local_latency[latency_table_matchindex].pslocal_latency_sns;
 
-        ingress_default = ((ingr_latency & 0xff) << 8) | (ingr_latency_sns);
+        /* Reconstruct design default in 8.8 (ns << 8 | sub-ns). */
+        default_8_8 = (i32)(((ingr_latency & 0xff) << 8) | ingr_latency_sns);
 
         ti = data->phy_ts_port_conf.ingress_latency;
+        ti_8_8 = (i32)(ti >> 8);
 
-        svalue = LAN80XX_PHY_TS_TIME_INTERVAL_ADJUST_32(ti);
+        target_8_8 = default_8_8 + ti_8_8;
 
-        //predicton adjustment
-        if (svalue > ingress_default) {
-            svalue = svalue - ingress_default;
-        } else {
-            svalue = ingress_default - svalue;
+        T_D(MEPA_TRACE_GRP_TS, "[ING_LAT_SET] ti=%lld (0x%llx) default_8_8=%d (0x%x) ti_8_8=%d (0x%x) target_8_8=%d (0x%x)",
+            (long long)ti, (long long)ti,
+            default_8_8, (u32)default_8_8,
+            ti_8_8, (u32)ti_8_8,
+            target_8_8, (u32)target_8_8);
+
+        target_is_negative = (target_8_8 < 0);
+        magnitude = target_is_negative ? (u32)(-target_8_8) : (u32)target_8_8;
+
+        if (magnitude > 0xFFFFu) {
+            T_E(MEPA_TRACE_GRP_TS, "Ingress latency out of range: ti=%lld ns (16.16), default=%d (8.8)",
+                (long long)ti, default_8_8);
+            return MEPA_RC_ERROR;
         }
 
-        if (svalue > 0) {
-            ingr_latency_sns = svalue & 0xff;
-            svalue = svalue >> 8;
-            svalue = svalue | 0x100 ;
-        } else {
-            ingr_latency_sns = svalue & 0xff;
-            svalue = svalue >> 8;
-        }
+        ingr_latency_sns = magnitude & 0xff;
+        /* Mask 0x7FFE00 keeps bits 22:9 of the table (UI/clock-diff);
+         * bit 8 carries the sign, bits 7:0 carry |target| ns byte.
+         */
+        ingr_latency = (ingr_latency & 0x7FFE00)
+                       | (target_is_negative ? 0u : 0x100u)
+                       | ((magnitude >> 8) & 0xff);
 
-        //donot distrube the bits 8 through 22 from default egress latency because it contain default design UI and clock diffrence.
-        ingr_latency = (ingr_latency & 0x7FFF00) | (svalue & 0x1FF);
+        T_D(MEPA_TRACE_GRP_TS, "[ING_LAT_SET] is_neg=%u magnitude=0x%x sign_bit=0x%x mag_high=0x%x -> ingr_latency=0x%x ingr_latency_sns=0x%x",
+            (u32)target_is_negative,
+            magnitude,
+            (u32)(target_is_negative ? 0u : 0x100u),
+            (u32)((magnitude >> 8) & 0xff),
+            ingr_latency, (u32)ingr_latency_sns);
 
         value = ingr_latency;
 
@@ -5336,38 +5364,67 @@ static mepa_rc lan80xx_ts_csr_set_priv(mepa_device_t *dev,
         MEPA_RC(LAN80XX_PHY_TS_WRITE_CSR(port_no, LAN80XX_PHY_TS_PROC_BLK_ID(0),
                                          LAN80XX_PTP_PROC_INGR_PCS_SERDES_LOCAL_LATENCY_SNS, &value));
 
+        /* Pulse INGR_LOAD_DELAYS so the new shadow values
+         * are copied into the live ingress timestamp engine.
+         */
+        value = 0;
+        MEPA_RC(LAN80XX_PHY_TS_READ_CSR(port_no, LAN80XX_PHY_TS_PROC_BLK_ID(0),
+                                        LAN80XX_PTP_PROC_INGR_TSP_CTRL, &value));
+        value |= LAN80XX_M_PTP_PROC_INGR_TSP_CTRL_INGR_LOAD_DELAYS;
+        MEPA_RC(LAN80XX_PHY_TS_WRITE_CSR(port_no, LAN80XX_PHY_TS_PROC_BLK_ID(0),
+                                         LAN80XX_PTP_PROC_INGR_TSP_CTRL, &value));
 
         break;
+    }
 
-    case LAN80XX_PHY_TS_EGR_LATENCY_SET:
+    case LAN80XX_PHY_TS_EGR_LATENCY_SET: {
+        i32           default_8_8;
+        i32           ti_8_8;
+        i32           target_8_8;
+        u32           magnitude;
+        mepa_bool_t   target_is_negative;
+
         latency_table_matchindex = latency_table_physpeed_index + (data->port_state.port_mode.oper_mode * 2) + 1;
         egr_latency =      phy25g_ts_local_latency[latency_table_matchindex].pslocal_latency_ns;
         egr_latency_sns =  phy25g_ts_local_latency[latency_table_matchindex].pslocal_latency_sns;
 
-        egress_default = ((egr_latency & 0xff) << 8) | (egr_latency_sns);
+        /* Reconstruct design default in 8.8 (ns << 8 | sub-ns). */
+        default_8_8 = (i32)(((egr_latency & 0xff) << 8) | egr_latency_sns);
 
         ti = data->phy_ts_port_conf.egress_latency;
-        svalue = LAN80XX_PHY_TS_TIME_INTERVAL_ADJUST_32(ti);
+        ti_8_8 = (i32)(ti >> 8);
 
-        //predicton adjustment
-        if (svalue > egress_default) {
-            svalue = svalue - egress_default;
-        } else {
-            svalue = egress_default - svalue;
+        target_8_8 = default_8_8 + ti_8_8;
+
+        T_D(MEPA_TRACE_GRP_TS, "[EGR_LAT_SET] ti=%lld (0x%llx) default_8_8=%d (0x%x) ti_8_8=%d (0x%x) target_8_8=%d (0x%x)",
+            (long long)ti, (long long)ti,
+            default_8_8, (u32)default_8_8,
+            ti_8_8, (u32)ti_8_8,
+            target_8_8, (u32)target_8_8);
+
+        target_is_negative = (target_8_8 < 0);
+        magnitude = target_is_negative ? (u32)(-target_8_8) : (u32)target_8_8;
+
+        if (magnitude > 0xFFFFu) {
+            T_E(MEPA_TRACE_GRP_TS, "Egress latency out of range: ti=%lld ns (16.16), default=%d (8.8)",
+                (long long)ti, default_8_8);
+            return MEPA_RC_ERROR;
         }
 
-        if (svalue > 0) {
-            egr_latency_sns = svalue & 0xff;
-            svalue = svalue >> 8;
-            svalue = svalue | 0x100 ;
-        } else {
-            egr_latency_sns = svalue & 0xff;
-            svalue = svalue >> 8;
-        }
+        egr_latency_sns = magnitude & 0xff;
+        /* Mask 0x7FFE00 keeps bits 22:9 of the table (UI/clock-diff);
+         * bit 8 carries the sign, bits 7:0 carry |target| ns byte.
+         */
+        egr_latency = (egr_latency & 0x7FFE00)
+                      | (target_is_negative ? 0u : 0x100u)
+                      | ((magnitude >> 8) & 0xff);
 
-        //donot distrube the bits 8 through 22 from default egress latency because it contain default design UI and clock diffrence.
-        egr_latency = (egr_latency & 0x7FFF00) | (svalue & 0x1FF);
-
+        T_D(MEPA_TRACE_GRP_TS, "[EGR_LAT_SET] is_neg=%u magnitude=0x%x sign_bit=0x%x mag_high=0x%x -> egr_latency=0x%x egr_latency_sns=0x%x",
+            (u32)target_is_negative,
+            magnitude,
+            (u32)(target_is_negative ? 0u : 0x100u),
+            (u32)((magnitude >> 8) & 0xff),
+            egr_latency, (u32)egr_latency_sns);
 
         value = egr_latency;
         value = LAN80XX_F_PTP_PROC_EGR_PCS_SERDES_LOCAL_LATENCY_EGR_PS_LOCAL_LATENCY(value);
@@ -5391,6 +5448,7 @@ static mepa_rc lan80xx_ts_csr_set_priv(mepa_device_t *dev,
                                          LAN80XX_PTP_PROC_EGR_TSP_CTRL, &value));
 
         break;
+    }
 
     case LAN80XX_PHY_TS_PATH_DELAY_SET: /* context: mepa_ts_path_delay_set*/
         ti = data->phy_ts_port_conf.path_delay;
