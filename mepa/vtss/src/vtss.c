@@ -1236,6 +1236,14 @@ static mepa_rc phy_10g_1g_mode_set(mepa_device_t             *dev,
         return MEPA_RC_ERROR;
     }
 
+    /* Select 1000BASE-X (SERDES) line/host PCS1G, not SGMII. The chip defaults
+     * to SGMII_MODE_ENA=1; without this a fiber SFP stays in SGMII mode and
+     * clause-37 aneg never resolves against a 1000BASE-X partner. Passing
+     * FALSE also clears enable_pass_thru (left stuck TRUE after a prior CuSFP). */
+    if (vtss_phy_10g_sgmii_mode_set(vtss_inst, data->port_no, FALSE) != VTSS_RC_OK) {
+        return MEPA_RC_ERROR;
+    }
+
     vtss_phy_10g_clause_37_control_t ctrl = {};
     ctrl.enable = (config->speed == MESA_SPEED_AUTO) ? 1 : 0;
     ctrl.advertisement.fdx = 1;

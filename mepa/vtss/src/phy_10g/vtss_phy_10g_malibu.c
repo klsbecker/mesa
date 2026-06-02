@@ -18177,6 +18177,10 @@ static vtss_rc malibu_phy_10g_sgmii_mode_set(struct vtss_state_s *vtss_state,
                     VTSS_F_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_ANEG_ENA |
                     VTSS_F_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_SW_RESOLVE_ENA);
         } else {
+            CSR_WRM(port_no, VTSS_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_MODE_CFG, 0,
+                    VTSS_F_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_MODE_CFG_SGMII_MODE_ENA);
+            CSR_WRM(port_no, VTSS_HOST_PCS1G_PCS1G_CFG_STATUS_PCS1G_MODE_CFG, 0,
+                    VTSS_F_HOST_PCS1G_PCS1G_CFG_STATUS_PCS1G_MODE_CFG_SGMII_MODE_ENA);
             CSR_WRM(port_no, VTSS_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG,
                     0,
                     VTSS_F_LINE_PCS1G_PCS1G_CFG_STATUS_PCS1G_ANEG_CFG_ANEG_ENA);
