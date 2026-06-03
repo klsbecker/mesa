@@ -220,6 +220,9 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
     uint8_t          gpio_num = 0, max_alter_fun = 0;
     int              vsc_phy_connected = 0;
     gpio_table_t     gpio_table = {0};
+    vtss_gpio_10g_aggr_intrpt_channel_t table;
+    unsigned int                        m;
+    int                                 i;
 
     if ((rc = mepa_dev_create_check(meba_gpio_lp_instance, req->port_no)) != MEPA_RC_OK) {
         cli_printf(" Dev is Not Created for the port : %d\n", req->port_no);
@@ -406,6 +409,7 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
         cli_printf("\t 1 . Output Mode\n");
         cli_printf("\t 2 . Input Mode\n");
         cli_printf("\t 3 . Alternate Mode\n");
+        cli_printf("\t 4 . Aggregate Interrupt Routing Table (Malibu)\n");
         cli_printf("\n\t ==Enter the Mode of GPIO Pin : ");
         scanf("%s", &input[0]);
         gpio_conf = atoi_Conversion(input);
@@ -724,6 +728,31 @@ static void cli_cmd_gpio_conf(cli_req_t *req)
                 event_ena_dis = (enable == 1) ? 1 : 0;
             }
 
+        } else if (gpio_conf == 4) {
+            memset(&table, 0, sizeof(table));
+            for (i = 0; i < VTSS_10G_PHY_MAX_AGGREGATE_INT; i++) {
+                cli_printf(
+                    "\n\t ==AGG_INT_%d channel mask [hex, bit0=CH0_INTR0 .. bit7=CH3_INTR1] : ", i);
+                if (scanf("%x", &m) != 1) {
+                    T_E("\n Invalid Input \n");
+                    return;
+                }
+                table.aggr_intrpt_chnl_map[i] = (vtss_gpio_aggr_intrpt_mask_t)(m & 0xFF);
+            }
+            if (vtss_phy_10g_gpio_aggr_table_set(NULL, req->port_no, &table) != VTSS_RC_OK) {
+                T_E("\n vtss_phy_10g_gpio_aggr_table_set, port %d\n", req->port_no);
+                return;
+            }
+            memset(&table, 0, sizeof(table));
+            if (vtss_phy_10g_gpio_aggr_table_get(NULL, req->port_no, &table) != VTSS_RC_OK) {
+                T_E("\n vtss_phy_10g_gpio_aggr_table_get, port %d\n", req->port_no);
+                return;
+            }
+            cli_printf("\n\t Aggregate table: [0]=0x%02x [1]=0x%02x [2]=0x%02x [3]=0x%02x\n",
+                       table.aggr_intrpt_chnl_map[0], table.aggr_intrpt_chnl_map[1],
+                       table.aggr_intrpt_chnl_map[2], table.aggr_intrpt_chnl_map[3]);
+            cli_printf("\t (applied to INTR_SRC_EN on the next event-enable)\n");
+            return;
         } else {
             T_E("\n Invalid Input \n");
             return;
