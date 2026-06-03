@@ -217,6 +217,8 @@ coding_standards.each do |key, cfg|
       end
 
       csv << [checker_name, filepath, line_number, function, impact, category, descriptions]
+      # Ignore the vendor specific API
+      next if filepath.include?("GPY_API_v")  # MaxLinear GPY SDK (mepa/intel)
       # Increment error count only for High or Medium impact
       if impact.casecmp?("High") || impact.casecmp?("Medium")
         $cnt_err += 1
