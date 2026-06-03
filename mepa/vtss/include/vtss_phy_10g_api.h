@@ -2608,6 +2608,100 @@ typedef enum
     VTSS_10G_GPIO_AGGR_INTRPT_GPIO_INTR_EN,      /** GPIO_INTR_EN */
 } vtss_gpio_10g_aggr_intrpt_t;      /** Aggregated Interrupts */
 
+/*
+ * Malibu-10 interrupt routing (the "funnel"). An event reaches a GPIO pin
+ * through four OR-with-mask stages, narrowing each time:
+ *
+ *   Stage 1  events  --(block MASK)-->  one signal per block   (16 blocks PER CHANNEL)
+ *              e.g. PCS1G_XGMII_MASK 0xE118, PMA_INTR_MASK 0xA203, PCS_INTR_MASK1 0x8E01
+ *   Stage 2  16 block signals --(GPIO_INTR_CTRL:INTR[0]/[1], 0xC018/0xC019)--> 2 lines/channel
+ *              each block can feed line0, line1, both, or neither -> CHn_INTR0, CHn_INTR1
+ *   Stage 3  8 channel-lines --(INTR_SRC_EN[0..3], 0xF25C..F25F = THIS TABLE)--> 4 aggregators
+ *              table[n] is the 8-bit channel mask for AGG_INT_n (bit2*ch=INTR0, 2*ch+1=INTR1)
+ *   Stage 4  AGG_INT_n --(GPIO_OUT_CFG_n SEL=64..67)--> physical GPIO pin
+ *
+ * Terms: "channel" = port (Malibu is a quad PHY, ch0..3). "line" = one of a
+ * channel's two interrupt outputs (INTR0/INTR1). A block emits ONE signal
+ * (its events OR'd) - at the pin you know which block, not which event; read
+ * the block sticky for that.
+ *
+ * The table below (vtss_gpio_10g_aggr_intrpt_channel_t) sets Stage 3 only.
+ * Default (seeded at init) = table[0]=0xFF (all channels, both lines ->
+ * AGG_INT_0 = one shared pin). Per-port pins: put one channel per table entry
+ * (table[0]=CH0.., table[1]=CH1.., ...). The event-enable_set calls write this
+ * table to INTR_SRC_EN[0..3].
+ *
+ * NB: configure interrupts via the MEPA API (extended2_event_enable_set +
+ * gpio_mode_set + gpio_aggr_table_set); do not hand-write the registers - the
+ * LINE blocks are at 0xE1xx, HOST at 0xE0xx, and PCS1G's Stage-1 gate is
+ * PCS1G_XGMII_MASK (0xE118), NOT a PCS_INTR_* register.
+ */
+
+#define VTSS_10G_PHY_MAX_AGGREGATE_INT   4  /**< Max number of aggregate interrupts (AGG_INT_0..3) */
+
+/**
+ * \brief Per-channel bitmask values for one aggregate-interrupt slot.
+ *
+ * Each AGG_INT_n line ORs together the channel INTR0/INTR1 sources whose
+ * bits are set here. Used by vtss_gpio_10g_aggr_intrpt_channel_t to route
+ * specific channels to specific aggregators (e.g. one GPIO per port).
+ **/
+typedef enum
+{
+    VTSS_GPIO_AGGR_INTRPT_CH0_INTR0_EN = 0x01,   /**< CH0_INTR0 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH0_INTR1_EN = 0x02,   /**< CH0_INTR1 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH1_INTR0_EN = 0x04,   /**< CH1_INTR0 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH1_INTR1_EN = 0x08,   /**< CH1_INTR1 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH2_INTR0_EN = 0x10,   /**< CH2_INTR0 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH2_INTR1_EN = 0x20,   /**< CH2_INTR1 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH3_INTR0_EN = 0x40,   /**< CH3_INTR0 bitmask */
+    VTSS_GPIO_AGGR_INTRPT_CH3_INTR1_EN = 0x80,   /**< CH3_INTR1 bitmask */
+} vtss_gpio_aggr_intrpt_mask_t;     /**< Aggregated-interrupt channel-enable masks */
+
+/**
+ * \brief Aggregate-interrupt channel routing table.
+ *
+ * One bitmask per AGG_INT_n line, selecting which channel INTR sources feed
+ * that aggregator. This is what enables per-port interrupt lines: map each
+ * channel to its own AGG_INT_n (and onward to its own GPIO) instead of the
+ * default where all channels OR into AGG_INT_0.
+ **/
+typedef struct
+{
+    vtss_gpio_aggr_intrpt_mask_t aggr_intrpt_chnl_map[VTSS_10G_PHY_MAX_AGGREGATE_INT];
+    /**< Per-AGG_INT_n channel bitmask, index 0..3 = AGG_INT_0..3 */
+} vtss_gpio_10g_aggr_intrpt_channel_t;
+
+/**
+ * \brief Get the aggregate-interrupt channel routing table (Malibu only).
+ *
+ * \param inst [IN]     Target instance reference.
+ * \param port_no [IN]  Port number that identifies the PHY chip.
+ * \param table [OUT]   Per-AGG_INT_n channel bitmask table.
+ *
+ * \return Return code.
+ **/
+vtss_rc vtss_phy_10g_gpio_aggr_table_get(const vtss_inst_t                    inst,
+                                         const vtss_port_no_t                 port_no,
+                                         vtss_gpio_10g_aggr_intrpt_channel_t *const table);
+
+/**
+ * \brief Set the aggregate-interrupt channel routing table (Malibu only).
+ *
+ * Controls which channel INTR sources feed each AGG_INT_n line. Takes effect
+ * on the next event-enable call. Default (set at init) routes all channels'
+ * INTR0 and INTR1 into AGG_INT_0 for backward compatibility.
+ *
+ * \param inst [IN]     Target instance reference.
+ * \param port_no [IN]  Port number that identifies the PHY chip.
+ * \param table [IN]    Per-AGG_INT_n channel bitmask table.
+ *
+ * \return Return code.
+ **/
+vtss_rc vtss_phy_10g_gpio_aggr_table_set(const vtss_inst_t                          inst,
+                                         const vtss_port_no_t                       port_no,
+                                         const vtss_gpio_10g_aggr_intrpt_channel_t *table);
+
 /**
  * \brief GPIO Channel level interrupts
  **/

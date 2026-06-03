@@ -52,6 +52,12 @@
 
 #define PST(front,line,back) (line ? front##_LINE_##back : front##_HOST_##back)
 
+/* Write-mask covering the 8 per-channel aggregate sources in INTR_SRC_EN
+ * (CH0_INTR0..CH3_INTR1 = bits 0..7); equals all vtss_gpio_aggr_intrpt_mask_t
+ * values OR'd. Restricts table writes to these bits so the non-channel sources
+ * (IP1588/LCPLL/EXP4/CLK_MUX/GPIO, bits 8+) are left untouched. */
+#define VTSS_PHY_10G_AGGR_CH_SRC_MASK 0xFFU
+
 static BOOL malibu_rev_a(vtss_state_t *vtss_state, vtss_port_no_t port_no);
 
 static BOOL malibu_is32reg(u32 dev, u32 addr)
@@ -12354,6 +12360,12 @@ static vtss_rc malibu_phy_10g_gpio_mode_set(struct vtss_state_s *vtss_state,
         CSR_COLD_WRM(port_no,VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(aggr_indx),
                 gpio_mode->aggr_intrpt,
                 0x1fffff);
+        /* Fold this GPIO's channel routing into the cached aggregate table so
+         * the single source of truth stays consistent: a later event-enable
+         * (vtss_phy_10g_aggr_table_apply) then re-applies the same routing
+         * instead of overwriting it with the default. */
+        vtss_state->phy_10g_state[port_no].aggr_int_channel_table[aggr_indx] |=
+            (gpio_mode->aggr_intrpt & VTSS_PHY_10G_AGGR_CH_SRC_MASK);
         if ((gpio_mode->source) & 0xff) {
             /* If channel interrupt 0 or 1 is choosen as an aggregated interrupt */ 
 
@@ -12968,6 +12980,23 @@ static vtss_rc malibu_phy_10g_csr_write(vtss_state_t                *vtss_state,
 
     return rc;
 }
+
+/* Route each channel's INTR0/INTR1 lines to the aggregators (AGG_INT_0..3)
+ * per the configured table (vtss_phy_10g_gpio_aggr_table_set). Called by every
+ * *_event_enable_private helper so a block's interrupt reaches its GPIO. The
+ * default table merges all channels' INTR0+INTR1 onto AGG_INT_0 (legacy). */
+static vtss_rc vtss_phy_10g_aggr_table_apply(vtss_state_t *vtss_state,
+                                             const vtss_port_no_t port_no)
+{
+    u8 aggr;
+    for (aggr = 0; aggr < VTSS_10G_PHY_MAX_AGGREGATE_INT; aggr++) {
+        CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(aggr),
+                     vtss_state->phy_10g_state[port_no].aggr_int_channel_table[aggr],
+                     VTSS_PHY_10G_AGGR_CH_SRC_MASK);
+    }
+    return VTSS_RC_OK;
+}
+
 static vtss_rc vtss_phy_10g_wis_event_enable_private(vtss_state_t *vtss_state,
                                              const vtss_port_no_t port_no)
 {
@@ -13068,12 +13097,7 @@ static vtss_rc vtss_phy_10g_wis_event_enable_private(vtss_state_t *vtss_state,
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(0),
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_WIS0_INTR_EN,
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_WIS0_INTR_EN);
-    /*For all channels;Enable WIS interrupts INTR[0] at aggr_intr[0]  */
-    for (channel_id = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-        CSR_COLD_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT(2*channel_id),
-                    VTSS_BIT(2*channel_id));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
 #endif /* VTSS_FEATURE_WIS */
     return VTSS_RC_OK;
 }
@@ -13141,7 +13165,6 @@ static vtss_rc vtss_phy_10g_host_lopc_enable_private(vtss_state_t *vtss_state,
 static vtss_rc vtss_phy_10g_host_pcs_event_enable_private(vtss_state_t *vtss_state,
                                                           const vtss_port_no_t port_no)
 {
-    u8       channel_id;
     VTSS_I("Enable PCS event\n");
    /* Enable the PCS Host side block interrupts */
     CSR_WARM_WRM(port_no, VTSS_HOST_PCS10G_PCS_INTR_MASK1_PCS_INTR_MASK1, (vtss_state->phy_10g_state[port_no].ex2_ev_mask & ((u64)1 << VTSS_PHY_HOST_10G_RX_CHAR_DEC_CNT_THRESH_EV))? 0x0001 : 0, 0x0001);
@@ -13160,18 +13183,13 @@ static vtss_rc vtss_phy_10g_host_pcs_event_enable_private(vtss_state_t *vtss_sta
    CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1),
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPCS10G_INTR_EN,
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPCS10G_INTR_EN);
-   /* PCS block interrupts at aggr_intr[0] for all channels */
-   for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-       CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-   }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
    return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_10g_pcs_event_enable_private(vtss_state_t *vtss_state, 
                                              const vtss_port_no_t port_no)
 {
-    u8       channel_id;
     VTSS_I("Enable PCS event\n");
    /* Enable the PCS Line side block interrupts */ 
     CSR_WARM_WRM(port_no, VTSS_LINE_PCS10G_PCS_INTR_MASK1_PCS_INTR_MASK1, (vtss_state->phy_10g_state[port_no].ex_ev_mask & VTSS_PHY_10G_RX_CHAR_DEC_CNT_THRESH_EV)? 0x0001 : 0, 0x0001);
@@ -13190,18 +13208,13 @@ static vtss_rc vtss_phy_10g_pcs_event_enable_private(vtss_state_t *vtss_state,
    CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1), 
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LPCS10G_INTR_EN, 
                 VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LPCS10G_INTR_EN);
-   /* PCS block interrupts at aggr_intr[0] for all channels */
-   for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-       CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-   }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
    return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_10g_pma_event_enable_private(vtss_state_t *vtss_state,
                                              const vtss_port_no_t port_no)
 {
-    u8 channel_id; 
     VTSS_I("Enable PMA interrupt\n");
     /* Enable Host PMA interrupts */
     CSR_WARM_WRM(port_no, VTSS_HOST_PMA_PMA_INTR_PMA_INTR_MASK, 
@@ -13214,18 +13227,13 @@ static vtss_rc vtss_phy_10g_pma_event_enable_private(vtss_state_t *vtss_state,
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1), 
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPMA_INTR_EN,
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPMA_INTR_EN);
-    /* HPMA block interrupts at aggr_intr[0] for all channels */
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-       CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
    return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_10g_fifo_event_enable_private(vtss_state_t *vtss_state,
                                              const vtss_port_no_t port_no)
 {
-    u8 channel_id;
     VTSS_I("Enable TX FIFO interrupt\n");
     /* Enable Line TX FIFO interrupts */
     CSR_WARM_WRM(port_no, VTSS_FIFO_BIST_RATE_COMP_FIFO_STAT_RATE_COMP_FIFO_MASK,
@@ -13252,18 +13260,13 @@ static vtss_rc vtss_phy_10g_fifo_event_enable_private(vtss_state_t *vtss_state,
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1),
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LIGR_FIFO_INTR_EN,
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LIGR_FIFO_INTR_EN);
-    /* FIFO interrupts at aggr_intr[0] for all channels */
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-       CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
    return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_mac_fc_buffer_event_enable_private(vtss_state_t *vtss_state,
                                                            const vtss_port_no_t port_no)
 {
-    u8       channel_id;
     VTSS_I("Enable MAC FC buffer event\n");
     /* Enable the MAC FC buffer block interrupts */
     CSR_WARM_WRM(port_no, VTSS_MAC_FC_BUFFER_STATUS_STICKY_MASK,
@@ -13292,18 +13295,13 @@ static vtss_rc vtss_phy_mac_fc_buffer_event_enable_private(vtss_state_t *vtss_st
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1),
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_FCBUF_INTR_EN,
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_FCBUF_INTR_EN);
-    /* FC buffer interrupts at aggr_intr[0] for all channels */
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-        CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                     VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
     return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_1g_pcs_event_enable_private(vtss_state_t *vtss_state,
                                                     const vtss_port_no_t port_no)
 {
-    u8       channel_id;
     VTSS_I("Enable 1g PCS event\n");
     /* Enable the 1g PCS Line side block interrupts */
     CSR_WARM_WRM(port_no, VTSS_LINE_PCS1G_PCS1G_XGMII_CFG_STATUS_PCS1G_XGMII_MASK,
@@ -13325,18 +13323,13 @@ static vtss_rc vtss_phy_1g_pcs_event_enable_private(vtss_state_t *vtss_state,
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1),
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPCS1G_INTR_EN,
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_HPCS1G_INTR_EN);
-    /* PCS block interrupts at aggr_intr[0] for all channels */
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-        CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                     VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
     return VTSS_RC_OK;
 }
 
 static vtss_rc vtss_phy_10g_mac_event_enable_private(vtss_state_t *vtss_state,
                                                      const vtss_port_no_t port_no)
 {
-    u8 channel_id;
     VTSS_I("Enable MAC Interrupts");
     /*HOST MAC interrupts*/
     CSR_WARM_WRM(port_no, VTSS_HOST_MAC_STATUS_MAC_TX_MONITOR_STICKY_MASK,
@@ -13370,11 +13363,7 @@ static vtss_rc vtss_phy_10g_mac_event_enable_private(vtss_state_t *vtss_state,
             VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LMAC_INTR_EN,
             VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LMAC_INTR_EN);
 
-    /*MAC block interrupts at aggr_intr[0] for all channels*/
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-        CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
 
     return VTSS_RC_OK;
 }
@@ -13384,7 +13373,6 @@ static vtss_rc vtss_phy_10g_mac_event_enable_private(vtss_state_t *vtss_state,
 static vtss_rc vtss_phy_10g_line_pma_event_enable_private(vtss_state_t *vtss_state,
                                              const vtss_port_no_t port_no)
 {
-    u8 channel_id;
     VTSS_I("Enable PMA interrupt\n");
     /* Enable Line PMA interrupts */
     CSR_WARM_WRM(port_no, VTSS_LINE_PMA_PMA_INTR_PMA_INTR_MASK,
@@ -13397,11 +13385,7 @@ static vtss_rc vtss_phy_10g_line_pma_event_enable_private(vtss_state_t *vtss_sta
     CSR_WARM_WRM(port_no, VTSS_GPIO_INTR_CTRL_GPIO_INTR_INTR(1),
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LPMA_INTR_EN,
                  VTSS_F_GPIO_INTR_CTRL_GPIO_INTR_INTR_LPMA_INTR_EN);
-    /* LPMA block interrupts at aggr_intr[0] for all channels */
-    for(channel_id  = 0; channel_id < MALIBU_MAX_CHANNEL_ID; channel_id++) {
-       CSR_WARM_WRM(port_no, VTSS_GPIO_CTRL_INTR_CFG_STAT_INTR_SRC_EN(0),
-                    VTSS_BIT((2*channel_id)+1), VTSS_BIT((2*channel_id)+1));
-    }
+    VTSS_RC(vtss_phy_10g_aggr_table_apply(vtss_state, port_no));
    return VTSS_RC_OK;
 }
 

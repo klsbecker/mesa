@@ -877,6 +877,16 @@ vtss_rc vtss_phy_10g_gpio_mode_get(const vtss_inst_t inst, const vtss_port_no_t 
     return VTSS_RC_NOT_IMPLEMENTED;
 }
 
+vtss_rc vtss_phy_10g_gpio_aggr_table_get(const vtss_inst_t inst, const vtss_port_no_t port_no, vtss_gpio_10g_aggr_intrpt_channel_t *const table)
+{
+    return VTSS_RC_NOT_IMPLEMENTED;
+}
+
+vtss_rc vtss_phy_10g_gpio_aggr_table_set(const vtss_inst_t inst, const vtss_port_no_t port_no, const vtss_gpio_10g_aggr_intrpt_channel_t *table)
+{
+    return VTSS_RC_NOT_IMPLEMENTED;
+}
+
 vtss_rc vtss_phy_10g_gpio_read(const vtss_inst_t inst, const vtss_port_no_t port_no, const vtss_gpio_10g_no_t gpio_no, BOOL *const value)
 {
     return VTSS_RC_NOT_IMPLEMENTED;

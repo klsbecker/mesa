@@ -895,6 +895,25 @@ static vtss_rc vtss_phy_10g_set_channel(vtss_state_t *vtss_state, const vtss_por
         vtss_state->phy_10g_state[port_no].mode.channel_id = vtss_state->phy_10g_state[port_no].channel_id;
         return VTSS_RC_OK; /* Channel id is set  */
     }
+    /* First call for this port (channel id not yet locked). Seed the Malibu
+     * aggregate-interrupt routing table here - BEFORE the AUTO-vs-manual
+     * channel-assignment branching below - so it is seeded regardless of how
+     * the channel id is assigned (manual assignment, used by e.g. VSC8258
+     * boards, takes the 'else' path and would otherwise skip the seed).
+     * Backward-compatible default routes ALL channels' INTR0 *and* INTR1 lines
+     * into AGG_INT_0 (= 0xFF): WIS uses INTR0, other blocks use INTR1, and
+     * historically both merged onto AGG_INT_0. INTR1-only would silently drop
+     * WIS routing. Applications override via vtss_phy_10g_gpio_aggr_table_set(). */
+    if (vtss_state->phy_10g_state[port_no].family == VTSS_PHY_FAMILY_MALIBU) {
+        vtss_state->phy_10g_state[port_no].aggr_int_channel_table[0] =
+            VTSS_GPIO_AGGR_INTRPT_CH0_INTR0_EN | VTSS_GPIO_AGGR_INTRPT_CH0_INTR1_EN |
+            VTSS_GPIO_AGGR_INTRPT_CH1_INTR0_EN | VTSS_GPIO_AGGR_INTRPT_CH1_INTR1_EN |
+            VTSS_GPIO_AGGR_INTRPT_CH2_INTR0_EN | VTSS_GPIO_AGGR_INTRPT_CH2_INTR1_EN |
+            VTSS_GPIO_AGGR_INTRPT_CH3_INTR0_EN | VTSS_GPIO_AGGR_INTRPT_CH3_INTR1_EN;
+        vtss_state->phy_10g_state[port_no].aggr_int_channel_table[1] = 0;
+        vtss_state->phy_10g_state[port_no].aggr_int_channel_table[2] = 0;
+        vtss_state->phy_10g_state[port_no].aggr_int_channel_table[3] = 0;
+    }
     mode = &vtss_state->phy_10g_state[port_no].mode;
     if (mode->channel_id == VTSS_CHANNEL_AUTO) {        
         if (vtss_state->phy_10g_state[port_no].type == VTSS_PHY_TYPE_8486) { 
@@ -4771,6 +4790,52 @@ vtss_rc vtss_phy_10g_gpio_mode_get(const vtss_inst_t          inst,
     if ((rc = vtss_inst_phy_10G_no_check_private(inst, &vtss_state, port_no)) == VTSS_RC_OK &&
         (rc = vtss_phy_10g_gpio_no_check(vtss_state, port_no, gpio_no)) == VTSS_RC_OK) {
         *mode = vtss_state->phy_10g_state[port_no].gpio_mode[gpio_no];
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_phy_10g_gpio_aggr_table_get(const vtss_inst_t                    inst,
+                                         const vtss_port_no_t                 port_no,
+                                         vtss_gpio_10g_aggr_intrpt_channel_t *const table)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc      rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_phy_10G_no_check_private(inst, &vtss_state, port_no)) == VTSS_RC_OK) {
+        if (vtss_state->phy_10g_state[port_no].family == VTSS_PHY_FAMILY_MALIBU) {
+            memcpy(table->aggr_intrpt_chnl_map,
+                   vtss_state->phy_10g_state[port_no].aggr_int_channel_table,
+                   sizeof(table->aggr_intrpt_chnl_map));
+        } else {
+            VTSS_E("Aggregate interrupt table not supported for phy type %d",
+                   vtss_state->phy_10g_state[port_no].type);
+            rc = VTSS_RC_ERROR;
+        }
+    }
+    VTSS_EXIT();
+    return rc;
+}
+
+vtss_rc vtss_phy_10g_gpio_aggr_table_set(const vtss_inst_t                          inst,
+                                         const vtss_port_no_t                       port_no,
+                                         const vtss_gpio_10g_aggr_intrpt_channel_t *table)
+{
+    vtss_state_t *vtss_state;
+    vtss_rc      rc;
+
+    VTSS_ENTER();
+    if ((rc = vtss_inst_phy_10G_no_check_private(inst, &vtss_state, port_no)) == VTSS_RC_OK) {
+        if (vtss_state->phy_10g_state[port_no].family == VTSS_PHY_FAMILY_MALIBU) {
+            memcpy(vtss_state->phy_10g_state[port_no].aggr_int_channel_table,
+                   table->aggr_intrpt_chnl_map,
+                   sizeof(vtss_state->phy_10g_state[port_no].aggr_int_channel_table));
+        } else {
+            VTSS_E("Aggregate interrupt table not supported for phy type %d",
+                   vtss_state->phy_10g_state[port_no].type);
+            rc = VTSS_RC_ERROR;
+        }
     }
     VTSS_EXIT();
     return rc;
