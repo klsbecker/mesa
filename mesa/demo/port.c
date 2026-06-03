@@ -485,6 +485,8 @@ typedef struct {
     mesa_bool_t ctrl2;
     mesa_bool_t ctrl3;
     mesa_bool_t err_inj;
+    phy_media_t trace_media;
+    mesa_bool_t trace_set;
 } port_cli_req_t;
 
 static const char *port_mode_txt(mesa_port_speed_t speed, mesa_bool_t fdx)
@@ -1483,6 +1485,35 @@ static void cli_cmd_phy_dump(cli_req_t *req)
     }
 }
 
+static void cli_cmd_phy_trace(cli_req_t *req)
+{
+    uint32_t        port_cnt = mesa_port_cnt(NULL);
+    mesa_port_no_t  iport, uport;
+    port_cli_req_t *mreq = req->module_req;
+    mepa_conf_t     conf;
+
+    if (!mreq->trace_set) {
+        cli_printf("usage: Debug phy trace <port_list> [short|medium|long|custom]\n");
+        return;
+    }
+    for (iport = 0; iport < port_cnt; iport++) {
+        uport = iport2uport(iport);
+        if (req->port_list[uport] == 0)
+            continue;
+        if (meba_global_inst->phy_devices[iport] == NULL)
+            continue;
+        if (meba_phy_conf_get(meba_global_inst, iport, &conf) != MESA_RC_OK) {
+            cli_printf("port %u: meba_phy_conf_get failed\n", uport);
+            continue;
+        }
+        conf.conf_10g.h_media = mreq->trace_media;
+        if (meba_phy_conf_set(meba_global_inst, iport, &conf) != MESA_RC_OK) {
+            cli_printf("port %u: meba_phy_conf_set failed\n", uport);
+            continue;
+        }
+    }
+}
+
 static const char *phy10g_mode_txt(phy10g_oper_mode_t m)
 {
     switch (m) {
@@ -1569,6 +1600,8 @@ static cli_cmd_t cli_cmd_table[] = {
      cli_cmd_phy_scan},
     {"Debug phy id", "Shows all probed phys", cli_cmd_phy_id},
     {"Debug phy dump [<port_list>]", "Dumps debug info for phy", cli_cmd_phy_dump},
+    {"Debug phy trace [<port_list>] [short|medium|long|custom]",
+     "Set SerDes trace-length tuning profile", cli_cmd_phy_trace},
     {"Debug Port 10G oper-mode [<port_list>] [lan|1g|repeater]",
      "Get or set 10G PHY operating mode (lan=10G, 1g=non-repeater, repeater)", cli_cmd_deb_port_10g_mode},
 };
@@ -1690,6 +1723,18 @@ static int cli_parm_keyword(cli_req_t *req)
         mreq->oper_mode_10g = MEPA_PHY_REPEATER_MODE;
     } else if (!strncasecmp(found, "1g", 2)) {
         mreq->oper_mode_10g = MEPA_PHY_1G_MODE;
+    } else if (!strncasecmp(found, "short", 5)) {
+        mreq->trace_media = MEPA_MEDIA_TYPE_DAC;
+        mreq->trace_set = 1;
+    } else if (!strncasecmp(found, "medium", 6)) {
+        mreq->trace_media = MEPA_MEDIA_TYPE_DAC2M;
+        mreq->trace_set = 1;
+    } else if (!strncasecmp(found, "long", 4)) {
+        mreq->trace_media = MEPA_MEDIA_TYPE_DAC3M;
+        mreq->trace_set = 1;
+    } else if (!strncasecmp(found, "custom", 6)) {
+        mreq->trace_media = MEPA_MEDIA_TYPE_NONE;
+        mreq->trace_set = 1;
     } else {
         cli_printf("no match: %s\n", found);
     }
@@ -1731,6 +1776,11 @@ static cli_parm_t cli_parm_table[] = {
      "errors     : Show error statistics\n"
      "discards   : Show discard statistics\n"
      "(default: Show all port statistics)", CLI_PARM_FLAG_NO_TXT, cli_parm_keyword},
+    {"short|medium|long|custom",
+     "short      : Tx+Rx EQ preset for short trace\n"
+     "medium     : Tx+Rx EQ preset for medium trace\n"
+     "long       : Tx+Rx EQ preset for long trace\n"
+     "custom     : Honour explicit Tx/Rx tap values currently configured", CLI_PARM_FLAG_NO_TXT | CLI_PARM_FLAG_SET, cli_parm_keyword},
     {"<max_frame>", "Port maximum frame size, default: Show maximum frame size",
      CLI_PARM_FLAG_NONE | CLI_PARM_FLAG_SET, cli_parm_max_frame},
     {"near-end|far-end|facility|equipment",
