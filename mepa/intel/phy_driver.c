@@ -33,12 +33,19 @@
 #include "os.h"
 #include "gpy211.h"
 #include "gpy211_common.h"
+#include "gpy211_regs.h"
 #include "registers/phy/std.h"
 #include "registers/phy/phy.h"
 #include "registers/phy/pmapmd.h"
 #include "registers/phy/pcs.h"
 #include "registers/phy/aneg.h"
 #include "registers/phy/vspec2.h"
+
+/* USXGMII trace_len presets (gpy211_usxgmii_reach.trace_len, valid range 0..3). */
+#define INTL_TRACE_LEN_SHORT   0U
+#define INTL_TRACE_LEN_MEDIUM  1U
+#define INTL_TRACE_LEN_LONG    2U
+#define INTL_TRACE_LEN_CUSTOM  3U
 
 #define MEPA_ENTER(dev) {                            \
     mepa_lock_t lock;                                \
@@ -132,13 +139,19 @@ static int (mdiobus_write)(void *mdiobus_data, uint16_t addr, uint32_t regnum, u
 
 static bool intl_mode_is_usxgmii(mepa_device_t *dev)
 {
-    uint16_t reg_val = 0;
+    /* Authoritative work-mode check: read XPCS_SR_PMA_EXT_ABL via the chip's
+     * mailbox-XPCS path (same register the SDK consults internally before any
+     * USXGMII-specific operation). Value 0x50 indicates USXGMII; anything else
+     * (typically 0) is SGMII. Earlier versions of this helper used a VSPEC1
+     * indirect-access trick that was side-effecting and gave inconsistent
+     * answers across calls. */
+    struct gpy211_device *phy = GPY211_DEVICE(dev);
+    u32 ext_abl = 0;
 
-    dev->callout->mmd_write(dev->callout_ctx, 0x1e, 0x0006, 0x8800);
-    dev->callout->mmd_write(dev->callout_ctx, 0x1e, 0x0007, 0x00d2);
-    dev->callout->mmd_read(dev->callout_ctx, 0x1e, 0x0005, &reg_val);
-
-    return reg_val == 2 ? true : false;
+    if (PHY_XPCS_HWRD(phy, XPCS_PMA_MMD_XPCS_SR_PMA_EXT_ABL, &ext_abl) < 0) {
+        return false;
+    }
+    return ext_abl == 0x50;
 }
 
 static mesa_rc intl_if_get(mepa_device_t *dev, mesa_port_speed_t speed,
@@ -290,6 +303,34 @@ static mesa_rc intl_conf_set(mepa_device_t *dev,
     struct gpy211_device *phy = GPY211_DEVICE(dev);
     INTL_priv_data_t *priv = dev->data;
 
+    if (config->conf_10g.h_media != priv->conf.conf_10g.h_media) {
+        u16 reach;
+        mesa_bool_t          apply = TRUE;
+
+        switch (config->conf_10g.h_media) {
+        case MEPA_MEDIA_TYPE_DAC:   reach = INTL_TRACE_LEN_SHORT;  break;
+        case MEPA_MEDIA_TYPE_DAC2M: reach = INTL_TRACE_LEN_MEDIUM; break;
+        case MEPA_MEDIA_TYPE_DAC3M: reach = INTL_TRACE_LEN_LONG;   break;
+        case MEPA_MEDIA_TYPE_NONE:  reach = INTL_TRACE_LEN_CUSTOM; break;
+        default:                    apply = FALSE;                 break;
+        }
+        /* trace_len lives in the USXGMII reach config */
+        if (apply && intl_mode_is_usxgmii(dev)) {
+            struct gpy211_usxgmii_reach r;
+            if (gpy2xx_usxgmii_reach_get(phy, &r) != MEPA_RC_OK) {
+                T_E(MEPA_TRACE_GRP_GEN, "Port:%d Could not get 'reach' profile\n",(int)dev->numeric_handle);
+                return MEPA_RC_ERROR;
+            }
+            r.trace_len = (u16)reach;
+
+            rc = gpy2xx_usxgmii_reach_cfg(phy, &r);
+            if (rc < 0) {
+                T_E(MEPA_TRACE_GRP_GEN, "Port:%d Could not apply 'reach' profile %d\n",(int)dev->numeric_handle, reach);
+                return MEPA_RC_ERROR;
+            }
+        }
+    }
+
     if (!config->admin.enable) {
         // Force link down by removing all capablities
         phy->link.autoneg = 1;
@@ -391,9 +432,10 @@ static uint32_t intl_capability(mepa_device_t *dev, uint32_t capability)
 
 static mepa_rc intl_info_get(mepa_device_t *dev, mepa_phy_info_t *const phy_info)
 {
+    struct gpy211_device *phy = GPY211_DEVICE(dev);
     phy_info->cap = 0;
-    phy_info->part_number = dev->drv->id;
-    phy_info->revision = dev->drv->id & 0xF;
+    phy_info->part_number = phy->id.model_no; /* LDN from PHY ID 2 register */
+    phy_info->revision = phy->id.revision;    /* LDRN from PHY ID 2 register */
     if (intl_capability(dev, MEPA_CAP_SPEED_2G5)) {
         phy_info->cap |= MEPA_CAP_SPEED_MASK_2G5;
     }
@@ -477,16 +519,31 @@ static mepa_rc intl_debug_info_dump(struct mepa_device *dev,
 
     (void)intl_info_get(dev, &phy_info);
     (void)intl_if_get(dev, 1, &int_if);
+    (void)gpy2xx_read_fw_info(phy); /* refresh phy->id.fw_* (FFU may have updated them) */
 
     if (gpy2xx_usxgmii_reach_get(phy, &r) != MEPA_RC_OK) {
         pr("Could not get usxgmii_reach info\n");
         return MEPA_RC_ERROR;
     }
 
+    const char *fw_rel = (phy->id.fw_release == 1U) ? "released" : "test";
+    const char *fw_mem;
+    switch (phy->id.fw_memory) {
+    case FW_EXECUTED_FROM_ROM:   fw_mem = "ROM";   break;
+    case FW_EXECUTED_FROM_OTP:   fw_mem = "OTP";   break;
+    case FW_EXECUTED_FROM_FLASH: fw_mem = "FLASH"; break;
+    case FW_EXECUTED_FROM_SRAM:  fw_mem = "SRAM";  break;
+    default:                     fw_mem = "?";     break;
+    }
+
     MEPA_ENTER(dev);
 
     pr("Port:%d   Family:Maxlinear   Type:%d   Rev:%d   MacIf:%s\n", (int)dev->numeric_handle,
        phy_info.part_number, phy_info.revision, (int_if == MESA_PORT_INTERFACE_SGMII_2G5) ? "SGMII_2G5" : "QXGMII");
+    pr("Chip rev:0x%X   model:0x%X   FW:%u.%u %s (mem:%s)\n",
+       phy->id.revision, phy->id.model_no, phy->id.fw_major, phy->id.fw_minor, fw_rel, fw_mem);
+    pr("GPY API:%u.%u.%u.%u\n",
+       phy->id.drv_major, phy->id.drv_minor, phy->id.drv_release, phy->id.drv_patch);
     pr("Trace Length setting    :%d\n",r.trace_len);
     pr("Tx EQ Main              :%d\n",r.tx_eq_main);
     pr("Tx Pre-emphasis level   :%d\n",r.tx_eq_pre);
@@ -506,7 +563,6 @@ static mepa_rc intl_debug_info_dump(struct mepa_device *dev,
     MEPA_EXIT(dev);
     return MEPA_RC_OK;
 }
-
 
 mepa_drivers_t mepa_intel_driver_init(void)
 {

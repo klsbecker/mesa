@@ -281,7 +281,9 @@ typedef enum {
 typedef enum {
     MEPA_MEDIA_TYPE_SR,               /**< SR,10GBASE-SR or 1000BASE-SX Optical*/
     MEPA_MEDIA_TYPE_SR2,              /**< SR,10GBASE-SR */
-    MEPA_MEDIA_TYPE_DAC,              /**< DAC,Direct attach cable 10GBASE-SR 1M*/
+    MEPA_MEDIA_TYPE_DAC,              /**< DAC,Direct attach cable 1M */
+    MEPA_MEDIA_TYPE_DAC2M,            /**< DAC,Direct attach cable 2M */
+    MEPA_MEDIA_TYPE_DAC3M,            /**< DAC,Direct attach cable 3M */
     MEPA_MEDIA_TYPE_ZR,               /**< ZR,10GBASE-ZR */
     MEPA_MEDIA_TYPE_KR,               /**< KR,10GBASE-KR */
     MEPA_MEDIA_TYPE_SR_SC,            /**< SR,10GBASE-SR with software control*/
