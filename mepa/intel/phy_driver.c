@@ -521,11 +521,6 @@ static mepa_rc intl_debug_info_dump(struct mepa_device *dev,
     (void)intl_if_get(dev, 1, &int_if);
     (void)gpy2xx_read_fw_info(phy); /* refresh phy->id.fw_* (FFU may have updated them) */
 
-    if (gpy2xx_usxgmii_reach_get(phy, &r) != MEPA_RC_OK) {
-        pr("Could not get usxgmii_reach info\n");
-        return MEPA_RC_ERROR;
-    }
-
     const char *fw_rel = (phy->id.fw_release == 1U) ? "released" : "test";
     const char *fw_mem;
     switch (phy->id.fw_memory) {
@@ -544,21 +539,25 @@ static mepa_rc intl_debug_info_dump(struct mepa_device *dev,
        phy->id.revision, phy->id.model_no, phy->id.fw_major, phy->id.fw_minor, fw_rel, fw_mem);
     pr("GPY API:%u.%u.%u.%u\n",
        phy->id.drv_major, phy->id.drv_minor, phy->id.drv_release, phy->id.drv_patch);
-    pr("Trace Length setting    :%d\n",r.trace_len);
-    pr("Tx EQ Main              :%d\n",r.tx_eq_main);
-    pr("Tx Pre-emphasis level   :%d\n",r.tx_eq_pre);
-    pr("Tx Post-emphasis level  :%d\n",r.tx_eq_post);
-    pr("Tx Voltage Boost Enable :%d\n",r.tx_vboost_en);
-    pr("Tx Voltage Boost level  :%d\n",r.tx_vboost_lvl);
-    pr("Tx Current Boost level  :%d\n",r.tx_iboost_lvl);
-    pr("Rx EQ Attenuation level :%d\n",r.rx_eq_att_lvl);
-    pr("Rx EQ VGA1 Gain         :%d\n",r.rx_eq_vga1_gain);
-    pr("Rx EQ VGA2 Gain         :%d\n",r.rx_eq_vga2_gain);
-    pr("Rx EQ CTLE Boost        :%d\n",r.rx_eq_ctle_boost);
-    pr("Rx EQ CTLE Pole         :%d\n",r.rx_eq_ctle_pole);
-    pr("Rx EQ DFE Tap1          :%d\n",r.rx_eq_dfe_tap1);
-    pr("Rx AFE Enable           :%d\n",r.rx_afe_adapt_en);
-    pr("Rx DFE Enable           :%d\n",r.rx_dfe_adapt_en);
+
+    if (intl_mode_is_usxgmii(dev) &&
+        (gpy2xx_usxgmii_reach_get(phy, &r) == MEPA_RC_OK)) {
+        pr("Trace Length setting    :%d\n",r.trace_len);
+        pr("Tx EQ Main              :%d\n",r.tx_eq_main);
+        pr("Tx Pre-emphasis level   :%d\n",r.tx_eq_pre);
+        pr("Tx Post-emphasis level  :%d\n",r.tx_eq_post);
+        pr("Tx Voltage Boost Enable :%d\n",r.tx_vboost_en);
+        pr("Tx Voltage Boost level  :%d\n",r.tx_vboost_lvl);
+        pr("Tx Current Boost level  :%d\n",r.tx_iboost_lvl);
+        pr("Rx EQ Attenuation level :%d\n",r.rx_eq_att_lvl);
+        pr("Rx EQ VGA1 Gain         :%d\n",r.rx_eq_vga1_gain);
+        pr("Rx EQ VGA2 Gain         :%d\n",r.rx_eq_vga2_gain);
+        pr("Rx EQ CTLE Boost        :%d\n",r.rx_eq_ctle_boost);
+        pr("Rx EQ CTLE Pole         :%d\n",r.rx_eq_ctle_pole);
+        pr("Rx EQ DFE Tap1          :%d\n",r.rx_eq_dfe_tap1);
+        pr("Rx AFE Enable           :%d\n",r.rx_afe_adapt_en);
+        pr("Rx DFE Enable           :%d\n",r.rx_dfe_adapt_en);
+    }
 
     MEPA_EXIT(dev);
     return MEPA_RC_OK;
