@@ -160,7 +160,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
 
         // overide tMeba_poe_init_params params if using H file parameters
         // overide meba power supply by appl init_params
-        if (!tPoe_init_params->use_poe_static_parameters) {
+        if (tPoe_init_params->use_poe_dynamic_parameters) {
             pds408g_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
             pds408g_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
             pds408g_power_supplies->system_pwr_usage_w =
@@ -179,7 +179,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
 
         if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN6_BT) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(pds408g_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
             }
@@ -207,7 +207,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
         } else if (poe_default_parameters.eMeba_poe_firmware_type ==
                    MEBA_POE_FIRMWARE_TYPE_GEN6_PREBT) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(pds408g_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
             }
@@ -245,7 +245,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
 
         // overide tMeba_poe_init_params params if using H file parameters
         // overide meba power supply by appl init_params
-        if (!tPoe_init_params->use_poe_static_parameters) {
+        if (tPoe_init_params->use_poe_dynamic_parameters) {
             caracal_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
             caracal_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
             caracal_power_supplies->system_pwr_usage_w =
@@ -264,7 +264,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
 
         if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN6_BT) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(caracal_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
             }
@@ -292,7 +292,7 @@ mesa_rc meba_poe_caracal_system_initialize(meba_inst_t             inst,
         } else if (poe_default_parameters.eMeba_poe_firmware_type ==
                    MEBA_POE_FIRMWARE_TYPE_GEN6_PREBT) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(caracal_pd69200_2pairs_port_map) / sizeof(meba_poe_port_properties_t);
             }

@@ -166,7 +166,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
 
     // overide tMeba_poe_init_params params if using H file parameters
     // overide meba power supply by appl init_params
-    if (!tPoe_init_params->use_poe_static_parameters) {
+    if (tPoe_init_params->use_poe_dynamic_parameters) {
         jr2_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
         jr2_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
         jr2_power_supplies->system_pwr_usage_w = tPoe_init_params->power_supply_internal_pwr_usage;
@@ -182,7 +182,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
 
     if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN6_BT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(jr2_pd69200_4pairs_port_map_1) / sizeof(meba_poe_port_properties_t);
         }
@@ -209,7 +209,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
 
         if (jr2_pd69200_system.controller_count == MEBA_POE_TWO_CONTROLLERS) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(jr2_pd69200_4pairs_port_map_2) / sizeof(meba_poe_port_properties_t);
             }
@@ -237,7 +237,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
     } else if (poe_default_parameters.eMeba_poe_firmware_type ==
                MEBA_POE_FIRMWARE_TYPE_GEN6_PREBT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(jr2_pd69200_2pairs_port_map_1) / sizeof(meba_poe_port_properties_t);
         }
@@ -262,7 +262,7 @@ mesa_rc meba_poe_jr2_system_initialize(meba_inst_t inst, meba_poe_init_params_t 
                                  inst->iface.debug, poe_default_parameters);
         if (jr2_pd69200_system.controller_count == MEBA_POE_TWO_CONTROLLERS) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(jr2_pd69200_2pairs_port_map_2) / sizeof(meba_poe_port_properties_t);
             }

@@ -129,7 +129,7 @@ mesa_rc meba_poe_system_initialize(meba_inst_t inst, meba_poe_init_params_t *tPo
 
     // overide tMeba_poe_init_params params if using H file parameters
     // overide meba power supply by appl init_params
-    if (!tPoe_init_params->use_poe_static_parameters) {
+    if (tPoe_init_params->use_poe_dynamic_parameters) {
         ocelot_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
         ocelot_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
         ocelot_power_supplies->system_pwr_usage_w =
@@ -151,7 +151,7 @@ mesa_rc meba_poe_system_initialize(meba_inst_t inst, meba_poe_init_params_t *tPo
             malloc(sizeof(meba_poe_ctrl_inst_t) * ocelot_pd69200_system.controller_count);
 
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(ocelot_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }
@@ -185,7 +185,7 @@ mesa_rc meba_poe_system_initialize(meba_inst_t inst, meba_poe_init_params_t *tPo
             malloc(sizeof(meba_poe_ctrl_inst_t) * ocelot_pd69200_system.controller_count);
 
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(ocelot_pd69200_2pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }

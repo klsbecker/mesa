@@ -207,7 +207,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
 
     // overide tMeba_poe_init_params params if using H file parameters
     // overide meba power supply by appl init_params
-    if (!tPoe_init_params->use_poe_static_parameters) {
+    if (tPoe_init_params->use_poe_dynamic_parameters) {
         sparx5_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
         sparx5_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
         sparx5_power_supplies->system_pwr_usage_w =
@@ -225,7 +225,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
     if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN6_BT) {
 
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(sparx5_pd69200_4pairs_port_map_1) / sizeof(meba_poe_port_properties_t);
         }
@@ -253,7 +253,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
 
         if (pd_system.controller_count == MEBA_POE_TWO_CONTROLLERS) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(sparx5_pd69200_4pairs_port_map_2) / sizeof(meba_poe_port_properties_t);
             }
@@ -282,7 +282,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
         }
     } else if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN7_BT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(sparx5_pd69777_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }
@@ -309,7 +309,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
     } else if (poe_default_parameters.eMeba_poe_firmware_type ==
                MEBA_POE_FIRMWARE_TYPE_GEN6_PREBT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(sparx5_pd69200_4pairs_port_map_1) / sizeof(meba_poe_port_properties_t);
         }
@@ -336,7 +336,7 @@ mesa_rc meba_poe_sparx5_pcb135_system_initialize(meba_inst_t             inst,
 
         if (pd_system.controller_count == MEBA_POE_TWO_CONTROLLERS) {
             // overide tMeba_poe_init_params params if using H file parameters
-            if (tPoe_init_params->use_poe_static_parameters) {
+            if (!tPoe_init_params->use_poe_dynamic_parameters) {
                 poe_default_parameters.max_poe_ports =
                     sizeof(sparx5_pd69200_4pairs_port_map_2) / sizeof(meba_poe_port_properties_t);
             }
@@ -553,7 +553,7 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
 
     // overide tMeba_poe_init_params params if using H file parameters
     // overide meba power supply by appl init_params
-    if (!tPoe_init_params->use_poe_static_parameters) {
+    if (tPoe_init_params->use_poe_dynamic_parameters) {
         laguna_power_supplies->def_w = tPoe_init_params->power_supply_default_power_limit;
         laguna_power_supplies->max_w = tPoe_init_params->power_supply_max_power_w;
         laguna_power_supplies->system_pwr_usage_w =
@@ -568,7 +568,7 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
 
     if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN6_BT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(laguna_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }
@@ -596,7 +596,7 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
 
     } else if (poe_default_parameters.eMeba_poe_firmware_type == MEBA_POE_FIRMWARE_TYPE_GEN7_BT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(laguna_pd69777_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }
@@ -623,7 +623,7 @@ mesa_rc meba_poe_laguna_pcb8398_system_initialize(meba_inst_t             inst,
     } else if (poe_default_parameters.eMeba_poe_firmware_type ==
                MEBA_POE_FIRMWARE_TYPE_GEN6_PREBT) {
         // overide tMeba_poe_init_params params if using H file parameters
-        if (tPoe_init_params->use_poe_static_parameters) {
+        if (!tPoe_init_params->use_poe_dynamic_parameters) {
             poe_default_parameters.max_poe_ports =
                 sizeof(laguna_pd69200_4pairs_port_map) / sizeof(meba_poe_port_properties_t);
         }

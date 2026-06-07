@@ -579,7 +579,8 @@ typedef struct {
 
 // parameters taken from DB according to PN read from PoEMCU serial number
 typedef struct {
-    mesa_bool_t use_poe_static_parameters;
+    // init parametrs obtained on runtime or from predefined header
+    mesa_bool_t use_poe_dynamic_parameters;
 
     // maximum number of POE ports
     uint8_t max_poe_ports;
