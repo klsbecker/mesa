@@ -9,6 +9,15 @@ require 'optparse'
 require 'rexml' # => true
 require 'open3'
 
+# Unbuffer stdout. When this script's stdout is a pipe (as in the dispatch
+# chain: suite.rb | tee | xml2console.rb | ...), libc fully-buffers it, so the
+# brief RUN/OK lines batch in ~4-8KB chunks instead of flushing per test.  If a
+# test hangs, its "RUN <test>" line stays trapped in the unflushed buffer and
+# never reaches the controller — making the suite look idle with no indication
+# of which test hung. Syncing makes every line flush immediately.
+$stdout.sync = true
+$stderr.sync = true
+
 class String
     def black;          "\e[30m#{self}\e[0m" end
     def red;            "\e[31m#{self}\e[0m" end
