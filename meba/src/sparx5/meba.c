@@ -2274,9 +2274,32 @@ static mesa_rc fa_reset(meba_inst_t inst, meba_reset_point_t reset)
                 }
             }
         } else if (board->gpy241_present) {
+            mepa_conf_t      phy_conf;
+            mesa_port_conf_t pconf;
+
             // Release COMA mode (activate Indy phys)
             mesa_gpio_direction_set(NULL, 0, INDY_COMA_GPIO, true);
             mesa_gpio_write(NULL, 0, INDY_COMA_GPIO, false);
+
+            /* The switch SerDes must be power-up when the phy trace length is applied
+             * In QXGMII the 4 channels share one SerDes lane (chip-side) and
+             * one XPCS in the GPY245 (PHY-side), i.e. enough with one channel settings (p % 4). */
+            for (mesa_port_no_t p = 0; p < board->port_cnt; p++) {
+                if (board->port[p].map.mac_if != MESA_PORT_INTERFACE_QXGMII || (p % 4) != 0) {
+                    continue;
+                }
+                if (mesa_port_conf_get(NULL, p, &pconf) == MESA_RC_OK) {
+                    pconf.power_down = 0;
+                    (void)mesa_port_conf_set(NULL, p, &pconf);
+                }
+                if (meba_phy_conf_get(inst, p, &phy_conf) == MESA_RC_OK) {
+                    phy_conf.conf_10g.h_media = MEPA_MEDIA_TYPE_DAC; // Converts to GPY SHORT trace
+                    if (meba_phy_conf_set(inst, p, &phy_conf) != MESA_RC_OK) {
+                        T_E(inst, "Could not set Phy trace length %d", p);
+                    }
+                }
+            }
+            break;
         }
         if (board->malibu_present) {
             /* Initlize the 10G Malibu Phy */
