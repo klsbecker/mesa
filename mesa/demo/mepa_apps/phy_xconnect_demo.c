@@ -191,12 +191,16 @@ static int cli_parm_value_port(cli_req_t *req)
 
 static void cli_cmd_xconnect_anylinetoanyhost(cli_req_t *req)
 {
-    mepa_rc                   rc;
-    demo_phy_info_t           phy_family;
-    mepa_conf_t               config;
-    xconnect_configuration_t *mreq = req->module_req;
-    mesa_port_no_t            iport, port = mreq->max_port_cnt;
-    struct mepa_device       *dev = meba_xc_phy_instance->phy_devices[req->port_no];
+    mepa_rc                           rc;
+    demo_phy_info_t                   phy_family;
+    mepa_conf_t                       config;
+    xconnect_configuration_t         *mreq = req->module_req;
+    mesa_port_no_t                    iport, port = mreq->max_port_cnt;
+    struct mepa_device               *dev = meba_xc_phy_instance->phy_devices[req->port_no];
+    phy_data_t                       *data = (phy_data_t *)dev->data;
+    vtss_inst_t                       inst = data->vtss_instance;
+    vtss_phy_10g_auto_failover_conf_t conf = {0};
+    uint8_t                           host_ch, line_ch;
 
     if ((rc = phy_family_detect(meba_xc_phy_instance, req->port_no, &phy_family)) != MEPA_RC_OK) {
         T_E("\n Error in Detecting PHY Family on Port %d\n", req->port_no);
@@ -226,6 +230,45 @@ static void cli_cmd_xconnect_anylinetoanyhost(cli_req_t *req)
             T_E("Error in Xconnect anyline to anyhost configuration\n");
         }
         free(mreq->lineport_channel_list);
+        free(mreq->lineport_list);
+    } else if (phy_family.family == PHY_FAMILY_MALIBU_10G) {
+        conf.evnt = VTSS_PHY_10G_AUTO_FAILOVER_EVENT_NONE;
+        conf.filter = VTSS_PHY_10G_AUTO_FAILOVER_FILTER_NONE;
+        conf.chip_no = 0;
+        conf.enable = req->enable ? TRUE : FALSE;
+
+        for (iport = 0; iport < mreq->max_port_cnt; iport++) {
+            /* hostport = front port (iport+1) -> 0-based vtss port iport */
+            if (vtss_phy_10g_channel_id_get(inst, iport, &host_ch) != MESA_RC_OK ||
+                vtss_phy_10g_channel_id_get(inst, (mreq->lineport_list[iport] - 1), &line_ch) !=
+                    MESA_RC_OK) {
+                T_E("\nMALIBU10G: Error getting channel ID for hostport %d / lineport %d\n",
+                    iport + 1, mreq->lineport_list[iport]);
+                free(mreq->lineport_list);
+                return;
+            }
+            /* HOST and LINE sides form one bidirectional cross, so bail out if
+             * either write fails rather than leave a half-configured datapath. */
+            /* HOST side of the hostport sources the lineport's channel */
+            conf.port_no = iport;
+            conf.is_host_side = TRUE;
+            conf.channel_id = line_ch;
+            if (vtss_phy_10g_auto_failover_set(inst, &conf) != MESA_RC_OK) {
+                T_E("MALIBU10G: host xconnect set failed (hostport %d)\n", iport + 1);
+                free(mreq->lineport_list);
+                return;
+            }
+            /* LINE side of the lineport sources the hostport's channel (reverse path) */
+            conf.port_no = mreq->lineport_list[iport] - 1;
+            conf.is_host_side = FALSE;
+            conf.channel_id = host_ch;
+            if (vtss_phy_10g_auto_failover_set(inst, &conf) != MESA_RC_OK) {
+                T_E("MALIBU10G: line xconnect set failed (lineport %d)\n",
+                    mreq->lineport_list[iport]);
+                free(mreq->lineport_list);
+                return;
+            }
+        }
         free(mreq->lineport_list);
     }
 }
