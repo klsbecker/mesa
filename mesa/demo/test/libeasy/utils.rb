@@ -623,14 +623,26 @@ def check_rate(cfg)
 #        t_e("Failed as low priority tx is counted")
 #    end
 
-    t_i("Wait for necessary amount of frames to be transmitted")
-    sleep(pre_tx+sec+2)
+    begin
+        t_i("Wait for necessary amount of frames to be transmitted")
+        sleep(pre_tx+sec+2)
+    ensure
+        # Always stop tcpdump, even if the test is interrupted or a check
+        # raises during the capture window. tcpdump runs forever until killed;
+        # if orphaned it keeps the pcap open on the PC, and the next run's
+        # `rm` turns it into a deleted-but-open file that leaks disk.
+        # try_ignore so cleanup never masks the real error.
+        t_i("Kill the tcpdump process")
+        $ts.pc.try_ignore("kill -s SIGHUP #{pid_tcp}")
 
-    t_i("Kill the tcpdump process")
-    $ts.pc.run("kill -s SIGHUP #{pid_tcp}")
-
-    t_i("Wait for tcpdump process to terminate")
-    sleep(1)  #TODO        Process.wait(pid_tcp)
+        # Wait (bounded) for tcpdump to actually exit. pid_tcp is a remote
+        # process on the PC managed by `er`, so a local Process.wait isn't
+        # possible. Poll `kill -0` on the PC until the process is gone — up to
+        # 10s — so the next run's tcpdump can't race a not-yet-dead one.
+        # try_ignore so it never raises; the loop is bounded so it can't hang.
+        t_i("Wait for tcpdump process to terminate")
+        $ts.pc.try_ignore("for i in $(seq 1 50); do kill -0 #{pid_tcp} 2>/dev/null || exit 0; sleep 0.2; done")
+    end
 
     t_i("Kill Easy Frame transmitters")
     pid_ef.each do |pid|
