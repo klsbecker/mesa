@@ -171,7 +171,7 @@ typedef struct {
    Queue mapping for FA og LA:
     Super0: QUEUE_SP0 + port
     Super1: QUEUE_SP1 + port
-    Internal:  SE_INT_DEF * 8 + (port - ETHPORT_CNT) + prio
+    Internal:  SE_INT_DEF * 8 + (port - ETHPORT_CNT) * 8 + prio
     External from CPU port:
      LA: (8 * port + prio) * LARGE_CFG_RATIO * 8 + src = port * 256 + prio * 32
   + src FA: (8 * port + prio) * LARGE_CFG_RATIO + SE_HIGH * 8 + src - 8 *
@@ -202,8 +202,8 @@ static vtss_rc fa_afi_port_prio_2_qu_ref(vtss_state_t    *vtss_state,
         // Super priority after shaper
         qu_ref->qu_num = (FA_QUEUE_SP1 + qu_ref->chip_port);
     } else if (qu_ref->chip_port == RT_CHIP_PORT_VD1) {
-        // Internal VD0 port
-        qu_ref->qu_num = (FA_SE_INT_DEF * 8U + RT_CHIP_PORT_VD0 - RT_CHIP_PORTS + prio);
+        // Internal VD1 port
+        qu_ref->qu_num = (FA_SE_INT_DEF * 8U + (RT_CHIP_PORT_VD1 - RT_CHIP_PORTS) * 8U + prio);
     } else {
         // Front port, CPU_0 is used as source
 #if defined(VTSS_ARCH_SPARX5)
