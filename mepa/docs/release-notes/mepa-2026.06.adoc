@@ -28,8 +28,9 @@
     ** Mode is selected by the application via `meba_phy_conf_set` with `conf_10g.oper_mode = MEPA_PHY_LAN_MODE | MEPA_PHY_1G_MODE | MEPA_PHY_REPEATER_MODE`.
   * Added `vtss_phy_10g_sgmii_status_get()` — reads `LINE_PCS1G.PCS1G_ANEG_STATUS2.LP_ADV_ABILITY` per Cisco-SGMII bit layout (link bit 15, fdx bit 12, speed bits 11:10) and returns link / fdx / speed in a new `vtss_phy_10g_sgmii_status_t`. Use this on SGMII-configured ports instead of `vtss_phy_10g_clause_37_status_get()` whose 1000BASE-X bit layout differs.
   * The 10G poll callback (`phy_10g_poll`) now decodes the SGMII partner page on every poll, re-runs `vtss_phy_10g_sgmii_mode_set()` on partner-speed change, and reports the resolved partner state through the standard `mepa_status_t` — no application-side change required beyond calling `mepa_poll()`.
+  * 1G Copper SFP (CuSFP) support on VSC8254/56/57/58: with the Malibu-10 I²C master fixes above, the module's internal PHY can be reconfigured into SGMII over I²C, letting the CuSFP run in non-repeater `VTSS_PHY_1G_MODE` with the Line/Host MAC, MACsec and 1588 blocks in the datapath.
+  * Malibu-10 (VSC8254/56/57/58) legacy PHY interrupt handling: 1G PCS link-down / out-of-sync events can now generate a hardware interrupt on a GPIO, enabled via `vtss_phy_10g_extended2_event_enable_set()` together with `vtss_phy_10g_gpio_mode_set()`. Added `vtss_phy_10g_gpio_aggr_table_get()` / `vtss_phy_10g_gpio_aggr_table_set()` to configure the per-aggregator channel-to-GPIO interrupt routing table.
 
 ==== Known limitations
 
   * VSC8254/56/57/58 non-repeater mode at 10/100M: Malibu Rev D silicon has no byte-decimation circuit for SGMII byte-repeated frames, so sub-1G partners cannot be carried in `VTSS_PHY_1G_MODE`. The driver detects this case and forces link-down. Use repeater mode for 10/100M CuSFP partners.
-  * VSC8254/56/57/58 1000BASE-X CuSFP in non-repeater mode: support in development, expected to land before the v2026.06 final tag. Will be removed from this list once merged.
