@@ -1957,7 +1957,13 @@ static mepa_rc lan80xx_macsec_sa_flow_set(mepa_device_t *dev, mepa_port_no_t por
             LAN80XX_CSR_WARM_WR(port_no, LAN80XX_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1(secy_id),
                                 LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_FLOW_TYPE(flow_type) |
                                 LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_DEST_PORT(dest_port) |
-                                LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_DROP_ACTION(2)       |
+                                /* DROP_ACTION=1 (bypass with bad frame indicator) instead of 2 (internal drop).
+                                 * With internal drop (2), ClassDrop frames are held inside the crypto-core and
+                                 * never exit the statistics module so that in_flight never decrements, SAM pipeline
+                                 * jams permanently.  With bad-frame bypass (1), dropped frames exit the pipeline
+                                 * with a bad-frame marker; the Tx MAC discards them so they never reach the host,
+                                 * but in_flight decrements normally preventing PKT64TO128_FIFO_OVERFLOW. */
+                                LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_DROP_ACTION(1)       |
                                 (rp ? LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_REPLAY_PROTECT : 0) |
                                 LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_ALLOW_TAGGED_DATA    |
                                 LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE0_FLOW_CTRL_1_ALLOW_UNTAGGED_DATA  |
@@ -1996,7 +2002,8 @@ static mepa_rc lan80xx_macsec_sa_flow_set(mepa_device_t *dev, mepa_port_no_t por
             LAN80XX_CSR_WARM_WR(port_no, LAN80XX_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1(secy_id - LAN80XX_MACSEC_SC_REC_PAGE0_NUM),
                                 LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_FLOW_TYPE(flow_type) |
                                 LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_DEST_PORT(dest_port) |
-                                LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_DROP_ACTION(2)       |
+                                /* DROP_ACTION=1: see PAGE0 comment above */
+                                LAN80XX_F_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_DROP_ACTION(1)       |
                                 (rp ? LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_REPLAY_PROTECT : 0) |
                                 LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_ALLOW_TAGGED_DATA    |
                                 LAN80XX_M_MACSEC_INGR_CORE_EIP_FLOW_CTRL_PAGE1_FLOW_CTRL_1_ALLOW_UNTAGGED_DATA  |
