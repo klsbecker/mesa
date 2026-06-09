@@ -4041,6 +4041,18 @@ static vtss_rc fa_sd10g_cfg(vtss_state_t      *vtss_state,
     case VTSS_SERDES_MODE_USXGMII: {
         sd_cfg.preset = serdes2preset(vtss_state->port.conf[port_no].serdes.media_type);
         sd_cfg.mode = VTSS_SD10G28_MODE_10G_LAN;
+#if defined(VTSS_ARCH_LAN969X)
+        /* On Laguna the multi-port USXGMII extender (chip-ports 8/12/16/20)
+         * is always in the SerDes-to-DEV data path, with a fixed 32->64
+         * bit adapter, while chip-ports 0/4/24..27) are wired direct
+         * to the 64-bit DEV10G Rx. */
+        {
+            u32 p = VTSS_CHIP_PORT(port_no);
+            if (p == 8U || p == 12U || p == 16U || p == 20U) {
+                sd_cfg.mode = VTSS_SD10G28_MODE_10G_QSXGMII;
+            }
+        }
+#endif
         break;
     }
     case VTSS_SERDES_MODE_2G5: {
