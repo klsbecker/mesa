@@ -13,6 +13,8 @@ require 'net/http'
 require "packetfu"
 require 'yaml'
 
+CMD_TIMEOUT_SECS = (ENV["ET_CMD_TIMEOUT_SECS"] || 300).to_i
+
 class CliIO
     attr_accessor :timeout
 
@@ -494,9 +496,22 @@ class MesaDut
                                     "pid" => pid[:pid]}
         res_out = ""
         res_err = ""
+        last_io = Time.now   # last time the DUT produced anything for this cmd
 
         while true
             t = poll_cmd_output(pid[:pid])
+
+            if t.empty?
+                if CMD_TIMEOUT_SECS > 0 and (Time.now - last_io) > CMD_TIMEOUT_SECS
+                    attrs = {"pid" => pid[:pid], "ts" => xml_ts(Time.now),
+                             "on" => "dut", "exitstatus" => "timeout"}
+                    xml_tag "#{method}_end", nil, attrs
+                    xml_tag_end "#{method}"
+                    raise "DUT unresponsive: no output for #{CMD_TIMEOUT_SECS}s waiting for '#{cmd}' (pid #{pid[:pid]})"
+                end
+                next
+            end
+            last_io = Time.now
 
             t.each do |l|
                 yield l if block_given?
@@ -709,9 +724,22 @@ class TestPCRemote
                                     "pid" => pid[:pid]}
         res_out = ""
         res_err = ""
+        last_io = Time.now   # last time the DUT produced anything for this cmd
 
         while true
             t = poll_cmd_output(pid[:pid])
+
+            if t.empty?
+                if CMD_TIMEOUT_SECS > 0 and (Time.now - last_io) > CMD_TIMEOUT_SECS
+                    attrs = {"pid" => pid[:pid], "ts" => xml_ts(Time.now),
+                             "on" => "dut", "exitstatus" => "timeout"}
+                    xml_tag "#{method}_end", nil, attrs
+                    xml_tag_end "#{method}"
+                    raise "DUT unresponsive: no output for #{CMD_TIMEOUT_SECS}s waiting for '#{cmd}' (pid #{pid[:pid]})"
+                end
+                next
+            end
+            last_io = Time.now
 
             t.each do |l|
                 yield l if block_given?
