@@ -1490,22 +1490,39 @@ static mepa_rc lan8814_prbs_loopback(mepa_device_t *dev)
     return rc;
 }
 
-static mepa_rc lan8814_prbs_enable(mepa_device_t *dev)
+static mepa_rc lan8814_prbs_enable(mepa_device_t *dev, mepa_prbs_pattern_t prbs_pattern)
 {
     mepa_rc rc;
     int i;
     struct serd_set serdes_settings[] = {
         {0x1015, 0x0000, 0},
-        {0x1015, 0x25c4, 0}, // Set patten generator to selected mode(LANEX_DIG_TX_LBERT_CTL.MODE)
-        {0x1016, 0x0004, 0}, // Set patten matcher to selected mode(LANEX_DIG_RX_LBERT_CTL.MODE)
-        {0x1016, 0x0004, 0}, // Sync pattern matcher low(LANEX_DIG_RX_LBERT_CTL.SYNC)
-        {0x1016, 0x0014, 0}, // Sync pattern matcher high(LANEX_DIG_RX_LBERT_CTL.SYNC)
-        {0x1016, 0x0004, 0}, // Sync pattern matcher low(LANEX_DIG_RX_LBERT_CTL.SYNC)
-        {0x1016, 0x0014, 0}, // Sync the patten matchers high (LANEX.DIG.RX.LBERT_CTL.SYNC)
-        {0x1016, 0x0004, 0}, // Sync the pattern matchers low (LANEX.DIG.RX.LBERT_CTL.SYNC)
+        {0x1015, 0x25c0, 0}, // Set patten generator to selected mode(LANEX_DIG_TX_LBERT_CTL.MODE)
+        {0x1016, 0x0000, 0}, // Set patten matcher to selected mode(LANEX_DIG_RX_LBERT_CTL.MODE)
+        {0x1016, 0x0000, 0}, // Sync pattern matcher low(LANEX_DIG_RX_LBERT_CTL.SYNC)
+        {0x1016, 0x0010, 0}, // Sync pattern matcher high(LANEX_DIG_RX_LBERT_CTL.SYNC)
+        {0x1016, 0x0000, 0}, // Sync pattern matcher low(LANEX_DIG_RX_LBERT_CTL.SYNC)
+        {0x1016, 0x0010, 0}, // Sync the patten matchers high (LANEX.DIG.RX.LBERT_CTL.SYNC)
+        {0x1016, 0x0000, 0}, // Sync the pattern matchers low (LANEX.DIG.RX.LBERT_CTL.SYNC)
     };
     size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
     for (i = 0; i < (int)arr_len; i++) {
+        // The last 4 bits in the data describe which MODE to operate into. A
+        // value of 0 means disable, value 1 means lfsr31, 2 lfsr23, 3 lfsr15, 4
+        // lfsr7. There more modes which we are currently not supporting them.
+        // This applies both to the LANEN_DIG_RX_LBERT_CTL and
+        // LANEN_DIG_TX_LBERT_CTL registers.
+        if (prbs_pattern == MEPA_PRBS7) {
+            serdes_settings[i].data |= 0x4;
+        }
+        if (prbs_pattern == MEPA_PRBS15) {
+            serdes_settings[i].data |= 0x3;
+        }
+        if (prbs_pattern == MEPA_PRBS23) {
+            serdes_settings[i].data |= 0x2;
+        }
+        if (prbs_pattern == MEPA_PRBS31) {
+            serdes_settings[i].data |= 0x1;
+        }
         rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
         if (rc < 0) {
             return rc;
@@ -1514,7 +1531,7 @@ static mepa_rc lan8814_prbs_enable(mepa_device_t *dev)
     return MEPA_RC_OK;
 }
 
-static mepa_rc lan8814_prbs_set_priv(mepa_device_t *dev, mepa_bool_t enable, mepa_prbs_clock_t clk, mepa_prbs_loopback_t loopback)
+static mepa_rc lan8814_prbs_set_priv(mepa_device_t *dev, mepa_bool_t enable, mepa_prbs_clock_t clk, mepa_prbs_loopback_t loopback, mepa_prbs_pattern_t prbs_pattern)
 {
     mepa_rc rc = MEPA_RC_OK;
 
@@ -1538,7 +1555,7 @@ static mepa_rc lan8814_prbs_set_priv(mepa_device_t *dev, mepa_bool_t enable, mep
             }
         }
 
-        rc = lan8814_prbs_enable(dev);
+        rc = lan8814_prbs_enable(dev, prbs_pattern);
         if (rc < 0 ) {
             return rc;
         }
@@ -2948,15 +2965,19 @@ static mepa_rc lan8814_prbs_set(mepa_device_t *dev, mepa_phy_prbs_type_t type, m
     if (direction == MEPA_PHY_DIRECTION_HOST && type == MEPA_PHY_PRBS_TYPE_SERDES) {
         mepa_rc rc = MEPA_RC_OK;
 
-        if (prbs_conf->prbsn_sel == MEPA_PRBS7) {
-
-            MEPA_ENTER(dev);
-            rc = lan8814_prbs_set_priv(dev, prbs_conf->enable, prbs_conf->clk, prbs_conf->loopback);
-            MEPA_EXIT(dev);
-
-            data->prbs_conf = *prbs_conf;
-            return rc < 0 ? rc : MEPA_RC_OK;
+        MEPA_ENTER(dev);
+        if (prbs_conf->prbsn_sel == MEPA_PRBS7 ||
+            prbs_conf->prbsn_sel == MEPA_PRBS15 ||
+            prbs_conf->prbsn_sel == MEPA_PRBS23 ||
+            prbs_conf->prbsn_sel == MEPA_PRBS31) {
+            rc = lan8814_prbs_set_priv(dev, prbs_conf->enable, prbs_conf->clk, prbs_conf->loopback, prbs_conf->prbsn_sel);
+        } else {
+            T_E(MEPA_TRACE_GRP_GEN, "Selected PRBS pattern invalid");
+            rc = MEPA_RC_ERROR;
         }
+        MEPA_EXIT(dev);
+        data->prbs_conf = *prbs_conf;
+        return rc;
     }
 
     return MEPA_RC_ERROR;
@@ -2977,11 +2998,16 @@ static mepa_rc lan8814_prbs_monitor_set(mepa_device_t *dev, const mepa_phy_prbs_
 {
     mepa_rc rc = MEPA_RC_ERROR;
 
-    if (value->prbsn_sel == MEPA_PRBS7) {
+    if (value->prbsn_sel == MEPA_PRBS7 ||
+        value->prbsn_sel == MEPA_PRBS15 ||
+        value->prbsn_sel == MEPA_PRBS23 ||
+        value->prbsn_sel == MEPA_PRBS31) {
         MEPA_ENTER(dev);
         //Introducing one error into sequence
         rc = lan8814_serdes_set(dev, 0x1015, 0x0014, 0);
         MEPA_EXIT(dev);
+    } else {
+        T_E(MEPA_TRACE_GRP_GEN, "Selected PRBS pattern invalid");
     }
 
     return rc;
@@ -2992,7 +3018,10 @@ static mepa_rc lan8814_prbs_monitor_get(mepa_device_t *dev, mepa_phy_prbs_monito
     uint16_t val;
     mepa_rc  rc = MEPA_RC_ERROR;
 
-    if (value->prbsn_sel == MEPA_PRBS7) {
+    if (value->prbsn_sel == MEPA_PRBS7 ||
+        value->prbsn_sel == MEPA_PRBS15 ||
+        value->prbsn_sel == MEPA_PRBS23 ||
+        value->prbsn_sel == MEPA_PRBS31) {
         MEPA_ENTER(dev);
         (void)EP_WR(dev, LAN8814_SERDES_CR_ADDR, 0x1017); // Check for  errors
         (void)EP_RD(dev, LAN8814_SERDES_CR_CONTROL, &val);
@@ -3004,6 +3033,8 @@ static mepa_rc lan8814_prbs_monitor_get(mepa_device_t *dev, mepa_phy_prbs_monito
         MEPA_EXIT(dev);
 
         rc = MEPA_RC_OK;
+    } else {
+        T_E(MEPA_TRACE_GRP_GEN, "Selected PRBS pattern invalid");
     }
 
     return rc;
