@@ -1335,8 +1335,7 @@ struct serd_set {
 static mepa_rc lan8814_prbs_init(mepa_device_t *dev)
 {
     mepa_rc rc;
-    int i;
-
+    size_t i;
     struct serd_set serdes_settings[] = {
         {0x1018, 0x0aa8, 0},
         {0x1018, 0x0550, 0},
@@ -1407,7 +1406,8 @@ static mepa_rc lan8814_prbs_init(mepa_device_t *dev)
         {0x1015, 0x25c6, 0}, // Set patten generator to selected pattern(LANEX_DIG_TX_LBERT_CTL.PAT0)
     };
     size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-    for (i = 0; i < (int)arr_len; i++) {
+
+    for (i = 0; i < arr_len; i++) {
         rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
         if (rc < 0) {
             return rc;
@@ -1420,7 +1420,7 @@ static mepa_rc lan8814_prbs_init(mepa_device_t *dev)
 static mepa_rc lan8814_prbs_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
 {
     mepa_rc rc;
-    int i;
+    size_t i;
     uint16_t val;
 
     (void)EP_RD(dev, LAN8814_SERDES_CLOCK_CONF, &val);
@@ -1432,7 +1432,8 @@ static mepa_rc lan8814_prbs_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
             {0x0011, 0x0aa3, 0}, // Enable MPLL (SUP_DIG_MPLL_OVRD_IN_LO.MPLL_EN)
         };
         size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-        for (i = 0; i < (int)arr_len; i++) {
+
+        for (i = 0; i < arr_len; i++) {
             rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
             if (rc < 0) {
                 return rc;
@@ -1447,7 +1448,8 @@ static mepa_rc lan8814_prbs_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
             {0x0011, 0x0b93, 0}, // Enable MPLL (SUP_DIG_MPLL_OVRD_IN_LO.MPLL_EN)
         };
         size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-        for (i = 0; i < (int)arr_len; i++) {
+
+        for (i = 0; i < arr_len; i++) {
             rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
             if (rc < 0) {
                 return rc;
@@ -1464,8 +1466,7 @@ static mepa_rc lan8814_prbs_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
 static mepa_rc lan8814_prbs_loopback(mepa_device_t *dev)
 {
     mepa_rc rc;
-    int i;
-
+    size_t i;
     struct serd_set serdes_settings[] = {
         {0x1000, 0x02a1, 0}, // Enable internal loopback (LANEX.DIG.TX.OVRD_IN_LO.LOOPBK_EN)
         {0x1000, 0x02a3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_LOOPBK_EN_OVRD)
@@ -1480,7 +1481,8 @@ static mepa_rc lan8814_prbs_loopback(mepa_device_t *dev)
         {0x1000, 0x2bfb, 0}, // Set Tx Data Enable high(LANEX_DIG_TX_OVRD_IN_LO.TX_DATA_EN)
     };
     size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-    for (i = 0; i < (int)arr_len; i++) {
+
+    for (i = 0; i < arr_len; i++) {
         rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
         if (rc < 0) {
             return rc;
@@ -1493,7 +1495,7 @@ static mepa_rc lan8814_prbs_loopback(mepa_device_t *dev)
 static mepa_rc lan8814_prbs_enable(mepa_device_t *dev, mepa_prbs_pattern_t prbs_pattern)
 {
     mepa_rc rc;
-    int i;
+    size_t i;
     struct serd_set serdes_settings[] = {
         {0x1015, 0x0000, 0},
         {0x1015, 0x25c0, 0}, // Set patten generator to selected mode(LANEX_DIG_TX_LBERT_CTL.MODE)
@@ -1505,7 +1507,8 @@ static mepa_rc lan8814_prbs_enable(mepa_device_t *dev, mepa_prbs_pattern_t prbs_
         {0x1016, 0x0000, 0}, // Sync the pattern matchers low (LANEX.DIG.RX.LBERT_CTL.SYNC)
     };
     size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-    for (i = 0; i < (int)arr_len; i++) {
+
+    for (i = 0; i < arr_len; i++) {
         // The last 4 bits in the data describe which MODE to operate into. A
         // value of 0 means disable, value 1 means lfsr31, 2 lfsr23, 3 lfsr15, 4
         // lfsr7. There more modes which we are currently not supporting them.
