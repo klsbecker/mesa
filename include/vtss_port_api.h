@@ -1191,7 +1191,7 @@ typedef struct {
 
 /** \brief SerDes PRBS status structure */
 typedef struct {
-    u16                             prbs_err_cnt;      /**< PRBS error counter  */
+    u32                             prbs_err_cnt;      /**< PRBS error counter  */
     BOOL                            is_active;         /**< Is the test active? */
     BOOL                            is_sync;           /**< Is in sync?         */
     BOOL                            is_error;          /**< Is in error state?  */

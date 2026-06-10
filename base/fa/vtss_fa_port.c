@@ -5669,7 +5669,7 @@ vtss_rc vtss_cil_port_serdes_prbs_status_get(struct vtss_state_s                
     } else {
         return VTSS_RC_ERROR;
     }
-    status->prbs_err_cnt = (u16)(err_cnt > 0xFFFFU ? 0xFFFFU : err_cnt);
+    status->prbs_err_cnt = err_cnt;
     return VTSS_RC_OK;
 }
 
