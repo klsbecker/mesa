@@ -7,6 +7,8 @@ require 'open3'
 require 'optparse'
 require 'pathname'
 
+# Unbuffer stdout
+$stdout.sync = true
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Run command
