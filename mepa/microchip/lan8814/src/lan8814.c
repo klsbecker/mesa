@@ -1332,7 +1332,7 @@ struct serd_set {
     uint8_t op_rd;
 };
 
-static mepa_rc lan8814_prbs7_init(mepa_device_t *dev)
+static mepa_rc lan8814_prbs_init(mepa_device_t *dev)
 {
     mepa_rc rc;
     int i;
@@ -1417,7 +1417,7 @@ static mepa_rc lan8814_prbs7_init(mepa_device_t *dev)
     return MEPA_RC_OK;
 }
 
-static mepa_rc lan8814_prbs7_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
+static mepa_rc lan8814_prbs_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
 {
     mepa_rc rc;
     int i;
@@ -1461,7 +1461,7 @@ static mepa_rc lan8814_prbs7_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
     return MEPA_RC_OK;
 }
 
-static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev)
+static mepa_rc lan8814_prbs_loopback(mepa_device_t *dev)
 {
     mepa_rc rc;
     int i;
@@ -1490,7 +1490,7 @@ static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev)
     return rc;
 }
 
-static mepa_rc lan8814_prbs7_enable(mepa_device_t *dev)
+static mepa_rc lan8814_prbs_enable(mepa_device_t *dev)
 {
     mepa_rc rc;
     int i;
@@ -1514,7 +1514,7 @@ static mepa_rc lan8814_prbs7_enable(mepa_device_t *dev)
     return MEPA_RC_OK;
 }
 
-static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_prbs_clock_t clk, mepa_prbs_loopback_t loopback)
+static mepa_rc lan8814_prbs_set_priv(mepa_device_t *dev, mepa_bool_t enable, mepa_prbs_clock_t clk, mepa_prbs_loopback_t loopback)
 {
     mepa_rc rc = MEPA_RC_OK;
 
@@ -1524,21 +1524,21 @@ static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_pr
         // external loopback there is not need to run the need, init, loopback
         // or clock configuration.
         if (loopback == MEPA_PRBS_INTERNAL_LOOPBACK) {
-            rc = lan8814_prbs7_init(dev);
+            rc = lan8814_prbs_init(dev);
             if (rc < 0 ) {
                 return rc;
             }
-            rc = lan8814_prbs7_loopback(dev);
+            rc = lan8814_prbs_loopback(dev);
             if (rc < 0 ) {
                 return rc;
             }
-            rc = lan8814_prbs7_clk(dev, clk);
+            rc = lan8814_prbs_clk(dev, clk);
             if (rc < 0 ) {
                 return rc;
             }
         }
 
-        rc = lan8814_prbs7_enable(dev);
+        rc = lan8814_prbs_enable(dev);
         if (rc < 0 ) {
             return rc;
         }
@@ -2951,7 +2951,7 @@ static mepa_rc lan8814_prbs_set(mepa_device_t *dev, mepa_phy_prbs_type_t type, m
         if (prbs_conf->prbsn_sel == MEPA_PRBS7) {
 
             MEPA_ENTER(dev);
-            rc = lan8814_prbs7_set(dev, prbs_conf->enable, prbs_conf->clk, prbs_conf->loopback);
+            rc = lan8814_prbs_set_priv(dev, prbs_conf->enable, prbs_conf->clk, prbs_conf->loopback);
             MEPA_EXIT(dev);
 
             data->prbs_conf = *prbs_conf;
