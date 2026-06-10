@@ -1461,35 +1461,33 @@ static mepa_rc lan8814_prbs7_clk(mepa_device_t *dev, mepa_prbs_clock_t clk)
     return MEPA_RC_OK;
 }
 
-static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev, mepa_prbs_loopback_t loopback)
+static mepa_rc lan8814_prbs7_loopback(mepa_device_t *dev)
 {
     mepa_rc rc;
     int i;
-    if (loopback == MEPA_PRBS_INTERNAL_LOOPBACK) {
-        struct serd_set serdes_settings[] = {
-            {0x1000, 0x02a1, 0}, // Enable internal loopback (LANEX.DIG.TX.OVRD_IN_LO.LOOPBK_EN)
-            {0x1000, 0x02a3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_LOOPBK_EN_OVRD)
-            {0x1000, 0x02a3, 0}, // Turn off Beacon Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_BEACON_EN)
-            {0x1000, 0x0aa3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_BEACON_EN_OVRD)
-            {0x1000, 0x0aa3, 0}, // Turn off tx_rx detect (LANEX.DIG.TX.OVRD_IN_LO.TX_DETECT_RX_REQ)
-            {0x1000, 0x2aa3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_DETECT_RX_REQ_OVRD)
-            {0x1000, 0x2aa3, 0}, // Turn off tx invert (LANEX.DIG.TX.OVRD_IN_LO.TX_INVERT)
-            {0x1000, 0x2aab, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_INVERT_OVRD)
-            {0x1000, 0x2bab, 0}, // Set TX CM Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_CM_EN)
-            {0x1000, 0x2beb, 0}, // Turn on TX Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_EN)
-            {0x1000, 0x2bfb, 0}, // Set Tx Data Enable high(LANEX_DIG_TX_OVRD_IN_LO.TX_DATA_EN)
-        };
-        size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
-        for (i = 0; i < (int)arr_len; i++) {
-            rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
-            if (rc < 0) {
-                return rc;
-            }
+
+    struct serd_set serdes_settings[] = {
+        {0x1000, 0x02a1, 0}, // Enable internal loopback (LANEX.DIG.TX.OVRD_IN_LO.LOOPBK_EN)
+        {0x1000, 0x02a3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_LOOPBK_EN_OVRD)
+        {0x1000, 0x02a3, 0}, // Turn off Beacon Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_BEACON_EN)
+        {0x1000, 0x0aa3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_BEACON_EN_OVRD)
+        {0x1000, 0x0aa3, 0}, // Turn off tx_rx detect (LANEX.DIG.TX.OVRD_IN_LO.TX_DETECT_RX_REQ)
+        {0x1000, 0x2aa3, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_DETECT_RX_REQ_OVRD)
+        {0x1000, 0x2aa3, 0}, // Turn off tx invert (LANEX.DIG.TX.OVRD_IN_LO.TX_INVERT)
+        {0x1000, 0x2aab, 0}, // Enable override (LANEX.DIG.TX.OVRD_IN_LO.TX_INVERT_OVRD)
+        {0x1000, 0x2bab, 0}, // Set TX CM Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_CM_EN)
+        {0x1000, 0x2beb, 0}, // Turn on TX Enable (LANEX.DIG.TX.OVRD_IN_LO.TX_EN)
+        {0x1000, 0x2bfb, 0}, // Set Tx Data Enable high(LANEX_DIG_TX_OVRD_IN_LO.TX_DATA_EN)
+    };
+    size_t arr_len = (sizeof(serdes_settings) / sizeof(struct serd_set));
+    for (i = 0; i < (int)arr_len; i++) {
+        rc = lan8814_serdes_set(dev, serdes_settings[i].addr, serdes_settings[i].data, serdes_settings[i].op_rd);
+        if (rc < 0) {
+            return rc;
         }
-    } else {
-        return MEPA_RC_ERROR;
     }
-    return MEPA_RC_OK;
+
+    return rc;
 }
 
 static mepa_rc lan8814_prbs7_enable(mepa_device_t *dev)
@@ -1521,18 +1519,25 @@ static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_pr
     mepa_rc rc = MEPA_RC_OK;
 
     if (enable) {
-        rc = lan8814_prbs7_init(dev);
-        if (rc < 0 ) {
-            return rc;
+        // Based on the tests, it looks like the prbs needs to be configured
+        // differently if we run internal compared to external looback. For the
+        // external loopback there is not need to run the need, init, loopback
+        // or clock configuration.
+        if (loopback == MEPA_PRBS_INTERNAL_LOOPBACK) {
+            rc = lan8814_prbs7_init(dev);
+            if (rc < 0 ) {
+                return rc;
+            }
+            rc = lan8814_prbs7_loopback(dev);
+            if (rc < 0 ) {
+                return rc;
+            }
+            rc = lan8814_prbs7_clk(dev, clk);
+            if (rc < 0 ) {
+                return rc;
+            }
         }
-        rc = lan8814_prbs7_loopback(dev, loopback);
-        if (rc < 0 ) {
-            return rc;
-        }
-        rc = lan8814_prbs7_clk(dev, clk);
-        if (rc < 0 ) {
-            return rc;
-        }
+
         rc = lan8814_prbs7_enable(dev);
         if (rc < 0 ) {
             return rc;
@@ -1544,7 +1549,9 @@ static mepa_rc lan8814_prbs7_set(mepa_device_t *dev, mepa_bool_t enable, mepa_pr
         }
 
         //QSGMII Hard Reset
-        (void)EP_WR(dev, LAN8814_QSGMII_HARD_RESET, 0x1);
+        if (loopback == MEPA_PRBS_INTERNAL_LOOPBACK) {
+            (void)EP_WR(dev, LAN8814_QSGMII_HARD_RESET, 0x1);
+        }
     }
 
     return MEPA_RC_OK;
