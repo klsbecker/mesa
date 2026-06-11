@@ -113,7 +113,8 @@ typedef int64_t phy25g_timeinterval_t;
  * \brief Timestamp block clock frequencies
  **/
 typedef enum {
-    LAN80XX_PHY_TS_CLOCK_FREQ_25M, /** 25 MHz */
+    LAN80XX_PHY_TS_CLOCK_FREQ_25M,    /**< 25 MHz */
+    LAN80XX_PHY_TS_CLOCK_FREQ_50M,    /**< 50 MHz */
     LAN80XX_PHY_TS_CLOCK_FREQ_125M,   /**< 125 MHz */
     LAN80XX_PHY_TS_CLOCK_FREQ_15625M, /**< 156.25 MHz */
     LAN80XX_PHY_TS_CLOCK_FREQ_200M,   /**< 200 MHz */

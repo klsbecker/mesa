@@ -185,6 +185,7 @@ static mepa_rc lan80xx_ts_init_conf_get(mepa_device_t *dev, mepa_ts_init_conf_t 
     rc =  lan80xx_phy_ts_init_conf_get(dev, data->port_no, &ts_init_done, &init_conf);
 
     if (ts_init_done == TRUE) {
+        ts_init_conf->clk_freq          = init_conf.clk_freq;
         switch (init_conf.clk_src) {
         case LAN80XX_PHY_TS_CLOCK_SRC_SYSREFCLK:
             ts_init_conf->clk_src = MEPA_TS_CLOCK_SRC_INTERNAL;
@@ -202,13 +203,21 @@ static mepa_rc lan80xx_ts_init_conf_get(mepa_device_t *dev, mepa_ts_init_conf_t 
             ts_init_conf->clk_src = MEPA_TS_CLOCK_SRC_FROM_RX_PORT3;
             break;
         case LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_25MHZ:
-            ts_init_conf->clk_src = MEPA_TS_CLOCK_SRC_EXTERNAL;
+            ts_init_conf->clk_src  = MEPA_TS_CLOCK_SRC_EXTERNAL;
+            ts_init_conf->clk_freq = MEPA_TS_CLOCK_FREQ_25M;
+            break;
+        case LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_50MHZ:
+            ts_init_conf->clk_src  = MEPA_TS_CLOCK_SRC_EXTERNAL;
+            ts_init_conf->clk_freq = MEPA_TS_CLOCK_FREQ_50M;
+            break;
+        case LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_125MHZ:
+            ts_init_conf->clk_src  = MEPA_TS_CLOCK_SRC_EXTERNAL;
+            ts_init_conf->clk_freq = MEPA_TS_CLOCK_FREQ_125M;
             break;
         default:
             T_E(MEPA_TRACE_GRP_TS, "Not a valide clock src %s:  %d\n", __func__, ts_init_conf->clk_src);
             /* We don't return error here, as get function just fetch existing config */
         }
-        ts_init_conf->clk_freq          = init_conf.clk_freq;
         ts_init_conf->rx_ts_len         = init_conf.rx_ts_len == LAN80XX_PHY_TS_RX_TIMESTAMP_LEN_30BIT ? MEPA_TS_RX_TIMESTAMP_LEN_30BIT : MEPA_TS_RX_TIMESTAMP_LEN_32BIT;
         ts_init_conf->rx_ts_pos         = init_conf.rx_ts_pos == LAN80XX_PHY_TS_RX_TIMESTAMP_POS_AT_END ? MEPA_TS_RX_TIMESTAMP_POS_AT_END : MEPA_TS_RX_TIMESTAMP_POS_IN_PTP;
         ts_init_conf->tx_fifo_mode      = init_conf.tx_fifo_mode;
@@ -260,7 +269,17 @@ static mepa_rc lan80xx_ts_init_conf_set(mepa_device_t *dev, const mepa_ts_init_c
         break;
     case MEPA_TS_CLOCK_SRC_EXT_1588_REF_CLOCK:
     case MEPA_TS_CLOCK_SRC_EXTERNAL:
-        init_conf.clk_src = LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_25MHZ;
+        if (ts_init_conf->clk_freq == MEPA_TS_CLOCK_FREQ_125M) {
+            init_conf.clk_src = LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_125MHZ;
+        } else if (ts_init_conf->clk_freq == MEPA_TS_CLOCK_FREQ_50M) {
+            init_conf.clk_src = LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_50MHZ;
+        } else if (ts_init_conf->clk_freq == MEPA_TS_CLOCK_FREQ_25M) {
+            init_conf.clk_src = LAN80XX_PHY_TS_CLOCK_SRC_EXTERNAL_25MHZ;
+        } else {
+            T_E(MEPA_TRACE_GRP_TS, "Unsupported external clk_freq %d for external clk_src\n", ts_init_conf->clk_freq);
+            MEPA_EXIT(dev);
+            return MEPA_RC_ERROR;
+        }
         break;
 
     default:

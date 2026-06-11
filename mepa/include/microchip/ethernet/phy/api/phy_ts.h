@@ -33,6 +33,7 @@ typedef struct {
 /** \brief  Timestamp block clock frequencies */
 typedef enum {
     MEPA_TS_CLOCK_FREQ_25M,    /**< 25 MHz */
+    MEPA_TS_CLOCK_FREQ_50M,    /**< 50 MHz */
     MEPA_TS_CLOCK_FREQ_125M,   /**< 125 MHz */
     MEPA_TS_CLOCK_FREQ_15625M, /**< 156.25 MHz */
     MEPA_TS_CLOCK_FREQ_200M,   /**< 200 MHz */
