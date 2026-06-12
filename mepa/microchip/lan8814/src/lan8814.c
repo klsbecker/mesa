@@ -2715,7 +2715,6 @@ static mepa_rc lan8814_debug_info_dump(struct mepa_device *dev,
 }
 #endif
 
-#if !defined(MEPA_LAN8814_LIGHT)
 // Open Alliance TC1 / TC12 DCQ Signal Quality Index(SQI) method.
 // Default values of MSE(mean square error) in SQI Table registers(1.232 - 1.238) is used for mapping signal quality indices 0-7.
 // SQI for pair A is returned from this function.
@@ -2749,7 +2748,6 @@ do_exit:
     MEPA_EXIT(dev);
     return rc;
 }
-#endif
 
 #if !defined(MEPA_LAN8814_LIGHT)
 static mepa_rc lan8814_start_of_frame_conf_set(mepa_device_t *dev, const mepa_start_of_frame_conf_t *const sof_conf)
@@ -3251,6 +3249,7 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_prbs_get = lan8814_prbs_get,
             .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
             .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
+            .mepa_driver_sqi_read = lan8814_sqi_read,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3259,7 +3258,6 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
             .mepa_driver_debug_info_dump = lan8814_debug_info_dump,
-            .mepa_driver_sqi_read = lan8814_sqi_read,
             .mepa_driver_start_of_frame_conf_set = lan8814_start_of_frame_conf_set,
             .mepa_driver_start_of_frame_conf_get = lan8814_start_of_frame_conf_get,
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
@@ -3305,6 +3303,7 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_prbs_get = lan8814_prbs_get,
             .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
             .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
+            .mepa_driver_sqi_read = lan8814_sqi_read,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3312,7 +3311,6 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
             .mepa_driver_debug_info_dump = lan8814_debug_info_dump,
-            .mepa_driver_sqi_read = lan8814_sqi_read,
             .mepa_driver_start_of_frame_conf_set = lan8814_start_of_frame_conf_set,
             .mepa_driver_start_of_frame_conf_get = lan8814_start_of_frame_conf_get,
             .mepa_driver_framepreempt_get = lan8814_framepreempt_get,
@@ -3356,6 +3354,7 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_prbs_get = lan8814_prbs_get,
             .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
             .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
+            .mepa_driver_sqi_read = lan8814_sqi_read,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3363,7 +3362,6 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
             .mepa_driver_debug_info_dump = lan8814_debug_info_dump,
-            .mepa_driver_sqi_read = lan8814_sqi_read,
             .mepa_driver_start_of_frame_conf_set = lan8814_start_of_frame_conf_set,
             .mepa_driver_start_of_frame_conf_get = lan8814_start_of_frame_conf_get,
             .mepa_driver_framepreempt_set = lan8814_framepreempt_set,
@@ -3408,6 +3406,7 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_prbs_get = lan8814_prbs_get,
             .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
             .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
+            .mepa_driver_sqi_read = lan8814_sqi_read,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3416,7 +3415,6 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
             .mepa_driver_debug_info_dump = lan8814_debug_info_dump,
-            .mepa_driver_sqi_read = lan8814_sqi_read,
             .mepa_driver_start_of_frame_conf_set = lan8842_start_of_frame_conf_set,
             .mepa_driver_start_of_frame_conf_get = lan8814_start_of_frame_conf_get,
             .mepa_driver_framepreempt_set = lan8814_framepreempt_set,
@@ -3461,6 +3459,7 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_prbs_get = lan8814_prbs_get,
             .mepa_driver_prbs_monitor_set = lan8814_prbs_monitor_set,
             .mepa_driver_prbs_monitor_get = lan8814_prbs_monitor_get,
+            .mepa_driver_sqi_read = lan8814_sqi_read,
 #if !defined MEPA_LAN8814_LIGHT
             .mepa_driver_eee_mode_conf_set = lan8814_eee_mode_conf_set,
             .mepa_driver_eee_mode_conf_get = lan8814_eee_mode_conf_get,
@@ -3468,7 +3467,6 @@ mepa_drivers_t mepa_lan8814_driver_init(void)
             .mepa_driver_synce_clock_conf_set = lan8814_recovered_clk_set,
             .mepa_driver_isolate_mode_conf = lan8814_isolate_mode_conf,
             .mepa_driver_debug_info_dump = lan8814_debug_info_dump,
-            .mepa_driver_sqi_read = lan8814_sqi_read,
             .mepa_driver_start_of_frame_conf_set = lan8842_start_of_frame_conf_set,
             .mepa_driver_start_of_frame_conf_get = lan8814_start_of_frame_conf_get,
             .mepa_driver_framepreempt_set = lan8814_framepreempt_set,
