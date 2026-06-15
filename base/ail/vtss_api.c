@@ -518,6 +518,21 @@ static void vtss_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
     *buf->ss.buf.end = '\0';
 }
 
+/* Flush any trailing format text (after the last conversion specifier) and
+ * forward the finished buffer to the trace callout. Kept type-independent so
+ * the per-type trace functions don't each inline this tail. */
+static void vtss_trace_fmt_finish(const vtss_trace_layer_t layer,
+                                  const vtss_trace_group_t group,
+                                  const vtss_trace_level_t level,
+                                  const char              *file,
+                                  const int                line,
+                                  const char              *func,
+                                  lmu_fmt_state_t         *state)
+{
+    lmu_ss_fmt_last(state);
+    vtss_callout_trace_printf(layer, group, level, file, line, func, state->ss->buf.begin);
+}
+
 #define VTSS_TRACE_TYPE_X(TYPE, BASE, SINGLE, FIRST, LAST)                                         \
     void SINGLE(const vtss_trace_layer_t layer, const vtss_trace_group_t group,                    \
                 const vtss_trace_level_t level, const char *file, const int line,                  \
@@ -527,9 +542,7 @@ static void vtss_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
         if (vtss_trace_conf[group].level[layer] >= level) {                                        \
             vtss_trace_buf_init(&lmu_fmt_state__, fmt);                                            \
             BASE(&lmu_fmt_state__.state, val);                                                     \
-            lmu_ss_fmt_last(&lmu_fmt_state__.state);                                               \
-            vtss_callout_trace_printf(layer, group, level, file, line, func,                       \
-                                      lmu_fmt_state__.ss.buf.begin);                               \
+            vtss_trace_fmt_finish(layer, group, level, file, line, func, &lmu_fmt_state__.state);  \
         }                                                                                          \
     }                                                                                              \
     BOOL FIRST(const vtss_trace_layer_t layer, const vtss_trace_group_t group,                     \
@@ -548,8 +561,7 @@ static void vtss_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
               lmu_fmt_state_t *state, const TYPE val)                                              \
     {                                                                                              \
         BASE(state, val);                                                                          \
-        lmu_ss_fmt_last(state);                                                                    \
-        vtss_callout_trace_printf(layer, group, level, file, line, func, state->ss->buf.begin);    \
+        vtss_trace_fmt_finish(layer, group, level, file, line, func, state);                       \
     }
 VTSS_TRACE_TYPES
 #undef VTSS_TRACE_TYPE_X
