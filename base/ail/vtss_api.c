@@ -527,6 +527,7 @@ static void vtss_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
         if (vtss_trace_conf[group].level[layer] >= level) {                                        \
             vtss_trace_buf_init(&lmu_fmt_state__, fmt);                                            \
             BASE(&lmu_fmt_state__.state, val);                                                     \
+            lmu_ss_fmt_last(&lmu_fmt_state__.state);                                               \
             vtss_callout_trace_printf(layer, group, level, file, line, func,                       \
                                       lmu_fmt_state__.ss.buf.begin);                               \
         }                                                                                          \
@@ -547,6 +548,7 @@ static void vtss_trace_buf_init(lmu_fmt_state_buf128_t *buf, const char *fmt)
               lmu_fmt_state_t *state, const TYPE val)                                              \
     {                                                                                              \
         BASE(state, val);                                                                          \
+        lmu_ss_fmt_last(state);                                                                    \
         vtss_callout_trace_printf(layer, group, level, file, line, func, state->ss->buf.begin);    \
     }
 VTSS_TRACE_TYPES
