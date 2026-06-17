@@ -19,6 +19,8 @@
   * VSC8254/56/57/58 (Malibu-10) repeater mode now passes traffic at 10/100/1000 Mbps. The driver sets the SerDes rate to 1.25 Gbps (`VTSS_RPTR_RATE_1_25`) for 1G-class SFPs in repeater mode; previously the SerDes stayed at the default 10.3125 Gbps and could not link to a sub-10G partner.
   * Fixed Malibu 10G I2C bus-busy detection -- the read path truncated the status `u16` to `u8` before checking bit 15, so the busy bit was never observed and callers could receive byte 0 of an in-flight transaction.
   * Malibu 10G `mepa_i2c_read()` / `mepa_i2c_write()` wrappers now honour `i2c_dev_addr` and `cnt` -- previously both fields were ignored, collapsing every call to a single-byte access against the last-configured slave id. Multi-byte SFP EEPROM accesses now work.
+  * LAN80XX: Fix for MACsec Pipeline clear failure when SecY deleted during like traffic
+  * LAN80XX: Fix PTP latency configuration
 
 ==== New features and API enhancements
 
@@ -30,6 +32,7 @@
   * The 10G poll callback (`phy_10g_poll`) now decodes the SGMII partner page on every poll, re-runs `vtss_phy_10g_sgmii_mode_set()` on partner-speed change, and reports the resolved partner state through the standard `mepa_status_t` -- no application-side change required beyond calling `mepa_poll()`.
   * 1G Copper SFP (CuSFP) support on VSC8254/56/57/58: with the Malibu-10 I2C master fixes above, the module's internal PHY can be reconfigured into SGMII over I2C, letting the CuSFP run in non-repeater `VTSS_PHY_1G_MODE` with the Line/Host MAC, MACsec and 1588 blocks in the datapath.
   * Malibu-10 (VSC8254/56/57/58) legacy PHY interrupt handling: 1G PCS link-down / out-of-sync events can now generate a hardware interrupt on a GPIO, enabled via `vtss_phy_10g_extended2_event_enable_set()` together with `vtss_phy_10g_gpio_mode_set()`. Added `vtss_phy_10g_gpio_aggr_table_get()` / `vtss_phy_10g_gpio_aggr_table_set()` to configure the per-aggregator channel-to-GPIO interrupt routing table.
+  * Extend LAN80XX to support external clocl as PTP LTC Clock source
 
 ==== Known limitations
 
