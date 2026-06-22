@@ -107,14 +107,24 @@ typedef mesa_rc (*mesa_reg_write_t)(const mesa_chip_no_t chip_no,
                                     const uint32_t       addr,
                                     const uint32_t       value);
 
-// SPI read function
+// SPI read function for accessing the PHY that sits on the port
+// port_no [IN]  Port number
+// ctrl_idx [IN] SPI controller index
+// cs [IN]       Chip select
+// addr [IN]     SPI address
+// data [OUT]    Data that is read
 typedef mesa_rc (*mesa_spi_read_t)(const mesa_port_no_t port_no,
                                    const uint8_t        ctrl_idx,
                                    const uint8_t        cs,
                                    const uint32_t       addr,
                                    uint32_t *const      data);
 
-// SPI write function
+// SPI write function for accessing the PHY that sits on the port
+// port_no [IN]  Port number
+// ctrl_idx [IN] SPI controller index
+// cs [IN]       Chip select
+// addr [IN]     SPI address
+// data [IN]     Data that is written
 typedef mesa_rc (*mesa_spi_write_t)(const mesa_port_no_t port_no,
                                     const uint8_t        ctrl_idx,
                                     const uint8_t        cs,
