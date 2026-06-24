@@ -8,8 +8,12 @@
 
 #include "meba_generic.h"
 
-static const int64_t clk_mhz[VTSS_PHY_TS_CLOCK_FREQ_MAX] = {125000000LL, 156250000LL, 200000000LL,
-                                                            250000000LL, 500000000LL};
+static const int64_t clk_mhz[MEPA_TS_CLOCK_FREQ_MAX] = {
+    [MEPA_TS_CLOCK_FREQ_25M] = 25000000LL,   [MEPA_TS_CLOCK_FREQ_50M] = 50000000LL,
+    [MEPA_TS_CLOCK_FREQ_125M] = 125000000LL, [MEPA_TS_CLOCK_FREQ_15625M] = 156250000LL,
+    [MEPA_TS_CLOCK_FREQ_200M] = 200000000LL, [MEPA_TS_CLOCK_FREQ_250M] = 250000000LL,
+    [MEPA_TS_CLOCK_FREQ_500M] = 500000000LL,
+};
 
 static inline mesa_rc meba_conf_get_hex(meba_inst_t inst, const char *tag, int *value)
 {
