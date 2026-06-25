@@ -351,136 +351,136 @@ typedef enum {
 #define  VTSS_PHY_TS_LATENCY_IDX_MODE_MAX VTSS_PHY_TS_OPER_MODE_INV
 
 #ifdef VTSS_CHIP_10G_PHY
-static  u32 latency_ingr_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 112,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 109,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 107, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 106,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 100, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 112,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 109,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 107, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 106,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 100, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 155,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 152,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 150, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 149,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 143 /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 155,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 152,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 150, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 149,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 143 /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 0
+        [MEPA_TS_CLOCK_FREQ_125M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 0,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 0
     }
 };
-static  u32 latency_egr_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 200,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 202,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 204, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 206,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 212, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 200,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 202,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 204, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 206,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 212, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 207,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 210,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 211, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 213,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 219 /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 207,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 210,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 211, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 213,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 219 /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 0,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 0
+        [MEPA_TS_CLOCK_FREQ_125M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 0,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 0,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 0
     }
 };
 
 /* Latency values for Gen2 10G PHYs */
-static  u32 latency_ingr_gen2_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_gen2_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 114, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 114,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 114, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 114,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 114, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 114, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 114,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 114, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 114,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 114, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 148, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 148, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 150, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 148,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 150, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 148, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 148, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 150, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 148,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 150, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 1177, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 1177,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 1177, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 1177,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 1177, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 1177, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 1177,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 1177, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 1177,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 1177, /* To be determined */
     }
 };
 
-static  u32 latency_egr_gen2_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_gen2_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 200, /* To Be Determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 200,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 200, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 200,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 200, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 200, /* To Be Determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 200,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 200, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 200,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 200, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 215, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 215, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 213, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 215,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 213, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 215, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 215, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 213, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 215,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 213, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 2489, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 2489,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 2489, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 2489,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 2489, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 2489, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 2489,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 2489, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 2489,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 2489, /* To be determined */
     }
 };
 
 /* Latency values for Gen2 10G PHYs with MACsec enabled */
-static  u32 latency_ingr_macsec_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_macsec_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 439, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 439,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 439, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 439,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 439, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 439, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 439,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 439, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 439,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 439, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 480, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 480, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 480, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 480,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 481, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 480, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 480, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 480, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 480,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 481, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 3539, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 3539,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 3539, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 3539,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 3539, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 3539, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 3539,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 3539, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 3539,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 3539, /* To be determined */
     }
 };
 
-static  u32 latency_egr_macsec_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_macsec_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 531, /* To Be Determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 531,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 531, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 531,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 531, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 531, /* To Be Determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 531,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 531, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 531,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 531, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 560, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 560, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 560, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 560,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 560, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 560, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 560, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 560, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 560,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 560, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 4672, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 4672,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 4672, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 4672,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 4672, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 4672, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 4672,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 4672, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 4672,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 4672, /* To be determined */
     }
 };
 
@@ -491,182 +491,182 @@ static u32 stall_latency_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX] = {
 };
 
 /* Latency values for 8257/8258(malibu) 10G PHYs n-phase on*/
-static  u32 latency_ingr_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 144,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 144,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 144,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 144,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 144,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 144,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 144,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 144,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 144,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 144,
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 157, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 158, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 159,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 159,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 159,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 157, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 158, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 159,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 159,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 159,
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 1213,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 1213,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 1213,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 1213,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 1213,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 1213,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 1213,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 1213,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 1213,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 1213,
     }
 };
 
-static  u32 latency_egr_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 183,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 183,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 183,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 183,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 183,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 183,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 183,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 183,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 183,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 183,
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 214,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 218,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 222,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 222,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 222,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 214,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 218,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 222,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 222,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 222,
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 2468,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 2468,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 2468,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 2468,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 2468,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 2468,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 2468,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 2468,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 2468,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 2468,
     }
 };
 
 /* Latency values for Malibu 10G PHYs with MACsec enabled */
-static  u32 latency_ingr_macsec_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_macsec_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 461,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 461,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 461,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 461,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 461,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 461,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 461,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 461,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 461,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 461,
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 489, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 489, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 491,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 491,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 491,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 489, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 489, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 491,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 491,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 491,
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 3582,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 3582,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 3582,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 3582,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 3582,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 3582,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 3582,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 3582,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 3582,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 3582,
     }
 };
 
-static  u32 latency_egr_macsec_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_macsec_malibu_10g[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 518,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 518,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 518,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 518,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 539,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 518,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 518,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 518,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 518,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 539,
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 559,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 563,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 560,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 568,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 560,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 559,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 563,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 560,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 568,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 560,
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 4675,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 4675,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 4675,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 4675,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 4675,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 4675,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 4675,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 4675,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 4675,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 4675,
     }
 };
 
 /* Latency values for 8490 RevC 10G PHYs */
-static  u32 latency_ingr_gen2_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_gen2_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 128, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 128,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 128, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 128,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 128, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 128, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 128,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 128, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 128,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 128, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 163, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 163, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 163, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 163,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 163, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 163, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 163, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 163, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 163,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 163, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 1211, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 1211,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 1211, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 1211,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 1211, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 1211, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 1211,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 1211, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 1211,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 1211, /* To be determined */
     }
 };
 
-static  u32 latency_egr_gen2_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_gen2_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 210, /* To Be Determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 210,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 210, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 210,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 210, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 210, /* To Be Determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 210,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 210, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 210,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 210, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 223, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 223, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 223, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 223,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 223, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 223, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 223, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 223, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 223,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 223, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 2480, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 2480,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 2480, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 2480,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 2480, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 2480, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 2480,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 2480, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 2480,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 2480, /* To be determined */
     }
 };
 
 /* Latency values for 8490 RevC 10G PHYs with MACsec enabled */
-static  u32 latency_ingr_macsec_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_ingr_macsec_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 450, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 450,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 450, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 450,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 450, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 450, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 450,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 450, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 450,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 450, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 494, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 494, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 494, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 494,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 494, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 494, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 494, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 494, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 494,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 494, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 3579, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 3579,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 3579, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 3579,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 3579, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 3579, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 3579,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 3579, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 3579,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 3579, /* To be determined */
     }
 };
 
-static  u32 latency_egr_macsec_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS_PHY_TS_CLOCK_FREQ_MAX] = {
+static  u32 latency_egr_macsec_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][MEPA_TS_CLOCK_FREQ_MAX] = {
     {   /* LAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 538, /* To Be Determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 538,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 538, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 538,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 538, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 538, /* To Be Determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 538,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 538, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 538,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 538, /* To Be determined */
     }, { /* WAN Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 568, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 568, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 568, /* To Be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 568,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 568, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 568, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 568, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_200M]   = 568, /* To Be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 568,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 568, /* To Be determined */
     }, { /* 1G Mode */
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 4688, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 4688,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 4688, /* To be determined */
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 4688,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 4688, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_125M]   = 4688, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_15625M] = 4688,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 4688, /* To be determined */
+        [MEPA_TS_CLOCK_FREQ_250M]   = 4688,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 4688, /* To be determined */
     }
 };
 
@@ -674,27 +674,27 @@ static  u32 latency_egr_macsec_10g_8490_C[VTSS_PHY_TS_LATENCY_IDX_MODE_MAX][VTSS
 
 #ifdef VTSS_CHIP_CU_PHY
 /* Only for LAN mode */
-static  u32 latency_ingr_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */] = {
-    [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 12,
-    [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 10,
-    [VTSS_PHY_TS_CLOCK_FREQ_200M]   =  8,
-    [VTSS_PHY_TS_CLOCK_FREQ_250M]   =  6,
+static  u32 latency_ingr_1g[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */] = {
+    [MEPA_TS_CLOCK_FREQ_125M]   = 12,
+    [MEPA_TS_CLOCK_FREQ_15625M] = 10,
+    [MEPA_TS_CLOCK_FREQ_200M]   =  8,
+    [MEPA_TS_CLOCK_FREQ_250M]   =  6,
 };
-static  u32 latency_egr_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */] = {
-    [VTSS_PHY_TS_CLOCK_FREQ_125M]   =  0,
-    [VTSS_PHY_TS_CLOCK_FREQ_15625M] =  2,
-    [VTSS_PHY_TS_CLOCK_FREQ_200M]   =  5,
-    [VTSS_PHY_TS_CLOCK_FREQ_250M]   =  6,
+static  u32 latency_egr_1g[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */] = {
+    [MEPA_TS_CLOCK_FREQ_125M]   =  0,
+    [MEPA_TS_CLOCK_FREQ_15625M] =  2,
+    [MEPA_TS_CLOCK_FREQ_200M]   =  5,
+    [MEPA_TS_CLOCK_FREQ_250M]   =  6,
 };
 
 /* Latency values for copper PHYs, MACSEC = OFF */
-static  u32 latency_ingr_gen2_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
+static  u32 latency_ingr_gen2_1g[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
     {  235, 304, 2023 /* 1000,100,10 speeds */},
     {  235, 304, 2023 /* 1000,100,10 speeds */},
     {  235, 304, 2023 /* 1000,100,10 speeds */},
     {  235, 304, 2023 /* 1000,100,10 speeds */},
 };
-static  u32 latency_egr_gen2_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
+static  u32 latency_egr_gen2_1g[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
     { 1245, 12516, 125444  /* 1000,100,10 speeds */},
     { 1245, 12516, 125444  /* 1000,100,10 speeds */},
     { 1245, 12516, 125444  /* 1000,100,10 speeds */},
@@ -702,13 +702,13 @@ static  u32 latency_egr_gen2_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 
 };
 
 /* Latency values for fiber PHYs, MACSEC = OFF*/
-static  u32 latency_ingr_gen2_1g_fbr[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
+static  u32 latency_ingr_gen2_1g_fbr[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
     {  133, 197 /* 1000,100 speeds */},
     {  133, 197 /* 1000,100 speeds */},
     {  133, 197 /* 1000,100 speeds */},
     {  133, 197 /* 1000,100 speeds */},
 };
-static  u32 latency_egr_gen2_1g_fbr[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
+static  u32 latency_egr_gen2_1g_fbr[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
     { 1250, 12537 },
     { 1250, 12537 },
     { 1250, 12537 },
@@ -716,14 +716,14 @@ static  u32 latency_egr_gen2_1g_fbr[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't supp
 };
 
 /* Latency values for copper PHYs, MACSEC = ON */
-static  u32 latency_ingr_gen2_1g_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
+static  u32 latency_ingr_gen2_1g_macsec[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
     {  2492, 22300, 222009  /* 1000,100,10 speeds */},
     {  2492, 22300, 222009  /* 1000,100,10 speeds */},
     {  2492, 22300, 222009  /* 1000,100,10 speeds */},
     {  2492, 22300, 222009  /* 1000,100,10 speeds */},
 };
 
-static  u32 latency_egr_gen2_1g_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
+static  u32 latency_egr_gen2_1g_macsec[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
     { 3414, 34760, 347844 /* 1000,100,10 speeds */},
     { 3414, 34760, 347844 /* 1000,100,10 speeds */},
     { 3414, 34760, 347844 /* 1000,100,10 speeds */},
@@ -732,14 +732,14 @@ static  u32 latency_egr_gen2_1g_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't s
 
 
 /* Latency values for fiber PHYs, MACSEC = ON */
-static  u32 latency_ingr_gen2_1g_fbr_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
+static  u32 latency_ingr_gen2_1g_fbr_macsec[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
     {  2383, 22192  /* 1000,100 speeds */},
     {  2383, 22192  /* 1000,100 speeds */},
     {  2383, 22192  /* 1000,100 speeds */},
     {  2383, 22192  /* 1000,100 speeds */},
 };
 
-static  u32 latency_egr_gen2_1g_fbr_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
+static  u32 latency_egr_gen2_1g_fbr_macsec[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][2] = {
     { 3420, 34780 /* 1000,100 speeds */},
     { 3420, 34780 /* 1000,100 speeds */},
     { 3420, 34780 /* 1000,100 speeds */},
@@ -747,7 +747,7 @@ static  u32 latency_egr_gen2_1g_fbr_macsec[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don
 };
 
 /* Stall latency when MACSEC =ON */
-static  u32 stall_latency_egr_gen2_1g[VTSS_PHY_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
+static  u32 stall_latency_egr_gen2_1g[MEPA_TS_CLOCK_FREQ_MAX - 1 /* don't support 500MHz */][3] = {
     { 1536, 15360 , 153600/* 1000,100,10 speeds */},
     { 1536, 15360 , 153600},
     { 1536, 15360 , 153600},
@@ -1975,22 +1975,22 @@ static vtss_rc vtss_phy_ts_port_init(vtss_state_t *vtss_state,
     u32  mii_protocol = VTSS_F_PTP_IP_1588_TOP_CFG_STAT_INTERFACE_CTL_MII_PROTOCOL(1);  /* initialize to reserved value */
 
     u8  ltc_seq_a[] = {
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 8,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 6,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 5,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 4,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 2,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 8,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 6,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 5,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 4,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 2,
     };
 #ifdef VTSS_CHIP_CU_PHY
     u32 def_spd_indx = 0;
     u32 stall_latency = 0;
 #endif
     u32 ltc_seq_e[] = {
-        [VTSS_PHY_TS_CLOCK_FREQ_125M]   = 0L,
-        [VTSS_PHY_TS_CLOCK_FREQ_15625M] = 400000L,
-        [VTSS_PHY_TS_CLOCK_FREQ_200M]   = 0L,
-        [VTSS_PHY_TS_CLOCK_FREQ_250M]   = 0L,
-        [VTSS_PHY_TS_CLOCK_FREQ_500M]   = 0L,
+        [MEPA_TS_CLOCK_FREQ_125M]   = 0L,
+        [MEPA_TS_CLOCK_FREQ_15625M] = 400000L,
+        [MEPA_TS_CLOCK_FREQ_200M]   = 0L,
+        [MEPA_TS_CLOCK_FREQ_250M]   = 0L,
+        [MEPA_TS_CLOCK_FREQ_500M]   = 0L,
     };
 
     VTSS_RC(vtss_phy_ts_register_access_type_get(vtss_state, port_no, &phy_type, &device_feature_status,
@@ -15928,7 +15928,7 @@ vtss_rc vtss_phy_ts_init(const vtss_inst_t               inst,
              (phy_type == VTSS_PHY_TYPE_8582) ||
              (phy_type == VTSS_PHY_TYPE_8584) ||
              (phy_type == VTSS_PHY_TYPE_8586)) &&
-            (conf->clk_freq == VTSS_PHY_TS_CLOCK_FREQ_500M)) {
+            (conf->clk_freq == MEPA_TS_CLOCK_FREQ_500M)) {
             rc = VTSS_RC_ERROR;
             VTSS_E("Clock frequency not supported for 1G, port_no %u", port_no);
             break;
@@ -16846,7 +16846,7 @@ vtss_rc vtss_phy_ts_phy_status_change_priv(vtss_state_t    *vtss_state,
     vtss_rc                 rc;
     vtss_phy_part_number_t phy_type;
     vtss_phy_port_state_t *ps;
-    vtss_phy_ts_clockfreq_t clk_id = 0;
+    mepa_ts_clock_freq_t   clk_id = 0;
     u8 spd_indx = 0;
 
     /*

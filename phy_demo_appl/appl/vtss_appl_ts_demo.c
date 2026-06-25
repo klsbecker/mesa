@@ -51,7 +51,7 @@ static vtss_rc vtss_1588_init_for_spi (const vtss_inst_t inst,  const vtss_port_
 
     do {
         /* reference clock frequency */
-        conf.clk_freq     = VTSS_PHY_TS_CLOCK_FREQ_15625M;
+        conf.clk_freq     = MEPA_TS_CLOCK_FREQ_15625M;
         /* Clock Source */
         conf.clk_src      = VTSS_PHY_TS_CLOCK_SRC_EXTERNAL;
         /* 10byte Full Tx timestamp */
@@ -2400,13 +2400,13 @@ static vtss_rc vtss_ptp_sample_clock(const vtss_inst_t inst,
 	/* ************************************************************************************ */
 
 #ifdef VTSS_CHIP_10G_PHY
-	conf.clk_freq	   = VTSS_PHY_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
+	conf.clk_freq	   = MEPA_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
 	conf.clk_src	   = VTSS_PHY_TS_CLOCK_SRC_EXTERNAL;		/* Clock Source - External for 10G */
 #elif defined VTSS_CHIP_CU_PHY  /* 1G PHY Config */
-	conf.clk_freq	   = VTSS_PHY_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
+	conf.clk_freq	   = MEPA_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
 	conf.clk_src	   = VTSS_PHY_TS_CLOCK_SRC_INTERNAL;		/* Clock Source */
-#else
-	conf.clk_freq	   = VTSS_PHY_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
+#else  
+	conf.clk_freq	   = MEPA_TS_CLOCK_FREQ_250M; 		/* reference clock frequency */
 	conf.clk_src	   = VTSS_PHY_TS_CLOCK_SRC_INTERNAL;		/* Clock Source */
 #endif
 	conf.rx_ts_pos	   = VTSS_PHY_TS_RX_TIMESTAMP_POS_IN_PTP;	/*	Rx timestamp in PTP reserved bytes */
@@ -2421,11 +2421,11 @@ static vtss_rc vtss_ptp_sample_clock(const vtss_inst_t inst,
         printf("\n %s :: %s :: %s \n",
 	    (conf.clk_src == VTSS_PHY_TS_CLOCK_SRC_INTERNAL ? "VTSS_PHY_TS_CLOCK_SRC_INTERNAL" :
 	     conf.clk_src == VTSS_PHY_TS_CLOCK_SRC_EXTERNAL ? "VTSS_PHY_TS_CLOCK_SRC_EXTERNAL" : "INVALID SRC"),
-            (conf.clk_freq == VTSS_PHY_TS_CLOCK_FREQ_125M ? "VTSS_PHY_TS_CLOCK_FREQ_125M" :
-             conf.clk_freq == VTSS_PHY_TS_CLOCK_FREQ_15625M ? "VTSS_PHY_TS_CLOCK_FREQ_15625M" :
-             conf.clk_freq == VTSS_PHY_TS_CLOCK_FREQ_200M ? "VTSS_PHY_TS_CLOCK_FREQ_200M" :
-             conf.clk_freq == VTSS_PHY_TS_CLOCK_FREQ_250M ? "VTSS_PHY_TS_CLOCK_FREQ_250M" :
-             conf.clk_freq == VTSS_PHY_TS_CLOCK_FREQ_500M ? "VTSS_PHY_TS_CLOCK_FREQ_500M" : "INVALID CLOCK Freq"),
+            (conf.clk_freq == MEPA_TS_CLOCK_FREQ_125M ? "MEPA_TS_CLOCK_FREQ_125M" : 
+             conf.clk_freq == MEPA_TS_CLOCK_FREQ_15625M ? "MEPA_TS_CLOCK_FREQ_15625M" : 
+             conf.clk_freq == MEPA_TS_CLOCK_FREQ_200M ? "MEPA_TS_CLOCK_FREQ_200M" : 
+             conf.clk_freq == MEPA_TS_CLOCK_FREQ_250M ? "MEPA_TS_CLOCK_FREQ_250M" : 
+             conf.clk_freq == MEPA_TS_CLOCK_FREQ_500M ? "MEPA_TS_CLOCK_FREQ_500M" : "INVALID CLOCK Freq"),
 	    (conf.rx_ts_pos == VTSS_PHY_TS_RX_TIMESTAMP_POS_IN_PTP ? "VTSS_PHY_TS_RX_TIMESTAMP_POS_IN_PTP" :
 	     conf.rx_ts_pos == VTSS_PHY_TS_RX_TIMESTAMP_POS_AT_END ? "VTSS_PHY_TS_RX_TIMESTAMP_POS_AT_END" : "INVALID TS POSITION"));
 

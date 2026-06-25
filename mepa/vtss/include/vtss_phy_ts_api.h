@@ -1592,16 +1592,6 @@ vtss_rc vtss_phy_ts_mode_get(const vtss_inst_t     inst,
 /**
  * \brief Timestamp block clock frequencies
  **/
-typedef enum {
-    VTSS_PHY_TS_CLOCK_FREQ_25M,   /**< 25 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_125M,   /**< 125 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_15625M, /**< 156.25 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_200M,   /**< 200 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_250M,   /**< 250 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_500M,   /**< 500 MHz */
-    VTSS_PHY_TS_CLOCK_FREQ_MAX,    /**< MAX Freq */
-} vtss_phy_ts_clockfreq_t;
-
 /**
  * \brief Clock input source
  * \note Valid Clock Sorces:
@@ -1696,7 +1686,7 @@ typedef u32 vtss_phy_ts_8487_xaui_sel_t; /**< XAUI Lane-0 or Lane-1 or both */
  * \brief Defines the initial parameters to be passed to init function
  **/
 typedef struct {
-    vtss_phy_ts_clockfreq_t           clk_freq;  /**< reference clock frequency */
+    mepa_ts_clock_freq_t              clk_freq;  /**< reference clock frequency */
     vtss_phy_ts_clock_src_t           clk_src;   /**< clock source          */
     vtss_phy_ts_rxtimestamp_pos_t     rx_ts_pos; /**< Rx timestamp position */
     vtss_phy_ts_rxtimestamp_len_t     rx_ts_len; /**< Rx timestamp length */

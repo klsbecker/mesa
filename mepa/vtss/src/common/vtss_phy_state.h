@@ -374,7 +374,7 @@ typedef struct {
     BOOL                             port_ena;
     vtss_port_no_t                   base_port; /* base port for multi-channel PHY */
     vtss_port_no_t                   alt_port;
-    vtss_phy_ts_clockfreq_t          clk_freq;  /* reference clock frequency */
+    mepa_ts_clock_freq_t             clk_freq;  /* reference clock frequency */
     vtss_phy_ts_clock_src_t          clk_src;   /* reference clock source */
     vtss_phy_ts_rxtimestamp_pos_t    rx_ts_pos; /* Rx timestamp position */
     vtss_phy_ts_rxtimestamp_len_t    rx_ts_len; /* Rx timestamp length */

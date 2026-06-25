@@ -12,7 +12,7 @@ mesa_rc meba_tod_phy_ts_clk_info(meba_inst_t           inst,
                                  mepa_timeinterval_t  *pps_load_delay,
                                  mepa_timeinterval_t  *pps_save_delay)
 {
-    *freq = VTSS_PHY_TS_CLOCK_FREQ_250M;
+    *freq = MEPA_TS_CLOCK_FREQ_250M;
     *src = VTSS_PHY_TS_CLOCK_SRC_INTERNAL;
     T_I(inst, "Ocelot board 250Mhz internal");
 
