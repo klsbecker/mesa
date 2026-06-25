@@ -1975,6 +1975,7 @@ static vtss_rc vtss_phy_ts_port_init(vtss_state_t *vtss_state,
     u32  mii_protocol = VTSS_F_PTP_IP_1588_TOP_CFG_STAT_INTERFACE_CTL_MII_PROTOCOL(1);  /* initialize to reserved value */
 
     u8  ltc_seq_a[] = {
+        [MEPA_TS_CLOCK_FREQ_50M]    = 20,
         [MEPA_TS_CLOCK_FREQ_125M]   = 8,
         [MEPA_TS_CLOCK_FREQ_15625M] = 6,
         [MEPA_TS_CLOCK_FREQ_200M]   = 5,
@@ -1986,6 +1987,7 @@ static vtss_rc vtss_phy_ts_port_init(vtss_state_t *vtss_state,
     u32 stall_latency = 0;
 #endif
     u32 ltc_seq_e[] = {
+        [MEPA_TS_CLOCK_FREQ_50M]    = 0L,
         [MEPA_TS_CLOCK_FREQ_125M]   = 0L,
         [MEPA_TS_CLOCK_FREQ_15625M] = 400000L,
         [MEPA_TS_CLOCK_FREQ_200M]   = 0L,
