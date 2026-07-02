@@ -104,7 +104,7 @@ if File.exist? "#{$report_name}"
     run "rm -rf #{$report_name}"
 end
 sys "mkdir #{$report_name}"
-sys "cp -r static_analysis_reports/* #{$report_name}"
+sys "cp -r static_analysis_reports/* #{$report_name}" if File.exist? "static_analysis_reports"
 
 raise "No ws folder" if not File.exist? "./ws"
 
